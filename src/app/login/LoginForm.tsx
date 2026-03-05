@@ -11,6 +11,8 @@ export function LoginForm() {
   const callbackUrl = searchParams.get("callbackUrl") ?? "/";
   const errorParam = searchParams.get("error");
   const domainError = errorParam === "AccessDenied";
+  const oauthSigninError = errorParam === "OAuthSignin";
+  const oauthCallbackError = errorParam === "OAuthCallback";
 
   function handleSignIn() {
     setError("");
@@ -30,10 +32,20 @@ export function LoginForm() {
         </p>
         {domainError && (
           <p className="mb-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
-            Only @team-voc.com accounts can sign in to this site.
+            Your account&apos;s domain is not allowed. Only the configured domains can sign in (e.g. @team-voc.com). If you use an @…onmicrosoft.com address, add that domain to ALLOWED_DOMAIN in your deployment settings.
           </p>
         )}
-        {error && !domainError && (
+        {oauthSigninError && (
+          <p className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-800">
+            Sign-in could not be started. Check that Azure AD is configured: in your deployment (e.g. Vercel → Project → Settings → Environment Variables) set <strong>AZURE_AD_CLIENT_ID</strong>, <strong>AZURE_AD_CLIENT_SECRET</strong>, and <strong>AZURE_AD_TENANT_ID</strong>. In the Azure app registration, add the redirect URI: <strong>https://your-site.vercel.app/api/auth/callback/azure-ad</strong> (use your actual site URL).
+          </p>
+        )}
+        {oauthCallbackError && (
+          <p className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-800">
+            Sign-in failed after Microsoft redirected back. Check: (1) In Azure → Authentication, the redirect URI is exactly <strong>https://teamvoc-updates.vercel.app/api/auth/callback/azure-ad</strong> (no trailing slash). (2) In Vercel, <strong>NEXTAUTH_URL</strong> is exactly <strong>https://teamvoc-updates.vercel.app</strong>. (3) The client secret in Vercel is correct and not expired. Try creating a new secret in Azure and updating <strong>AZURE_AD_CLIENT_SECRET</strong>.
+          </p>
+        )}
+        {error && !domainError && !oauthSigninError && !oauthCallbackError && (
           <p className="mb-4 text-sm text-red-600">{error}</p>
         )}
         <button

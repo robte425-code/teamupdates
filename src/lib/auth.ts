@@ -1,12 +1,25 @@
 import { NextAuthOptions } from "next-auth";
 import AzureADProvider from "next-auth/providers/azure-ad";
 
+const clientId = process.env.AZURE_AD_CLIENT_ID;
+const clientSecret = process.env.AZURE_AD_CLIENT_SECRET;
+const tenantId = process.env.AZURE_AD_TENANT_ID ?? "common";
+
+if (!clientId?.trim() || !clientSecret?.trim()) {
+  throw new Error(
+    "Azure AD is not configured. Set AZURE_AD_CLIENT_ID and AZURE_AD_CLIENT_SECRET in your environment (e.g. Vercel project settings)."
+  );
+}
+
 const adminEmails = (process.env.ADMIN_EMAILS ?? "")
   .split(",")
   .map((e) => e.trim().toLowerCase())
   .filter(Boolean);
 
-const allowedDomain = (process.env.ALLOWED_DOMAIN ?? "team-voc.com").trim().toLowerCase();
+const allowedDomains = (process.env.ALLOWED_DOMAIN ?? "team-voc.com")
+  .split(",")
+  .map((d) => d.trim().toLowerCase())
+  .filter(Boolean);
 
 function isAdmin(email: string | null | undefined): boolean {
   if (!email) return false;
@@ -16,27 +29,42 @@ function isAdmin(email: string | null | undefined): boolean {
 function isAllowedDomain(email: string | null | undefined): boolean {
   if (!email) return false;
   const domain = email.split("@")[1]?.toLowerCase();
-  return domain === allowedDomain;
+  return domain ? allowedDomains.includes(domain) : false;
 }
 
 export const authOptions: NextAuthOptions = {
   session: { strategy: "jwt", maxAge: 30 * 24 * 60 * 60 },
-  pages: { signIn: "/login" },
+  pages: { signIn: "/login", error: "/login" },
   providers: [
     AzureADProvider({
-      clientId: process.env.AZURE_AD_CLIENT_ID!,
-      clientSecret: process.env.AZURE_AD_CLIENT_SECRET!,
-      tenantId: process.env.AZURE_AD_TENANT_ID ?? "common",
+      clientId: clientId.trim(),
+      clientSecret: clientSecret.trim(),
+      tenantId: tenantId.trim(),
       authorization: {
         params: {
           scope: "openid profile email",
         },
       },
+      profile(profile: { sub?: string; name?: string; email?: string; preferred_username?: string }, tokens) {
+        return {
+          id: profile.sub,
+          name: profile.name ?? null,
+          email: profile.email ?? profile.preferred_username ?? null,
+          image: null,
+        };
+      },
     }),
   ],
   callbacks: {
     async signIn({ user }) {
-      if (!isAllowedDomain(user.email)) {
+      const email = user?.email ?? null;
+      if (!isAllowedDomain(email)) {
+        const domain = email ? email.split("@")[1] : "(no email)";
+        console.warn("[auth] Access denied: email domain not allowed", {
+          domain,
+          email: email ? `${email.slice(0, 3)}***@${domain}` : "(missing)",
+          allowedDomains,
+        });
         return false;
       }
       return true;
