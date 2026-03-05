@@ -23,8 +23,14 @@ export function KeyDateForm({
   const [eventDate, setEventDate] = useState(
     initial?.eventDate ? format(new Date(initial.eventDate), "yyyy-MM-dd") : ""
   );
+  const [eventTime, setEventTime] = useState(
+    initial?.eventDate ? format(new Date(initial.eventDate), "HH:mm") : "09:00"
+  );
   useEffect(() => {
-    if (!initial?.eventDate) setEventDate(format(new Date(), "yyyy-MM-dd"));
+    if (!initial?.eventDate) {
+      setEventDate(format(new Date(), "yyyy-MM-dd"));
+      setEventTime("09:00");
+    }
   }, [initial?.eventDate]);
   const [title, setTitle] = useState(initial?.title ?? "");
   const [body, setBody] = useState(initial?.body ?? "");
@@ -35,25 +41,27 @@ export function KeyDateForm({
     e.preventDefault();
     setError("");
     setLoading(true);
+    const eventDateTime = `${eventDate}T${eventTime}`;
     try {
       if (isEdit && initial?.id) {
         const res = await fetch(`/api/key-dates/${initial.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ eventDate, title, text: body }),
+          body: JSON.stringify({ eventDate: eventDateTime, title, text: body }),
         });
         if (!res.ok) throw new Error(await res.text());
       } else {
         const res = await fetch("/api/key-dates", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ eventDate, title, text: body }),
+          body: JSON.stringify({ eventDate: eventDateTime, title, text: body }),
         });
         if (!res.ok) throw new Error(await res.text());
       }
       setTitle("");
       setBody("");
       setEventDate(format(new Date(), "yyyy-MM-dd"));
+      setEventTime("09:00");
       onSaved();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save");
@@ -71,17 +79,31 @@ export function KeyDateForm({
         {isEdit ? "Edit key date" : "Add key date"}
       </h3>
       <div className="space-y-3">
-        <div>
-          <label className="mb-0.5 block text-xs font-medium text-stone-500">
-            Event / due date
-          </label>
-          <input
-            type="date"
-            value={eventDate}
-            onChange={(e) => setEventDate(e.target.value)}
-            required
-            className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm"
-          />
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="mb-0.5 block text-xs font-medium text-stone-500">
+              Due date
+            </label>
+            <input
+              type="date"
+              value={eventDate}
+              onChange={(e) => setEventDate(e.target.value)}
+              required
+              className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm"
+            />
+          </div>
+          <div>
+            <label className="mb-0.5 block text-xs font-medium text-stone-500">
+              Time
+            </label>
+            <input
+              type="time"
+              value={eventTime}
+              onChange={(e) => setEventTime(e.target.value)}
+              required
+              className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm"
+            />
+          </div>
         </div>
         <div>
           <label className="mb-0.5 block text-xs font-medium text-stone-500">

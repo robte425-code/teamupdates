@@ -9,7 +9,7 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const items = await prisma.update.findMany({
-    orderBy: { date: "desc" },
+    orderBy: { date: "asc" },
   });
   return NextResponse.json(items);
 }
@@ -20,16 +20,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   const body = await req.json();
-  const { date, title, text } = body;
-  if (!date || !title || text === undefined) {
+  const { title, text } = body;
+  if (!title || text === undefined) {
     return NextResponse.json(
-      { error: "date, title, and text are required" },
+      { error: "title and text are required" },
       { status: 400 }
     );
   }
   const item = await prisma.update.create({
     data: {
-      date: new Date(date),
+      date: new Date(),
       title: String(title).trim(),
       body: String(text).trim(),
     },

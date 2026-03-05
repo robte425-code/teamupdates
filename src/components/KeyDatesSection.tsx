@@ -14,11 +14,9 @@ export type KeyDate = {
 
 function daysLeft(dateStr: string): number {
   const d = new Date(dateStr);
-  d.setHours(0, 0, 0, 0);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const diff = d.getTime() - today.getTime();
-  return Math.ceil(diff / (24 * 60 * 60 * 1000));
+  const now = Date.now();
+  const diffMs = d.getTime() - now;
+  return Math.ceil(diffMs / (24 * 60 * 60 * 1000));
 }
 
 export function KeyDatesSection({ showAddForm = true }: { showAddForm?: boolean }) {

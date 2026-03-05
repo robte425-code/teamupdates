@@ -4,6 +4,7 @@ import { useState } from "react";
 import { format } from "date-fns";
 import type { Update } from "./UpdatesSection";
 import { UpdateForm } from "./UpdateForm";
+import { BodyWithLinks } from "./BodyWithLinks";
 
 export function UpdateItem({
   item,
@@ -28,7 +29,7 @@ export function UpdateItem({
   if (editing) {
     return (
       <UpdateForm
-        initial={{ id: item.id, date: item.date, title: item.title, body: item.body }}
+        initial={{ id: item.id, title: item.title, body: item.body }}
         onSaved={() => {
           setEditing(false);
           onSaved();
@@ -50,7 +51,7 @@ export function UpdateItem({
           </time>
           <h3 className="mt-1 font-medium text-stone-900">{item.title}</h3>
           <div className="mt-2 text-sm text-stone-600">
-            {expanded ? item.body : bodyPreview}
+            <BodyWithLinks text={expanded ? item.body : bodyPreview} />
             {hasMore && (
               <button
                 type="button"

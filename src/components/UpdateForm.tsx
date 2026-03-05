@@ -1,11 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { format } from "date-fns";
+import { useState } from "react";
 
 type Initial = {
   id?: string;
-  date: string;
   title: string;
   body: string;
 };
@@ -20,12 +18,6 @@ export function UpdateForm({
   onCancel?: () => void;
 }) {
   const isEdit = !!initial?.id;
-  const [date, setDate] = useState(
-    initial?.date ? format(new Date(initial.date), "yyyy-MM-dd") : ""
-  );
-  useEffect(() => {
-    if (!initial?.date) setDate(format(new Date(), "yyyy-MM-dd"));
-  }, [initial?.date]);
   const [title, setTitle] = useState(initial?.title ?? "");
   const [body, setBody] = useState(initial?.body ?? "");
   const [loading, setLoading] = useState(false);
@@ -40,20 +32,19 @@ export function UpdateForm({
         const res = await fetch(`/api/updates/${initial.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ date, title, text: body }),
+          body: JSON.stringify({ title, text: body }),
         });
         if (!res.ok) throw new Error(await res.text());
       } else {
         const res = await fetch("/api/updates", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ date, title, text: body }),
+          body: JSON.stringify({ title, text: body }),
         });
         if (!res.ok) throw new Error(await res.text());
       }
       setTitle("");
       setBody("");
-      setDate(format(new Date(), "yyyy-MM-dd"));
       onSaved();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save");
@@ -71,18 +62,6 @@ export function UpdateForm({
         {isEdit ? "Edit update" : "Add update"}
       </h3>
       <div className="space-y-3">
-        <div>
-          <label className="mb-0.5 block text-xs font-medium text-stone-500">
-            Date
-          </label>
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            required
-            className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm"
-          />
-        </div>
         <div>
           <label className="mb-0.5 block text-xs font-medium text-stone-500">
             Title

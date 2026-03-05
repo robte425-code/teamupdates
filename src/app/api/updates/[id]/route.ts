@@ -13,9 +13,8 @@ export async function PATCH(
   }
   const { id } = await params;
   const body = await _req.json();
-  const { date, title, text } = body;
-  const data: { date?: Date; title?: string; body?: string } = {};
-  if (date != null) data.date = new Date(date);
+  const { title, text } = body;
+  const data: { title?: string; body?: string } = {};
   if (title != null) data.title = String(title).trim();
   if (text != null) data.body = String(text).trim();
   const item = await prisma.update.update({

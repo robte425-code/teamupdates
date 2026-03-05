@@ -4,6 +4,7 @@ import { useState } from "react";
 import { format } from "date-fns";
 import type { KeyDate } from "./KeyDatesSection";
 import { KeyDateForm } from "./KeyDateForm";
+import { BodyWithLinks } from "./BodyWithLinks";
 
 export function KeyDateItem({
   item,
@@ -56,7 +57,7 @@ export function KeyDateItem({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <time className="text-xs font-medium text-stone-500">
-              {format(new Date(item.eventDate), "MMM d, yyyy")}
+              {format(new Date(item.eventDate), "MMM d, yyyy 'at' h:mm a")}
             </time>
             <span
               className={`rounded-full px-2 py-0.5 text-xs font-medium ${
@@ -76,7 +77,7 @@ export function KeyDateItem({
           </div>
           <h3 className="mt-1 font-medium text-stone-900">{item.title}</h3>
           <div className="mt-2 text-sm text-stone-600">
-            {expanded ? item.body : bodyPreview}
+            <BodyWithLinks text={expanded ? item.body : bodyPreview} />
             {hasMore && (
               <button
                 type="button"

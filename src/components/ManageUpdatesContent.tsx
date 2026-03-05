@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { UpdateForm } from "./UpdateForm";
+import { BodyWithLinks } from "./BodyWithLinks";
 
 type Update = {
   id: string;
@@ -50,7 +51,7 @@ export function ManageUpdatesContent() {
               <li key={item.id} className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
                 {editingId === item.id ? (
                   <UpdateForm
-                    initial={{ id: item.id, date: item.date, title: item.title, body: item.body }}
+                    initial={{ id: item.id, title: item.title, body: item.body }}
                     onSaved={() => {
                       setEditingId(null);
                       refetch();
@@ -64,7 +65,9 @@ export function ManageUpdatesContent() {
                         {format(new Date(item.date), "MMM d, yyyy")}
                       </time>
                       <h3 className="mt-1 font-medium text-stone-900">{item.title}</h3>
-                      <p className="mt-2 text-sm text-stone-600 line-clamp-2">{item.body}</p>
+                      <p className="mt-2 text-sm text-stone-600 line-clamp-2">
+                        <BodyWithLinks text={item.body} />
+                      </p>
                     </div>
                     <div className="flex shrink-0 gap-1">
                       <button

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { KeyDateForm } from "./KeyDateForm";
+import { BodyWithLinks } from "./BodyWithLinks";
 
 type KeyDate = {
   id: string;
@@ -13,10 +14,8 @@ type KeyDate = {
 
 function daysLeft(dateStr: string): number {
   const d = new Date(dateStr);
-  d.setHours(0, 0, 0, 0);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return Math.ceil((d.getTime() - today.getTime()) / (24 * 60 * 60 * 1000));
+  const now = Date.now();
+  return Math.ceil((d.getTime() - now) / (24 * 60 * 60 * 1000));
 }
 
 export function ManageKeyDatesContent() {
@@ -74,7 +73,7 @@ export function ManageKeyDatesContent() {
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <time className="text-xs font-medium text-stone-500">
-                            {format(new Date(item.eventDate), "MMM d, yyyy")}
+                            {format(new Date(item.eventDate), "MMM d, yyyy 'at' h:mm a")}
                           </time>
                           <span
                             className={`rounded-full px-2 py-0.5 text-xs font-medium ${
@@ -85,7 +84,9 @@ export function ManageKeyDatesContent() {
                           </span>
                         </div>
                         <h3 className="mt-1 font-medium text-stone-900">{item.title}</h3>
-                        <p className="mt-2 text-sm text-stone-600 line-clamp-2">{item.body}</p>
+                        <p className="mt-2 text-sm text-stone-600 line-clamp-2">
+                          <BodyWithLinks text={item.body} />
+                        </p>
                       </div>
                       <div className="flex shrink-0 gap-1">
                         <button
