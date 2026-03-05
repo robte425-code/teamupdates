@@ -1,0 +1,33 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  password  String
+  role      String   @default("member") // "admin" | "member"
+  createdAt DateTime @default(now())
+}
+
+model Update {
+  id        String   @id @default(cuid())
+  date      DateTime // when the item was posted
+  title     String
+  body      String
+  createdAt DateTime @default(now())
+}
+
+model KeyDate {
+  id        String   @id @default(cuid())
+  eventDate DateTime // the important date / due date
+  title     String
+  body      String
+  createdAt DateTime @default(now())
+}
