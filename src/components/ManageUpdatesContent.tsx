@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { format } from "date-fns";
 import { UpdateForm } from "./UpdateForm";
 import { BodyWithLinks } from "./BodyWithLinks";
+import { formatDateInPST } from "@/lib/formatKeyDate";
 
 type Update = {
   id: string;
@@ -62,7 +62,7 @@ export function ManageUpdatesContent() {
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
                       <time className="text-xs font-medium text-amber-700">
-                        {format(new Date(item.date), "MMM d, yyyy")}
+                        {formatDateInPST(item.date)}
                       </time>
                       <h3 className="mt-1 font-medium text-stone-900">{item.title}</h3>
                       <p className="mt-2 text-sm text-stone-600 line-clamp-2">

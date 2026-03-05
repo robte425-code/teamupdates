@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { KeyDateForm } from "./KeyDateForm";
 import { BodyWithLinks } from "./BodyWithLinks";
-import { formatKeyDateDisplay } from "@/lib/formatKeyDate";
+import { formatKeyDateDisplay, formatTimeLeft } from "@/lib/formatKeyDate";
 
 type KeyDate = {
   id: string;
@@ -12,12 +12,6 @@ type KeyDate = {
   body: string;
   deleteType?: "auto" | "manual";
 };
-
-function daysLeft(dateStr: string): number {
-  const d = new Date(dateStr);
-  const now = Date.now();
-  return Math.ceil((d.getTime() - now) / (24 * 60 * 60 * 1000));
-}
 
 export function ManageKeyDatesContent() {
   const [items, setItems] = useState<KeyDate[]>([]);
@@ -55,9 +49,8 @@ export function ManageKeyDatesContent() {
         ) : (
           <ul className="space-y-4">
             {items.map((item) => {
-              const days = daysLeft(item.eventDate);
-              const isPast = days < 0;
-              const isToday = days === 0;
+              const { label, isPast, isDueWithin24h } = formatTimeLeft(item.eventDate);
+              const isToday = isDueWithin24h && !isPast;
               return (
                 <li key={item.id} className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
                   {editingId === item.id ? (
@@ -96,7 +89,7 @@ export function ManageKeyDatesContent() {
                               isPast ? "bg-stone-200 text-stone-600" : isToday ? "bg-amber-200 text-amber-800" : "bg-emerald-100 text-emerald-800"
                             }`}
                           >
-                            {isPast ? `${Math.abs(days)} days ago` : isToday ? "Due today" : `${days} days left`}
+                            {label}
                           </span>
                         </div>
                         <h3 className="mt-1 font-medium text-stone-900">{item.title}</h3>

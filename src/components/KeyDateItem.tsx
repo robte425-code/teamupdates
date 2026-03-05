@@ -2,23 +2,24 @@
 
 import { useState } from "react";
 import type { KeyDate } from "./KeyDatesSection";
-import { formatKeyDateDisplay } from "@/lib/formatKeyDate";
+import { formatKeyDateDisplay, formatTimeLeft } from "@/lib/formatKeyDate";
 import { KeyDateForm } from "./KeyDateForm";
 import { BodyWithLinks } from "./BodyWithLinks";
+import { KeyDateCountdown } from "./KeyDateCountdown";
 
 export function KeyDateItem({
   item,
-  daysLeft: days,
   isAdmin,
   onSaved,
   onDeleted,
 }: {
   item: KeyDate;
-  daysLeft: number;
   isAdmin: boolean;
   onSaved: () => void;
   onDeleted: () => void;
 }) {
+  const { label, isPast, isDueWithin24h } = formatTimeLeft(item.eventDate);
+  const showCountdown = isDueWithin24h || isPast;
   const [editing, setEditing] = useState(false);
   const [expanded, setExpanded] = useState(false);
 
@@ -49,8 +50,6 @@ export function KeyDateItem({
 
   const bodyPreview = item.body.slice(0, 120);
   const hasMore = item.body.length > 120;
-  const isPast = days < 0;
-  const isToday = days === 0;
 
   return (
     <li className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
@@ -60,21 +59,13 @@ export function KeyDateItem({
             <time className="text-xs font-medium text-stone-500">
               {formatKeyDateDisplay(item.eventDate)}
             </time>
-            <span
-              className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                isPast
-                  ? "bg-stone-200 text-stone-600"
-                  : isToday
-                  ? "bg-amber-200 text-amber-800"
-                  : "bg-emerald-100 text-emerald-800"
-              }`}
-            >
-              {isPast
-                ? `${Math.abs(days)} day${Math.abs(days) === 1 ? "" : "s"} ago`
-                : isToday
-                ? "Due today"
-                : `${days} day${days === 1 ? "" : "s"} left`}
-            </span>
+            {showCountdown ? (
+              <KeyDateCountdown eventDate={item.eventDate} />
+            ) : (
+              <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800">
+                {label}
+              </span>
+            )}
           </div>
           <h3 className="mt-1 font-medium text-stone-900">{item.title}</h3>
           <div className="mt-2 text-sm text-stone-600">

@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { format } from "date-fns";
 import type { Update } from "./UpdatesSection";
 import { UpdateForm } from "./UpdateForm";
 import { BodyWithLinks } from "./BodyWithLinks";
+import { formatDateInPST } from "@/lib/formatKeyDate";
 
 export function UpdateItem({
   item,
@@ -47,7 +47,7 @@ export function UpdateItem({
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <time className="text-xs font-medium text-amber-700">
-            {format(new Date(item.date), "MMM d, yyyy")}
+            {formatDateInPST(item.date)}
           </time>
           <h3 className="mt-1 font-medium text-stone-900">{item.title}</h3>
           <div className="mt-2 text-sm text-stone-600">

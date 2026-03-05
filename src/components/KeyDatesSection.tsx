@@ -13,13 +13,6 @@ export type KeyDate = {
   deleteType?: "auto" | "manual";
 };
 
-function daysLeft(dateStr: string): number {
-  const d = new Date(dateStr);
-  const now = Date.now();
-  const diffMs = d.getTime() - now;
-  return Math.ceil(diffMs / (24 * 60 * 60 * 1000));
-}
-
 export function KeyDatesSection({ showAddForm = true }: { showAddForm?: boolean }) {
   const { data: session } = useSession();
   const [items, setItems] = useState<KeyDate[]>([]);
@@ -61,7 +54,6 @@ export function KeyDatesSection({ showAddForm = true }: { showAddForm?: boolean 
             <KeyDateItem
               key={item.id}
               item={item}
-              daysLeft={daysLeft(item.eventDate)}
               isAdmin={isAdmin}
               onSaved={refetch}
               onDeleted={refetch}
