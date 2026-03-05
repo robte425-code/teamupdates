@@ -3,11 +3,14 @@
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 
+export type KeyDateDeleteType = "auto" | "manual";
+
 type Initial = {
   id?: string;
   eventDate: string;
   title: string;
   body: string;
+  deleteType?: KeyDateDeleteType;
 };
 
 export function KeyDateForm({
@@ -32,29 +35,51 @@ export function KeyDateForm({
       setEventTime("09:00");
     }
   }, [initial?.eventDate]);
+  const [deleteType, setDeleteType] = useState<KeyDateDeleteType>(
+    initial?.deleteType ?? "manual"
+  );
   const [title, setTitle] = useState(initial?.title ?? "");
   const [body, setBody] = useState(initial?.body ?? "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  function toISOWithTimezone(dateStr: string, timeStr: string): string {
+    const offset = -new Date().getTimezoneOffset();
+    const sign = offset >= 0 ? "+" : "-";
+    const hours = Math.floor(Math.abs(offset) / 60);
+    const minutes = Math.abs(offset) % 60;
+    const tz = `${sign}${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+    return `${dateStr}T${timeStr}:00${tz}`;
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setLoading(true);
-    const eventDateTime = `${eventDate}T${eventTime}`;
+    const eventDateTime = toISOWithTimezone(eventDate, eventTime);
     try {
       if (isEdit && initial?.id) {
         const res = await fetch(`/api/key-dates/${initial.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ eventDate: eventDateTime, title, text: body }),
+          body: JSON.stringify({
+            eventDate: eventDateTime,
+            title,
+            text: body,
+            deleteType,
+          }),
         });
         if (!res.ok) throw new Error(await res.text());
       } else {
         const res = await fetch("/api/key-dates", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ eventDate: eventDateTime, title, text: body }),
+          body: JSON.stringify({
+            eventDate: eventDateTime,
+            title,
+            text: body,
+            deleteType,
+          }),
         });
         if (!res.ok) throw new Error(await res.text());
       }
@@ -79,6 +104,35 @@ export function KeyDateForm({
         {isEdit ? "Edit key date" : "Add key date"}
       </h3>
       <div className="space-y-3">
+        <div>
+          <label className="mb-1 block text-xs font-medium text-stone-500">
+            Delete behavior
+          </label>
+          <div className="flex flex-wrap gap-4">
+            <label className="flex cursor-pointer items-center gap-2 text-sm">
+              <input
+                type="radio"
+                name="deleteType"
+                value="manual"
+                checked={deleteType === "manual"}
+                onChange={() => setDeleteType("manual")}
+                className="rounded-full border-stone-300 text-emerald-600"
+              />
+              <span>Manual — hidden when expired; you delete it</span>
+            </label>
+            <label className="flex cursor-pointer items-center gap-2 text-sm">
+              <input
+                type="radio"
+                name="deleteType"
+                value="auto"
+                checked={deleteType === "auto"}
+                onChange={() => setDeleteType("auto")}
+                className="rounded-full border-stone-300 text-emerald-600"
+              />
+              <span>Auto — removed 1 day after it expires</span>
+            </label>
+          </div>
+        </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="mb-0.5 block text-xs font-medium text-stone-500">

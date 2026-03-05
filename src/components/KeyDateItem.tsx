@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { format } from "date-fns";
 import type { KeyDate } from "./KeyDatesSection";
+import { formatKeyDateDisplay } from "@/lib/formatKeyDate";
 import { KeyDateForm } from "./KeyDateForm";
 import { BodyWithLinks } from "./BodyWithLinks";
 
@@ -36,6 +36,7 @@ export function KeyDateItem({
           eventDate: item.eventDate,
           title: item.title,
           body: item.body,
+          deleteType: item.deleteType ?? "manual",
         }}
         onSaved={() => {
           setEditing(false);
@@ -57,7 +58,7 @@ export function KeyDateItem({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <time className="text-xs font-medium text-stone-500">
-              {format(new Date(item.eventDate), "MMM d, yyyy 'at' h:mm a")}
+              {formatKeyDateDisplay(item.eventDate)}
             </time>
             <span
               className={`rounded-full px-2 py-0.5 text-xs font-medium ${

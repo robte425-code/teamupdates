@@ -10,6 +10,7 @@ export type KeyDate = {
   eventDate: string;
   title: string;
   body: string;
+  deleteType?: "auto" | "manual";
 };
 
 function daysLeft(dateStr: string): number {
@@ -27,7 +28,7 @@ export function KeyDatesSection({ showAddForm = true }: { showAddForm?: boolean 
   const isAdmin = user?.role === "admin";
 
   useEffect(() => {
-    fetch("/api/key-dates")
+    fetch("/api/key-dates?list=homepage")
       .then((r) => r.json())
       .then((data) => {
         setItems(Array.isArray(data) ? data : []);
@@ -37,7 +38,7 @@ export function KeyDatesSection({ showAddForm = true }: { showAddForm?: boolean 
   }, []);
 
   function refetch() {
-    fetch("/api/key-dates")
+    fetch("/api/key-dates?list=homepage")
       .then((r) => r.json())
       .then((data) => setItems(Array.isArray(data) ? data : []));
   }

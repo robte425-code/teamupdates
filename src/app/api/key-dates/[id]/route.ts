@@ -13,11 +13,18 @@ export async function PATCH(
   }
   const { id } = await params;
   const body = await _req.json();
-  const { eventDate, title, text } = body;
-  const data: { eventDate?: Date; title?: string; body?: string } = {};
+  const { eventDate, title, text, deleteType } = body;
+  const data: {
+    eventDate?: Date;
+    title?: string;
+    body?: string;
+    deleteType?: string;
+  } = {};
   if (eventDate != null) data.eventDate = new Date(eventDate);
   if (title != null) data.title = String(title).trim();
   if (text != null) data.body = String(text).trim();
+  if (deleteType === "auto" || deleteType === "manual")
+    data.deleteType = deleteType;
   const item = await prisma.keyDate.update({
     where: { id },
     data,

@@ -1,15 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { format } from "date-fns";
 import { KeyDateForm } from "./KeyDateForm";
 import { BodyWithLinks } from "./BodyWithLinks";
+import { formatKeyDateDisplay } from "@/lib/formatKeyDate";
 
 type KeyDate = {
   id: string;
   eventDate: string;
   title: string;
   body: string;
+  deleteType?: "auto" | "manual";
 };
 
 function daysLeft(dateStr: string): number {
@@ -61,7 +62,13 @@ export function ManageKeyDatesContent() {
                 <li key={item.id} className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
                   {editingId === item.id ? (
                     <KeyDateForm
-                      initial={{ id: item.id, eventDate: item.eventDate, title: item.title, body: item.body }}
+                      initial={{
+                        id: item.id,
+                        eventDate: item.eventDate,
+                        title: item.title,
+                        body: item.body,
+                        deleteType: item.deleteType ?? "manual",
+                      }}
                       onSaved={() => {
                         setEditingId(null);
                         refetch();
@@ -73,8 +80,17 @@ export function ManageKeyDatesContent() {
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <time className="text-xs font-medium text-stone-500">
-                            {format(new Date(item.eventDate), "MMM d, yyyy 'at' h:mm a")}
+                            {formatKeyDateDisplay(item.eventDate)}
                           </time>
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                              (item.deleteType ?? "manual") === "auto"
+                                ? "bg-sky-100 text-sky-800"
+                                : "bg-stone-200 text-stone-600"
+                            }`}
+                          >
+                            {(item.deleteType ?? "manual") === "auto" ? "Auto delete" : "Manual"}
+                          </span>
                           <span
                             className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                               isPast ? "bg-stone-200 text-stone-600" : isToday ? "bg-amber-200 text-amber-800" : "bg-emerald-100 text-emerald-800"

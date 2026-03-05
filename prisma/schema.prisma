@@ -25,9 +25,10 @@ model Update {
 }
 
 model KeyDate {
-  id        String   @id @default(cuid())
-  eventDate DateTime // the important date / due date
-  title     String
-  body      String
-  createdAt DateTime @default(now())
+  id         String   @id @default(cuid())
+  eventDate  DateTime // the important date / due date
+  title      String
+  body       String
+  deleteType String   @default("manual") // "auto" = remove 1 day after expiry; "manual" = hide when expired, delete only by user
+  createdAt  DateTime @default(now())
 }
