@@ -28,7 +28,7 @@ export function Header() {
             />
           </Link>
           {isAdmin && (
-            <nav className="flex gap-1">
+            <nav className="flex flex-wrap gap-1">
               <Link
                 href="/"
                 className={`rounded px-3 py-2 text-sm font-medium ${
@@ -40,14 +40,24 @@ export function Header() {
                 Home
               </Link>
               <Link
-                href="/manage"
+                href="/manage/updates"
                 className={`rounded px-3 py-2 text-sm font-medium ${
-                  pathname === "/manage"
+                  pathname.startsWith("/manage/updates")
                     ? "bg-stone-100 text-stone-900"
                     : "text-stone-600 hover:bg-stone-50 hover:text-stone-900"
                 }`}
               >
-                Manage
+                Updates
+              </Link>
+              <Link
+                href="/manage/key-dates"
+                className={`rounded px-3 py-2 text-sm font-medium ${
+                  pathname.startsWith("/manage/key-dates")
+                    ? "bg-stone-100 text-stone-900"
+                    : "text-stone-600 hover:bg-stone-50 hover:text-stone-900"
+                }`}
+              >
+                Key dates
               </Link>
             </nav>
           )}

@@ -1,34 +1,41 @@
 "use client";
 
-import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useState } from "react";
 
 export function LoginForm() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") ?? "/";
+  const errorParam = searchParams.get("error");
+  const domainError = errorParam === "AccessDenied";
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleSignIn() {
     setError("");
     setLoading(true);
-    const res = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
-    setLoading(false);
-    if (res?.error) {
-      setError("Invalid email or password.");
-      return;
+    try {
+      const res = await signIn("azure-ad", {
+        callbackUrl,
+        redirect: false,
+      });
+      if (res?.error) {
+        setError("Sign-in was denied or failed. Try again.");
+        setLoading(false);
+        return;
+      }
+      if (res?.url) {
+        window.location.href = res.url;
+        return;
+      }
+      router.push(callbackUrl);
+      router.refresh();
+    } catch {
+      setError("Something went wrong. Try again.");
     }
-    router.push(callbackUrl);
-    router.refresh();
+    setLoading(false);
   }
 
   return (
@@ -38,53 +45,30 @@ export function LoginForm() {
           Sign in
         </h1>
         <p className="mb-6 text-sm text-stone-500">
-          Use your account to access updates and key dates.
+          Use your Microsoft 365 account (@team-voc.com) to access updates and key dates.
         </p>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label
-              htmlFor="email"
-              className="mb-1 block text-sm font-medium text-stone-700"
-            >
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full rounded-lg border border-stone-300 px-3 py-2 text-stone-900 placeholder-stone-400 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
-              placeholder="you@example.com"
-            />
-          </div>
-          <div>
-            <label
-              htmlFor="password"
-              className="mb-1 block text-sm font-medium text-stone-700"
-            >
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full rounded-lg border border-stone-300 px-3 py-2 text-stone-900 placeholder-stone-400 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
-            />
-          </div>
-          {error && (
-            <p className="text-sm text-red-600">{error}</p>
-          )}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-lg bg-amber-600 px-4 py-2.5 font-medium text-white hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 disabled:opacity-60"
-          >
-            {loading ? "Signing in…" : "Sign in"}
-          </button>
-        </form>
+        {domainError && (
+          <p className="mb-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-800">
+            Only @team-voc.com accounts can sign in to this site.
+          </p>
+        )}
+        {error && !domainError && (
+          <p className="mb-4 text-sm text-red-600">{error}</p>
+        )}
+        <button
+          type="button"
+          onClick={handleSignIn}
+          disabled={loading}
+          className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#2F2F2F] px-4 py-3 font-medium text-white hover:bg-[#1f1f1f] focus:outline-none focus:ring-2 focus:ring-[#6264A7] focus:ring-offset-2 disabled:opacity-60"
+        >
+          <svg width="21" height="21" viewBox="0 0 21 21" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M10.5 10.5H0V0H10.5V10.5Z" fill="#F25022"/>
+            <path d="M21 10.5H10.5V0H21V10.5Z" fill="#7FBA00"/>
+            <path d="M10.5 21H0V10.5H10.5V21Z" fill="#00A4EF"/>
+            <path d="M21 21H10.5V10.5H21V21Z" fill="#FFB900"/>
+          </svg>
+          {loading ? "Signing in…" : "Sign in with Microsoft"}
+        </button>
       </div>
     </div>
   );

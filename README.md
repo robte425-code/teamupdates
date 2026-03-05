@@ -1,20 +1,20 @@
 # Teamvoc Updates
 
-A simple website for ~20 users to view **Updates & Reminders** and **Key dates**, with an admin who can add/edit/delete items and manage users. Built for deployment on [Vercel](https://vercel.com).
+A simple website for your team to view **Updates & Reminders** and **Key dates**. Sign-in is via **Microsoft 365** (Azure AD); anyone in your organization can sign in. **Site owners** (configured by email) have admin access to manage content; **members** can only view the home page.
 
 ## Features
 
 - **Updates & Reminders** – Date posted, title, and body. Sorted by date (newest first).
 - **Key dates** – Event/due date with “days left” (or “due today” / “X days ago”). Title and body.
-- **Auth** – Sign in with email and password. Only invited users (in the database) can log in.
-- **Admin** – One or more admin users can:
-  - Add, edit, and delete updates and key dates
-  - Add new users (members or admins) so they can log in
+- **Auth** – Sign in with **Microsoft 365**. Only your organization’s users can sign in (single-tenant Azure AD).
+- **Roles**
+  - **Site owners** (admins) – Listed in `ADMIN_EMAILS`. Can open **Manage** to add, edit, and delete updates and key dates.
+  - **Members** – Everyone else. Can view the home page only.
 
 ## Tech stack
 
 - **Next.js 14** (App Router)
-- **NextAuth.js** (credentials provider, JWT)
+- **NextAuth.js** (Azure AD provider, JWT)
 - **Prisma** + **PostgreSQL**
 - **Tailwind CSS**
 
@@ -28,7 +28,7 @@ npm install
 
 ### 2. Database
 
-Use any PostgreSQL database (local, [Neon](https://neon.tech), [Supabase](https://supabase.com), or Vercel Postgres/Neon via Vercel dashboard).
+Use any PostgreSQL database (local, [Neon](https://neon.tech), [Supabase](https://supabase.com), or Vercel Postgres/Neon).
 
 Create a `.env` file (see `.env.example`):
 
@@ -36,95 +36,73 @@ Create a `.env` file (see `.env.example`):
 DATABASE_URL="postgresql://USER:PASSWORD@HOST:5432/DATABASE?sslmode=require"
 NEXTAUTH_SECRET="run: openssl rand -base64 32"
 NEXTAUTH_URL="http://localhost:3000"
+
+# Microsoft 365 / Azure AD
+AZURE_AD_CLIENT_ID="your-client-id"
+AZURE_AD_CLIENT_SECRET="your-client-secret"
+AZURE_AD_TENANT_ID="your-tenant-id"
+ADMIN_EMAILS="you@yourcompany.com"
 ```
 
-### 3. Create tables and seed admin
+### 3. Azure AD app registration
+
+1. Go to [Azure Portal](https://portal.azure.com) → **Azure Active Directory** (or **Microsoft Entra ID**) → **App registrations** → **New registration**.
+2. Name the app (e.g. “Teamvoc Updates”), choose **Accounts in this organizational directory only**, register.
+3. Note **Application (client) ID** and **Directory (tenant) ID**.
+4. **Certificates & secrets** → New client secret → copy the **Value** → use as `AZURE_AD_CLIENT_SECRET`.
+5. **Authentication** → Add a platform → **Web** → Redirect URI: `http://localhost:3000/api/auth/callback/azure-ad` (and your production URL later).
+6. Under **Implicit grant and hybrid flows**, enable **ID tokens** (optional; recommended for OIDC).
+
+### 4. Create tables
 
 ```bash
 npx prisma db push
-npx prisma db seed
 ```
 
-This creates the schema and an **admin user**:
+(No user seed needed; auth is Microsoft 365.)
 
-- **Email:** `admin@example.com`
-- **Password:** `admin123`
-
-Change this password after first login (e.g. by updating the user in the database or adding a “change password” feature later).
-
-### 4. Run dev server
+### 5. Run dev server
 
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000), sign in with the admin account, then:
-
-- Add more users (admin or member) in the “Manage users” section.
-- Add updates and key dates.
+Open [http://localhost:3000](http://localhost:3000) and sign in with **Sign in with Microsoft**. Users whose email is in `ADMIN_EMAILS` will see **Updates** and **Key dates** in the header and can manage content.
 
 ## Deploy on Vercel
 
-### 1. Push code to GitHub
+1. Push to GitHub and import the repo in Vercel.
+2. Add **PostgreSQL** (Storage or Neon) and set `DATABASE_URL`.
+3. **Environment variables** – set all of:
 
-Create a repo and push this project.
+| Name | Value |
+|------|--------|
+| `DATABASE_URL` | From Storage / Postgres provider |
+| `NEXTAUTH_SECRET` | `openssl rand -base64 32` |
+| `NEXTAUTH_URL` | `https://your-app.vercel.app` |
+| `AZURE_AD_CLIENT_ID` | From Azure app |
+| `AZURE_AD_CLIENT_SECRET` | From Azure app |
+| `AZURE_AD_TENANT_ID` | Your tenant ID |
+| `ADMIN_EMAILS` | Comma-separated emails of site owners |
 
-### 2. Import on Vercel
+4. In Azure, add the production redirect URI: `https://your-app.vercel.app/api/auth/callback/azure-ad`.
+5. Deploy, then run once: `npx prisma db push` (using the same `DATABASE_URL` as in Vercel).
 
-1. Go to [vercel.com](https://vercel.com) and sign in.
-2. **Add New** → **Project** → import your GitHub repo.
-3. **Configure:**
-   - Framework: Next.js (auto-detected).
-   - Root directory: leave default.
-   - Build command: `npm run build` (uses `prisma generate` from `package.json`).
+## Who has access
 
-### 3. Add PostgreSQL
-
-- In the Vercel project: **Storage** tab → create a **Postgres** database (or connect an existing one from the marketplace, e.g. Neon).
-- Vercel will add `DATABASE_URL` (and related vars) to the project.
-
-### 4. Environment variables
-
-In the project **Settings** → **Environment Variables**, add:
-
-| Name             | Value                                                                 | Environments   |
-|------------------|-----------------------------------------------------------------------|----------------|
-| `DATABASE_URL`   | (from Storage / your Postgres provider)                               | All            |
-| `NEXTAUTH_SECRET`| Generate: `openssl rand -base64 32`                                  | Production, Preview |
-| `NEXTAUTH_URL`   | Your deployment URL, e.g. `https://your-project.vercel.app`          | Production     |
-
-For preview deployments you can set `NEXTAUTH_URL` to the preview URL or leave it and override per deployment if needed.
-
-### 5. Deploy and run migrations
-
-1. **Deploy** the project.
-2. After first deploy, run migrations and seed from your machine (or from a one-off script):
-
-   ```bash
-   # Use the same DATABASE_URL as in Vercel (copy from env or use Vercel CLI)
-   npx prisma db push
-   npx prisma db seed
-   ```
-
-   Or use **Vercel CLI**: `vercel env pull .env.production`, then run the same commands with that env.
-
-3. Open your Vercel URL, sign in with `admin@example.com` / `admin123`, then change the admin password (e.g. via DB) and add your ~20 users via “Manage users”.
-
-## Adding more users
-
-- **As admin:** Sign in → scroll to “Manage users” → use “Add user” (email, optional name, password, role: member or admin).
-- **Manually:** Use [Prisma Studio](https://www.prisma.io/studio) (`npx prisma studio`) or any SQL client. Insert into `User` with a **bcrypt-hashed** password and `role` = `member` or `admin`.
+- **Sign-in:** Any user in your Azure AD tenant (Microsoft 365 organization) can sign in.
+- **Site owners:** Emails listed in `ADMIN_EMAILS` get admin role (Manage updates & key dates).
+- **Members:** All other signed-in users are members and can only view the home page.
 
 ## Scripts
 
-| Command        | Description                    |
-|----------------|--------------------------------|
-| `npm run dev`  | Start dev server               |
-| `npm run build`| Generate Prisma client + build |
-| `npm run start`| Start production server        |
-| `npx prisma db push` | Sync schema to DB        |
-| `npx prisma db seed` | Seed admin user          |
-| `npx prisma studio`  | Open DB GUI             |
+| Command | Description |
+|--------|-------------|
+| `npm run dev` | Start dev server |
+| `npm run build` | Generate Prisma client + build |
+| `npm run start` | Start production server |
+| `npx prisma db push` | Sync schema to DB |
+| `npx prisma studio` | Open DB GUI |
 
 ## License
 
