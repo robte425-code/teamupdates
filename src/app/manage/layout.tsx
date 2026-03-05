@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { Header } from "@/components/Header";
-import { ManageNav } from "@/components/ManageNav";
 
 export default async function ManageLayout({
   children,
@@ -18,7 +17,6 @@ export default async function ManageLayout({
     <div className="min-h-screen">
       <Header />
       <div className="mx-auto max-w-6xl px-4 py-6">
-        <ManageNav />
         {children}
       </div>
     </div>

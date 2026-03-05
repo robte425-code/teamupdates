@@ -37,16 +37,19 @@ export function KeyDatesSection({ showAddForm = true }: { showAddForm?: boolean 
   }
 
   return (
-    <div>
-      <h2 className="mb-4 text-lg font-semibold text-stone-800">
-        Key dates
-      </h2>
+    <div className="rounded-2xl border border-stone-200/80 bg-white p-6 shadow-sm">
+      <div className="mb-5 flex items-center gap-3">
+        <div className="flex h-9 w-1 rounded-full bg-emerald-400" aria-hidden />
+        <h2 className="text-xl font-semibold tracking-tight text-stone-900">
+          Key dates
+        </h2>
+      </div>
       {loading ? (
-        <p className="text-stone-500">Loading…</p>
+        <p className="py-8 text-center text-sm text-stone-500">Loading…</p>
       ) : (
-        <ul className="space-y-4">
+        <ul className="space-y-3">
           {items.length === 0 && !isAdmin && (
-            <li className="rounded-lg border border-stone-200 bg-stone-50/50 p-4 text-sm text-stone-500">
+            <li className="rounded-xl border border-dashed border-stone-200 bg-stone-50/50 px-4 py-6 text-center text-sm text-stone-500">
               No key dates yet.
             </li>
           )}

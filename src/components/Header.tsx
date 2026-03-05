@@ -13,25 +13,25 @@ export function Header() {
   const isAdmin = user?.role === "admin";
 
   return (
-    <header className="border-b border-stone-200 bg-white">
-      <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap items-center gap-4">
-          <Link href="/" className="flex shrink-0">
+    <header className="sticky top-0 z-10 border-b border-stone-200/80 bg-white/95 shadow-sm backdrop-blur-sm">
+      <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
+        <div className="flex flex-wrap items-center gap-6">
+          <Link href="/" className="flex shrink-0 transition opacity-90 hover:opacity-100">
             <Image
               src="/team-logo.png"
               alt="Team Vocational Services"
               width={220}
               height={80}
-              className="h-16 w-auto object-contain"
+              className="h-14 w-auto object-contain sm:h-16"
               priority
               unoptimized
             />
           </Link>
           {isAdmin && (
-            <nav className="flex flex-wrap gap-1">
+            <nav className="flex flex-wrap gap-0.5">
               <Link
                 href="/"
-                className={`rounded px-3 py-2 text-sm font-medium ${
+                className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                   pathname === "/"
                     ? "bg-stone-100 text-stone-900"
                     : "text-stone-600 hover:bg-stone-50 hover:text-stone-900"
@@ -41,7 +41,7 @@ export function Header() {
               </Link>
               <Link
                 href="/manage/updates"
-                className={`rounded px-3 py-2 text-sm font-medium ${
+                className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                   pathname.startsWith("/manage/updates")
                     ? "bg-stone-100 text-stone-900"
                     : "text-stone-600 hover:bg-stone-50 hover:text-stone-900"
@@ -51,7 +51,7 @@ export function Header() {
               </Link>
               <Link
                 href="/manage/key-dates"
-                className={`rounded px-3 py-2 text-sm font-medium ${
+                className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                   pathname.startsWith("/manage/key-dates")
                     ? "bg-stone-100 text-stone-900"
                     : "text-stone-600 hover:bg-stone-50 hover:text-stone-900"
@@ -64,13 +64,13 @@ export function Header() {
         </div>
         <div className="flex items-center gap-3 self-end sm:self-center">
           {(session?.user?.name || session?.user?.email) && (
-            <span className="text-sm font-medium text-stone-700">
+            <span className="text-sm font-medium text-stone-600">
               {session.user.name || session.user.email}
             </span>
           )}
           <button
             onClick={() => signOut({ callbackUrl: "/login" })}
-            className="text-sm text-stone-500 hover:text-stone-700"
+            className="rounded-lg px-3 py-2 text-sm font-medium text-stone-500 transition-colors hover:bg-stone-100 hover:text-stone-700"
           >
             Sign out
           </button>
