@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { format } from "date-fns";
 
 type Initial = {
@@ -21,10 +21,11 @@ export function KeyDateForm({
 }) {
   const isEdit = !!initial?.id;
   const [eventDate, setEventDate] = useState(
-    initial?.eventDate
-      ? format(new Date(initial.eventDate), "yyyy-MM-dd")
-      : format(new Date(), "yyyy-MM-dd")
+    initial?.eventDate ? format(new Date(initial.eventDate), "yyyy-MM-dd") : ""
   );
+  useEffect(() => {
+    if (!initial?.eventDate) setEventDate(format(new Date(), "yyyy-MM-dd"));
+  }, [initial?.eventDate]);
   const [title, setTitle] = useState(initial?.title ?? "");
   const [body, setBody] = useState(initial?.body ?? "");
   const [loading, setLoading] = useState(false);
