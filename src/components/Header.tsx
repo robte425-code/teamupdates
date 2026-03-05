@@ -7,9 +7,10 @@ import { signOut } from "next-auth/react";
 import { useSession } from "next-auth/react";
 
 export function Header() {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
   const { data: session } = useSession();
-  const isAdmin = (session?.user as { role?: string })?.role === "admin";
+  const user = session?.user as { role?: string } | undefined;
+  const isAdmin = user?.role === "admin";
 
   return (
     <header className="border-b border-stone-200 bg-white">
@@ -23,6 +24,7 @@ export function Header() {
               height={80}
               className="h-16 w-auto object-contain"
               priority
+              unoptimized
             />
           </Link>
           {isAdmin && (

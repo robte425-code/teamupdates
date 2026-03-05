@@ -16,7 +16,8 @@ export function UpdatesSection({ showAddForm = true }: { showAddForm?: boolean }
   const { data: session } = useSession();
   const [items, setItems] = useState<Update[]>([]);
   const [loading, setLoading] = useState(true);
-  const isAdmin = (session?.user as { role?: string })?.role === "admin";
+  const user = session?.user as { role?: string } | undefined;
+  const isAdmin = user?.role === "admin";
 
   useEffect(() => {
     fetch("/api/updates")
