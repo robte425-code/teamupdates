@@ -1,41 +1,22 @@
 "use client";
 
 import { signIn } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 export function LoginForm() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") ?? "/";
   const errorParam = searchParams.get("error");
   const domainError = errorParam === "AccessDenied";
 
-  async function handleSignIn() {
+  function handleSignIn() {
     setError("");
     setLoading(true);
-    try {
-      const res = await signIn("azure-ad", {
-        callbackUrl,
-        redirect: false,
-      });
-      if (res?.error) {
-        setError("Sign-in was denied or failed. Try again.");
-        setLoading(false);
-        return;
-      }
-      if (res?.url) {
-        window.location.href = res.url;
-        return;
-      }
-      router.push(callbackUrl);
-      router.refresh();
-    } catch {
-      setError("Something went wrong. Try again.");
-    }
-    setLoading(false);
+    // Let NextAuth redirect to Microsoft (OAuth doesn't work with redirect: false)
+    signIn("azure-ad", { callbackUrl });
   }
 
   return (
