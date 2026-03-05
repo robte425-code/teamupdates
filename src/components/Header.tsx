@@ -62,12 +62,19 @@ export function Header() {
             </nav>
           )}
         </div>
-        <button
-          onClick={() => signOut({ callbackUrl: "/login" })}
-          className="self-end text-sm text-stone-500 hover:text-stone-700 sm:self-center"
-        >
-          Sign out
-        </button>
+        <div className="flex items-center gap-3 self-end sm:self-center">
+          {(session?.user?.name || session?.user?.email) && (
+            <span className="text-sm font-medium text-stone-700">
+              {session.user.name || session.user.email}
+            </span>
+          )}
+          <button
+            onClick={() => signOut({ callbackUrl: "/login" })}
+            className="text-sm text-stone-500 hover:text-stone-700"
+          >
+            Sign out
+          </button>
+        </div>
       </div>
     </header>
   );
