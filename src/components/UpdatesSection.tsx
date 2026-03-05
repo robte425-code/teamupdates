@@ -12,7 +12,7 @@ export type Update = {
   body: string;
 };
 
-export function UpdatesSection() {
+export function UpdatesSection({ showAddForm = true }: { showAddForm?: boolean }) {
   const { data: session } = useSession();
   const [items, setItems] = useState<Update[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,7 +59,7 @@ export function UpdatesSection() {
           ))}
         </ul>
       )}
-      {isAdmin && (
+      {isAdmin && showAddForm && (
         <div className="mt-4">
           <UpdateForm onSaved={refetch} />
         </div>

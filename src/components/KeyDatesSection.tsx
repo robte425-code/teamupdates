@@ -21,7 +21,7 @@ function daysLeft(dateStr: string): number {
   return Math.ceil(diff / (24 * 60 * 60 * 1000));
 }
 
-export function KeyDatesSection() {
+export function KeyDatesSection({ showAddForm = true }: { showAddForm?: boolean }) {
   const { data: session } = useSession();
   const [items, setItems] = useState<KeyDate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,7 +69,7 @@ export function KeyDatesSection() {
           ))}
         </ul>
       )}
-      {isAdmin && (
+      {isAdmin && showAddForm && (
         <div className="mt-4">
           <KeyDateForm onSaved={refetch} />
         </div>
