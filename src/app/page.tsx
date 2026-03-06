@@ -18,7 +18,7 @@ export default async function HomePage() {
       <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
         <div className="mb-10">
           <h1 className="text-2xl font-semibold tracking-tight text-stone-900 sm:text-3xl">
-            Dashboard
+            Your TEAM Dashboard
           </h1>
           <p className="mt-1 text-sm text-stone-500">
             Your daily source for key dates & updates / reminders
