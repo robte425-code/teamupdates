@@ -29,10 +29,10 @@ export function TickerBar() {
 
   if (!items.length) return null;
 
-  // Repeat items enough times so that even with only a few entries,
-  // the ticker track stays visually full and continuous.
-  const repeats = Math.max(4, 8 - items.length);
-  const trackItems = Array.from({ length: repeats }, () => items).flat();
+  // Base items for the ticker line
+  const baseItems = items;
+  // Duplicate once so the track is 2x long for a seamless loop
+  const trackItems = [...baseItems, ...baseItems];
 
   return (
     <div className="border-b border-amber-200/70 bg-amber-50/90 text-amber-900">
@@ -41,21 +41,10 @@ export function TickerBar() {
           Ticker
         </span>
         <div className="relative flex-1 overflow-hidden">
-          <div className="flex animate-ticker-1 whitespace-nowrap">
+          <div className="flex animate-ticker whitespace-nowrap">
             {trackItems.map((item, idx) => (
               <span
-                key={`t1-${item.id}-${idx}`}
-                className="mr-8 inline-flex items-center gap-2"
-              >
-                <span className="inline-block h-1 w-1 rounded-full bg-amber-500" />
-                <span>{item.text}</span>
-              </span>
-            ))}
-          </div>
-          <div className="pointer-events-none absolute inset-0 flex animate-ticker-2 whitespace-nowrap">
-            {trackItems.map((item, idx) => (
-              <span
-                key={`t2-${item.id}-${idx}`}
+                key={`${item.id}-${idx}`}
                 className="mr-8 inline-flex items-center gap-2"
               >
                 <span className="inline-block h-1 w-1 rounded-full bg-amber-500" />

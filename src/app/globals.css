@@ -2,28 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
-@keyframes ticker-marquee-1 {
+/* Seamless ticker marquee */
+@keyframes ticker-marquee {
   0% {
     transform: translateX(0%);
   }
   100% {
-    transform: translateX(-100%);
+    transform: translateX(-50%);
   }
 }
 
-@keyframes ticker-marquee-2 {
-  0% {
-    transform: translateX(100%);
-  }
-  100% {
-    transform: translateX(0%);
-  }
-}
-
-.animate-ticker-1 {
-  animation: ticker-marquee-1 30s linear infinite;
-}
-
-.animate-ticker-2 {
-  animation: ticker-marquee-2 30s linear infinite;
+.animate-ticker {
+  animation: ticker-marquee 30s linear infinite;
+  will-change: transform;
 }
