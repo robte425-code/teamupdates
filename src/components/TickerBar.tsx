@@ -41,10 +41,21 @@ export function TickerBar() {
           Ticker
         </span>
         <div className="relative flex-1 overflow-hidden">
-          <div className="flex animate-ticker whitespace-nowrap">
+          <div className="flex animate-ticker-1 whitespace-nowrap">
             {trackItems.map((item, idx) => (
               <span
-                key={`${item.id}-${idx}`}
+                key={`t1-${item.id}-${idx}`}
+                className="mr-8 inline-flex items-center gap-2"
+              >
+                <span className="inline-block h-1 w-1 rounded-full bg-amber-500" />
+                <span>{item.text}</span>
+              </span>
+            ))}
+          </div>
+          <div className="pointer-events-none absolute inset-0 flex animate-ticker-2 whitespace-nowrap">
+            {trackItems.map((item, idx) => (
+              <span
+                key={`t2-${item.id}-${idx}`}
                 className="mr-8 inline-flex items-center gap-2"
               >
                 <span className="inline-block h-1 w-1 rounded-full bg-amber-500" />
