@@ -3,7 +3,11 @@
 import { useEffect, useState } from "react";
 import { KeyDateForm } from "./KeyDateForm";
 import { BodyWithLinks } from "./BodyWithLinks";
-import { formatKeyDateDisplay, formatTimeLeft } from "@/lib/formatKeyDate";
+import {
+  formatDateInPST,
+  formatKeyDateDisplay,
+  formatTimeLeft,
+} from "@/lib/formatKeyDate";
 
 type KeyDate = {
   id: string;
@@ -75,7 +79,7 @@ export function ManageKeyDatesContent() {
                         <div className="mb-1.5 space-y-0.5 text-xs font-medium uppercase tracking-wide text-amber-600/90">
                           <p>
                             <span className="font-semibold">Published:</span>{" "}
-                            {formatKeyDateDisplay(item.createdAt ?? item.eventDate)}
+                            {formatDateInPST(item.createdAt ?? item.eventDate)}
                           </p>
                           <p className="flex flex-wrap items-center gap-2">
                             <span>
