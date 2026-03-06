@@ -4,7 +4,6 @@ import { authOptions } from "@/lib/auth";
 import { UpdatesSection } from "@/components/UpdatesSection";
 import { KeyDatesSection } from "@/components/KeyDatesSection";
 import { Header } from "@/components/Header";
-import { TickerBar } from "@/components/TickerBar";
 
 export default async function HomePage() {
   const session = await getServerSession(authOptions);
@@ -14,7 +13,6 @@ export default async function HomePage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-stone-50 to-stone-100/80">
       <Header />
-      <TickerBar />
       <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
         <div className="mb-10">
           <h1 className="text-2xl font-semibold tracking-tight text-stone-900 sm:text-3xl">
