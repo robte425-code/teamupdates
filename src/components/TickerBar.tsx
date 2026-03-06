@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type TickerItem = {
   id: string;
@@ -9,6 +9,7 @@ type TickerItem = {
 
 export function TickerBar() {
   const [items, setItems] = useState<TickerItem[]>([]);
+  const trackRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -27,12 +28,42 @@ export function TickerBar() {
     };
   }, []);
 
+  useEffect(() => {
+    const el = trackRef.current;
+    if (!el) return;
+    let width = el.scrollWidth / 2 || 1;
+    let offset = 0;
+    let last = performance.now();
+    let frame: number;
+    const speed = 40; // px per second
+
+    const step = (now: number) => {
+      const dt = now - last;
+      last = now;
+      offset -= (speed * dt) / 1000;
+      if (-offset >= width) {
+        offset += width;
+      }
+      el.style.transform = `translateX(${offset}px)`;
+      frame = requestAnimationFrame(step);
+    };
+
+    frame = requestAnimationFrame(step);
+
+    const handleResize = () => {
+      width = el.scrollWidth / 2 || 1;
+    };
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [items]);
+
   if (!items.length) return null;
 
-  // Base items for the ticker line
-  const baseItems = items;
-  // Duplicate once so the track is 2x long for a seamless loop
-  const trackItems = [...baseItems, ...baseItems];
+  const trackItems = [...items, ...items];
 
   return (
     <div className="border-b border-amber-200/70 bg-amber-50/90 text-amber-900">
@@ -41,7 +72,10 @@ export function TickerBar() {
           Ticker
         </span>
         <div className="relative flex-1 overflow-hidden">
-          <div className="flex animate-ticker whitespace-nowrap">
+          <div
+            ref={trackRef}
+            className="flex whitespace-nowrap will-change-transform"
+          >
             {trackItems.map((item, idx) => (
               <span
                 key={`${item.id}-${idx}`}
