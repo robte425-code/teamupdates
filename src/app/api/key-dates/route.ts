@@ -33,9 +33,12 @@ export async function GET(req: Request) {
     );
   }
 
-  const serialized = items.map(({ eventDate, ...rest }) => ({
+  const serialized = items.map(({ eventDate, createdAt, ...rest }) => ({
     ...rest,
-    eventDate: eventDate instanceof Date ? eventDate.toISOString() : eventDate,
+    eventDate:
+      eventDate instanceof Date ? eventDate.toISOString() : eventDate,
+    createdAt:
+      createdAt instanceof Date ? createdAt.toISOString() : createdAt,
   }));
   return NextResponse.json(serialized);
 }

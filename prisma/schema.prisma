@@ -32,3 +32,9 @@ model KeyDate {
   deleteType String   @default("manual") // "auto" = remove 1 day after expiry; "manual" = hide when expired, delete only by user
   createdAt  DateTime @default(now())
 }
+
+model TickerItem {
+  id        String   @id @default(cuid())
+  text      String
+  createdAt DateTime @default(now())
+}

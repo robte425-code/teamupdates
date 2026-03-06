@@ -11,6 +11,7 @@ export type KeyDate = {
   title: string;
   body: string;
   deleteType?: "auto" | "manual";
+  createdAt?: string;
 };
 
 export function KeyDatesSection({ showAddForm = true }: { showAddForm?: boolean }) {

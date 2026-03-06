@@ -59,12 +59,23 @@ export function Header() {
               >
                 Key dates
               </Link>
+              <Link
+                href="/manage/ticker"
+                className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                  pathname.startsWith("/manage/ticker")
+                    ? "bg-stone-100 text-stone-900"
+                    : "text-stone-600 hover:bg-stone-50 hover:text-stone-900"
+                }`}
+              >
+                Ticker
+              </Link>
             </nav>
           )}
         </div>
         <div className="flex items-center gap-3 self-end sm:self-center">
           {(session?.user?.name || session?.user?.email) && (
             <span className="text-sm font-medium text-stone-600">
+              Welcome,&nbsp;
               {session.user.name || session.user.email}
             </span>
           )}

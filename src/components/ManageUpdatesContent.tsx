@@ -61,9 +61,10 @@ export function ManageUpdatesContent() {
                 ) : (
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
-                      <time className="text-xs font-medium text-amber-700">
+                      <p className="text-xs font-medium text-amber-700">
+                        <span className="font-semibold">Published:</span>{" "}
                         {formatDateInPST(item.date)}
-                      </time>
+                      </p>
                       <h3 className="mt-1 font-medium text-stone-900">{item.title}</h3>
                       <p className="mt-2 text-sm text-stone-600 line-clamp-2">
                         <BodyWithLinks text={item.body} />

@@ -11,6 +11,7 @@ type KeyDate = {
   title: string;
   body: string;
   deleteType?: "auto" | "manual";
+  createdAt?: string;
 };
 
 export function ManageKeyDatesContent() {
@@ -71,10 +72,15 @@ export function ManageKeyDatesContent() {
                   ) : (
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <time className="text-xs font-medium text-stone-500">
+                        <div className="mb-1.5 flex flex-wrap items-center gap-2 text-xs text-stone-500">
+                          <span>
+                            <span className="font-medium">Published:</span>{" "}
+                            {formatKeyDateDisplay(item.createdAt ?? item.eventDate)}
+                          </span>
+                          <span>
+                            <span className="font-medium">Expires:</span>{" "}
                             {formatKeyDateDisplay(item.eventDate)}
-                          </time>
+                          </span>
                           <span
                             className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                               (item.deleteType ?? "manual") === "auto"
