@@ -29,7 +29,10 @@ export function TickerBar() {
 
   if (!items.length) return null;
 
-  const trackItems = [...items, ...items];
+  // Repeat items enough times so that even with only a few entries,
+  // the ticker track stays visually full and continuous.
+  const repeats = Math.max(4, 8 - items.length);
+  const trackItems = Array.from({ length: repeats }, () => items).flat();
 
   return (
     <div className="border-b border-amber-200/70 bg-amber-50/90 text-amber-900">

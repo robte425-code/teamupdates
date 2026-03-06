@@ -72,31 +72,37 @@ export function ManageKeyDatesContent() {
                   ) : (
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
-                        <div className="mb-1.5 flex flex-wrap items-center gap-2 text-xs text-stone-500">
-                          <span>
-                            <span className="font-medium">Published:</span>{" "}
+                        <div className="mb-1.5 space-y-0.5 text-xs font-medium uppercase tracking-wide text-amber-600/90">
+                          <p>
+                            <span className="font-semibold">Published:</span>{" "}
                             {formatKeyDateDisplay(item.createdAt ?? item.eventDate)}
-                          </span>
-                          <span>
-                            <span className="font-medium">Expires:</span>{" "}
-                            {formatKeyDateDisplay(item.eventDate)}
-                          </span>
-                          <span
-                            className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                              (item.deleteType ?? "manual") === "auto"
-                                ? "bg-sky-100 text-sky-800"
-                                : "bg-stone-200 text-stone-600"
-                            }`}
-                          >
-                            {(item.deleteType ?? "manual") === "auto" ? "Auto delete" : "Manual"}
-                          </span>
-                          <span
-                            className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                              isPast ? "bg-stone-200 text-stone-600" : isToday ? "bg-amber-200 text-amber-800" : "bg-emerald-100 text-emerald-800"
-                            }`}
-                          >
-                            {label}
-                          </span>
+                          </p>
+                          <p className="flex flex-wrap items-center gap-2">
+                            <span>
+                              <span className="font-semibold">Expires:</span>{" "}
+                              {formatKeyDateDisplay(item.eventDate)}
+                            </span>
+                            <span
+                              className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                                (item.deleteType ?? "manual") === "auto"
+                                  ? "bg-sky-100 text-sky-800"
+                                  : "bg-stone-200 text-stone-600"
+                              } sm:text-[11px]`}
+                            >
+                              {(item.deleteType ?? "manual") === "auto" ? "Auto delete" : "Manual"}
+                            </span>
+                            <span
+                              className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                                isPast
+                                  ? "bg-stone-200 text-stone-600"
+                                  : isToday
+                                  ? "bg-amber-200 text-amber-800"
+                                  : "bg-emerald-100 text-emerald-800"
+                              } sm:text-[11px]`}
+                            >
+                              {label}
+                            </span>
+                          </p>
                         </div>
                         <h3 className="mt-1 font-medium text-stone-900">{item.title}</h3>
                         <p className="mt-2 text-sm text-stone-600 line-clamp-2">
