@@ -9,6 +9,8 @@ type TickerItem = {
 
 export function TickerBar() {
   const [items, setItems] = useState<TickerItem[]>([]);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const groupRef = useRef<HTMLDivElement | null>(null);
   const trackRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -30,8 +32,15 @@ export function TickerBar() {
 
   useEffect(() => {
     const el = trackRef.current;
-    if (!el) return;
-    let width = el.scrollWidth / 2 || 1;
+    const groupEl = groupRef.current;
+    const containerEl = containerRef.current;
+    if (!el || !groupEl || !containerEl) return;
+
+    let width = groupEl.offsetWidth || 1;
+    // Ensure one cycle is wider than the viewport for a smooth feel.
+    if (width < containerEl.offsetWidth) {
+      width = containerEl.offsetWidth;
+    }
     let offset = 0;
     let last = performance.now();
     let frame: number;
@@ -51,7 +60,10 @@ export function TickerBar() {
     frame = requestAnimationFrame(step);
 
     const handleResize = () => {
-      width = el.scrollWidth / 2 || 1;
+      width = groupEl.offsetWidth || 1;
+      if (width < containerEl.offsetWidth) {
+        width = containerEl.offsetWidth;
+      }
     };
     window.addEventListener("resize", handleResize);
 
@@ -63,7 +75,9 @@ export function TickerBar() {
 
   if (!items.length) return null;
 
-  const trackItems = [...items, ...items];
+  // Repeat small lists so one full cycle is long enough visually.
+  const repeats = Math.max(3, 12 - items.length);
+  const cycleItems = Array.from({ length: repeats }, () => items).flat();
 
   return (
     <div className="border-b border-amber-200/70 bg-amber-50/90 text-amber-900">
@@ -71,20 +85,33 @@ export function TickerBar() {
         <span className="shrink-0 rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white sm:text-[11px]">
           Ticker
         </span>
-        <div className="relative flex-1 overflow-hidden">
+        <div ref={containerRef} className="relative flex-1 overflow-hidden">
           <div
             ref={trackRef}
             className="flex whitespace-nowrap will-change-transform"
           >
-            {trackItems.map((item, idx) => (
-              <span
-                key={`${item.id}-${idx}`}
-                className="mr-8 inline-flex items-center gap-2"
-              >
-                <span className="inline-block h-1 w-1 rounded-full bg-amber-500" />
-                <span>{item.text}</span>
-              </span>
-            ))}
+            <div ref={groupRef} className="flex">
+              {cycleItems.map((item, idx) => (
+                <span
+                  key={`g1-${item.id}-${idx}`}
+                  className="mr-8 inline-flex items-center gap-2"
+                >
+                  <span className="inline-block h-1 w-1 rounded-full bg-amber-500" />
+                  <span>{item.text}</span>
+                </span>
+              ))}
+            </div>
+            <div className="flex" aria-hidden="true">
+              {cycleItems.map((item, idx) => (
+                <span
+                  key={`g2-${item.id}-${idx}`}
+                  className="mr-8 inline-flex items-center gap-2"
+                >
+                  <span className="inline-block h-1 w-1 rounded-full bg-amber-500" />
+                  <span>{item.text}</span>
+                </span>
+              ))}
+            </div>
           </div>
         </div>
       </div>
