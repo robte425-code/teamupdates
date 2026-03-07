@@ -38,41 +38,67 @@ export function Header() {
   const displayName = firstDisplayName(session?.user?.name ?? null, session?.user?.email ?? null);
   const timeOfDay = getTimeOfDay();
 
-  const gradientByTime: Record<typeof timeOfDay, string> = {
-    morning: "linear-gradient(120deg, #fef7ed 0%, #fef3c7 40%, #e0f2fe 100%)",
-    afternoon: "linear-gradient(110deg, #fffbeb 0%, #fef3c7 50%, #fde68a 100%)",
-    evening: "linear-gradient(130deg, #fef2f2 0%, #e0e7ff 50%, #fce7f3 100%)",
-    night: "linear-gradient(120deg, #eef2ff 0%, #e0e7ff 40%, #ede9fe 100%)",
+  const skyGradientByTime: Record<typeof timeOfDay, { top: string; bottom: string }> = {
+    morning: { top: "#e0f2fe", bottom: "#bae6fd" },
+    afternoon: { top: "#fef3c7", bottom: "#fde68a" },
+    evening: { top: "#e0e7ff", bottom: "#c7d2fe" },
+    night: { top: "#c7d2fe", bottom: "#a5b4fc" },
   };
+  const sky = skyGradientByTime[timeOfDay];
 
   return (
     <header className="sticky top-0 z-10 shadow-sm backdrop-blur-sm">
       <div className="relative overflow-hidden border-b border-stone-200/80">
-        {/* Time-of-day base gradient */}
-        <div
-          className="absolute inset-0 -z-[0]"
-          style={{ background: gradientByTime[timeOfDay] }}
-        />
-        {/* Moving gradient overlay - visible sweep */}
-        <div
-          className="absolute inset-0 -z-[0] animate-gradient-sweep bg-[length:400%_400%] bg-no-repeat opacity-70"
-          style={{
-            backgroundImage: `linear-gradient(105deg, transparent 0%, rgba(255,255,255,0.5) 25%, transparent 50%, rgba(255,255,255,0.3) 75%, transparent 100%)`,
-          }}
-        />
-        {/* Strong shimmer sweep */}
-        <div
-          className="absolute inset-0 -z-[0] animate-nav-shimmer bg-[length:200%_100%] bg-no-repeat opacity-90"
-          style={{
-            backgroundImage: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.45) 45%, transparent 55%, rgba(255,255,255,0.2) 70%, transparent 100%)",
-          }}
-        />
-        {/* Floating orbs - bright and obvious */}
-        <div className="pointer-events-none absolute inset-0 -z-[0] overflow-hidden">
-          <div className="absolute -left-8 top-1/2 h-36 w-36 rounded-full bg-amber-300/75 blur-xl animate-float-slow" />
-          <div className="absolute right-1/4 -top-4 h-32 w-32 rounded-full bg-sky-300/75 blur-xl animate-float-slower" />
-          <div className="absolute bottom-0 left-1/3 h-40 w-40 rounded-full bg-rose-300/70 blur-xl animate-float-slow" style={{ animationDelay: "-1.5s" }} />
-          <div className="absolute right-0 top-1/2 h-28 w-28 rounded-full bg-violet-300/75 blur-xl animate-float-slower" style={{ animationDelay: "-3s" }} />
+        {/* Synthetic scenic background: rolling hills + flying birds */}
+        <div className="absolute inset-0 -z-[0] h-full w-full">
+          <svg
+            className="h-full w-full object-cover object-bottom"
+            viewBox="0 0 800 120"
+            preserveAspectRatio="xMidYMax slice"
+            aria-hidden
+          >
+            <defs>
+              <linearGradient id="nav-sky" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor={sky.top} />
+                <stop offset="100%" stopColor={sky.bottom} />
+              </linearGradient>
+              <linearGradient id="hill-far" x1="0%" y1="100%" x2="0%" y2="0%">
+                <stop offset="0%" stopColor="#86efac" stopOpacity="0.9" />
+                <stop offset="100%" stopColor="#bbf7d0" stopOpacity="0.95" />
+              </linearGradient>
+              <linearGradient id="hill-mid" x1="0%" y1="100%" x2="0%" y2="0%">
+                <stop offset="0%" stopColor="#4ade80" stopOpacity="0.85" />
+                <stop offset="100%" stopColor="#86efac" stopOpacity="0.9" />
+              </linearGradient>
+              <linearGradient id="hill-near" x1="0%" y1="100%" x2="0%" y2="0%">
+                <stop offset="0%" stopColor="#22c55e" stopOpacity="0.9" />
+                <stop offset="100%" stopColor="#4ade80" stopOpacity="0.85" />
+              </linearGradient>
+            </defs>
+            <rect width="800" height="120" fill="url(#nav-sky)" />
+            {/* Rolling hills - back to front */}
+            <path fill="url(#hill-far)" d="M0,120 Q200,75 400,95 T800,80 V120 H0Z" />
+            <path fill="url(#hill-mid)" d="M0,120 Q250,90 500,70 T800,100 V120 H0Z" />
+            <path fill="url(#hill-near)" d="M0,120 Q150,100 400,85 T800,95 V120 H0Z" />
+          </svg>
+          {/* Birds as overlay so they can animate across full width */}
+          <div className="pointer-events-none absolute inset-0 overflow-hidden">
+            <div className="absolute left-0 top-[28%] h-2 w-2 animate-bird-fly opacity-70" style={{ animationDelay: "0s" }}>
+              <svg viewBox="0 0 24 12" className="h-full w-auto text-slate-600">
+                <path fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" d="M2,8 Q8,2 14,8" />
+              </svg>
+            </div>
+            <div className="absolute left-0 top-[22%] h-2.5 w-2.5 animate-bird-fly opacity-60" style={{ animationDelay: "2.5s" }}>
+              <svg viewBox="0 0 24 12" className="h-full w-auto text-slate-600">
+                <path fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" d="M2,8 Q8,2 14,8" />
+              </svg>
+            </div>
+            <div className="absolute left-0 top-[38%] h-1.5 w-1.5 animate-bird-fly opacity-50" style={{ animationDelay: "5s" }}>
+              <svg viewBox="0 0 24 12" className="h-full w-auto text-slate-600">
+                <path fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" d="M2,8 Q8,2 14,8" />
+              </svg>
+            </div>
+          </div>
         </div>
         <div className="relative z-10 mx-auto flex max-w-6xl flex-col gap-4 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
           <div className="flex flex-wrap items-center gap-6">
