@@ -48,20 +48,31 @@ export function Header() {
   return (
     <header className="sticky top-0 z-10 shadow-sm backdrop-blur-sm">
       <div className="relative overflow-hidden border-b border-stone-200/80">
-        {/* Animated time-of-day background */}
+        {/* Time-of-day base gradient */}
         <div
-          className="absolute inset-0 -z-[0] bg-cover bg-center bg-no-repeat"
+          className="absolute inset-0 -z-[0]"
+          style={{ background: gradientByTime[timeOfDay] }}
+        />
+        {/* Moving gradient overlay - visible sweep */}
+        <div
+          className="absolute inset-0 -z-[0] animate-gradient-sweep bg-[length:400%_400%] bg-no-repeat opacity-70"
           style={{
-            background: gradientByTime[timeOfDay],
-            backgroundAttachment: "scroll",
+            backgroundImage: `linear-gradient(105deg, transparent 0%, rgba(255,255,255,0.5) 25%, transparent 50%, rgba(255,255,255,0.3) 75%, transparent 100%)`,
           }}
         />
-        <div className="absolute inset-0 -z-[0] animate-nav-shimmer bg-[length:200%_100%] bg-[linear-gradient(90deg,transparent_0%,rgba(255,255,255,0.15)_50%,transparent_100%)] bg-[position:200%_0] bg-no-repeat" />
-        {/* Subtle floating shapes */}
+        {/* Strong shimmer sweep */}
+        <div
+          className="absolute inset-0 -z-[0] animate-nav-shimmer bg-[length:200%_100%] bg-no-repeat opacity-90"
+          style={{
+            backgroundImage: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.45) 45%, transparent 55%, rgba(255,255,255,0.2) 70%, transparent 100%)",
+          }}
+        />
+        {/* Floating orbs - larger, more visible */}
         <div className="pointer-events-none absolute inset-0 -z-[0] overflow-hidden">
-          <div className="absolute -left-4 top-1/2 h-24 w-24 rounded-full bg-white/20 blur-xl animate-float-slow" />
-          <div className="absolute right-1/4 top-0 h-16 w-16 rounded-full bg-white/25 blur-lg animate-float-slower" />
-          <div className="absolute bottom-0 left-1/3 h-20 w-20 rounded-full bg-white/15 blur-xl animate-float-slow" style={{ animationDelay: "-2s" }} />
+          <div className="absolute -left-8 top-1/2 h-32 w-32 rounded-full bg-amber-200/50 blur-2xl animate-float-slow" />
+          <div className="absolute right-1/4 -top-4 h-28 w-28 rounded-full bg-sky-200/50 blur-xl animate-float-slower" />
+          <div className="absolute bottom-0 left-1/3 h-36 w-36 rounded-full bg-rose-200/40 blur-2xl animate-float-slow" style={{ animationDelay: "-1.5s" }} />
+          <div className="absolute right-0 top-1/2 h-24 w-24 rounded-full bg-violet-200/45 blur-xl animate-float-slower" style={{ animationDelay: "-3s" }} />
         </div>
         <div className="relative z-10 mx-auto flex max-w-6xl flex-col gap-4 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
           <div className="flex flex-wrap items-center gap-6">
