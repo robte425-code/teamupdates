@@ -67,12 +67,12 @@ export function Header() {
             backgroundImage: "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.45) 45%, transparent 55%, rgba(255,255,255,0.2) 70%, transparent 100%)",
           }}
         />
-        {/* Floating orbs - larger, more visible */}
+        {/* Floating orbs - bright and obvious */}
         <div className="pointer-events-none absolute inset-0 -z-[0] overflow-hidden">
-          <div className="absolute -left-8 top-1/2 h-32 w-32 rounded-full bg-amber-200/50 blur-2xl animate-float-slow" />
-          <div className="absolute right-1/4 -top-4 h-28 w-28 rounded-full bg-sky-200/50 blur-xl animate-float-slower" />
-          <div className="absolute bottom-0 left-1/3 h-36 w-36 rounded-full bg-rose-200/40 blur-2xl animate-float-slow" style={{ animationDelay: "-1.5s" }} />
-          <div className="absolute right-0 top-1/2 h-24 w-24 rounded-full bg-violet-200/45 blur-xl animate-float-slower" style={{ animationDelay: "-3s" }} />
+          <div className="absolute -left-8 top-1/2 h-36 w-36 rounded-full bg-amber-300/75 blur-xl animate-float-slow" />
+          <div className="absolute right-1/4 -top-4 h-32 w-32 rounded-full bg-sky-300/75 blur-xl animate-float-slower" />
+          <div className="absolute bottom-0 left-1/3 h-40 w-40 rounded-full bg-rose-300/70 blur-xl animate-float-slow" style={{ animationDelay: "-1.5s" }} />
+          <div className="absolute right-0 top-1/2 h-28 w-28 rounded-full bg-violet-300/75 blur-xl animate-float-slower" style={{ animationDelay: "-3s" }} />
         </div>
         <div className="relative z-10 mx-auto flex max-w-6xl flex-col gap-4 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
           <div className="flex flex-wrap items-center gap-6">
