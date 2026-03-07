@@ -56,8 +56,8 @@ export function KeyDateItem({
   const hasMore = item.body.length > 120;
 
   return (
-    <li className="group rounded-xl border border-stone-200/80 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
-      <div className="w-full">
+    <li className="group relative overflow-hidden rounded-xl border border-stone-200/80 bg-white p-4 pb-4 shadow-sm transition-shadow hover:shadow-md">
+      <div className="mb-12 w-full">
         <div className="flex items-baseline justify-between gap-3">
           <h3 className="min-w-0 flex-1 font-semibold text-stone-900">{item.title}</h3>
           <span className="shrink-0 text-xs text-stone-400">
@@ -77,16 +77,18 @@ export function KeyDateItem({
           )}
         </div>
       </div>
-      <div className="mt-3 -mx-4 -mb-4 flex w-full items-center justify-between border-t border-stone-200/60 bg-stone-50 px-4 py-3">
-        <div className="text-xs font-medium uppercase tracking-wide text-amber-600/90">
-          <span className="font-semibold">Due date:</span>{" "}
-          {formatKeyDateDisplay(item.eventDate)}
+      <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between border-t border-stone-200/60 bg-stone-50 px-4 py-3">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium uppercase tracking-wide text-amber-600/90">
+          <span>
+            <span className="font-semibold">Due date:</span>{" "}
+            {formatKeyDateDisplay(item.eventDate)}
+          </span>
           {showCountdown ? (
-            <span className="ml-2">
+            <span className="shrink-0 whitespace-nowrap">
               <KeyDateCountdown eventDate={item.eventDate} />
             </span>
           ) : (
-            <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800 sm:text-[11px]">
+            <span className="shrink-0 whitespace-nowrap rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800 sm:text-[11px]">
               {label}
             </span>
           )}

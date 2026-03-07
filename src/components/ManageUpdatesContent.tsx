@@ -48,7 +48,7 @@ export function ManageUpdatesContent() {
         ) : (
           <ul className="space-y-4">
             {items.map((item) => (
-              <li key={item.id} className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
+              <li key={item.id} className="relative overflow-hidden rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
                 {editingId === item.id ? (
                   <UpdateForm
                     initial={{ id: item.id, title: item.title, body: item.body }}
@@ -60,7 +60,7 @@ export function ManageUpdatesContent() {
                   />
                 ) : (
                   <>
-                    <div className="w-full">
+                    <div className="mb-12 w-full">
                       <div className="flex items-baseline justify-between gap-3">
                         <h3 className="min-w-0 flex-1 font-medium text-stone-900">{item.title}</h3>
                         <span className="shrink-0 text-xs text-stone-400">
@@ -71,7 +71,7 @@ export function ManageUpdatesContent() {
                         <BodyWithLinks text={item.body} />
                       </p>
                     </div>
-                    <div className="mt-3 -mx-4 -mb-4 flex w-full justify-end border-t border-stone-200/60 bg-stone-50 px-4 py-3">
+                    <div className="absolute bottom-0 left-0 right-0 flex w-full justify-end border-t border-stone-200/60 bg-stone-50 px-4 py-3">
                       <div className="flex shrink-0 gap-1">
                         <button
                           type="button"
