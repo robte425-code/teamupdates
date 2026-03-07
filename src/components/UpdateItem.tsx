@@ -45,11 +45,12 @@ export function UpdateItem({
   return (
     <li className="group rounded-xl border border-stone-200/80 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
       <div className="w-full">
-        <p className="text-xs font-medium uppercase tracking-wide text-amber-600/90">
-          <span className="font-semibold">Published:</span>{" "}
-          {formatDateInPST(item.date)}
-        </p>
-        <h3 className="mt-1.5 font-semibold text-stone-900">{item.title}</h3>
+        <div className="flex items-baseline justify-between gap-3">
+          <h3 className="min-w-0 flex-1 font-semibold text-stone-900">{item.title}</h3>
+          <span className="shrink-0 text-xs text-stone-400">
+            Published: {formatDateInPST(item.date)}
+          </span>
+        </div>
         <div className="mt-2 w-full text-sm leading-relaxed text-stone-600">
           <BodyWithLinks text={expanded ? item.body : bodyPreview} />
           {hasMore && (

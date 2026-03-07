@@ -76,35 +76,34 @@ export function ManageKeyDatesContent() {
                   ) : (
                     <>
                       <div className="w-full">
-                        <div className="mb-1.5 space-y-0.5 text-xs font-medium uppercase tracking-wide text-amber-600/90">
-                          <p>
-                            <span className="font-semibold">Published:</span>{" "}
-                            {formatDateInPST(item.createdAt ?? item.eventDate)}
-                          </p>
-                          <p className="flex flex-wrap items-center gap-2">
-                            <span
-                              className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                                (item.deleteType ?? "manual") === "auto"
-                                  ? "bg-sky-100 text-sky-800"
-                                  : "bg-stone-200 text-stone-600"
-                              } sm:text-[11px]`}
-                            >
-                              {(item.deleteType ?? "manual") === "auto" ? "Auto delete" : "Manual"}
-                            </span>
-                            <span
-                              className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                                isPast
-                                  ? "bg-stone-200 text-stone-600"
-                                  : isToday
-                                  ? "bg-amber-200 text-amber-800"
-                                  : "bg-emerald-100 text-emerald-800"
-                              } sm:text-[11px]`}
-                            >
-                              {label}
-                            </span>
-                          </p>
+                        <div className="flex items-baseline justify-between gap-3">
+                          <h3 className="min-w-0 flex-1 font-medium text-stone-900">{item.title}</h3>
+                          <span className="shrink-0 text-xs text-stone-400">
+                            Published: {formatDateInPST(item.createdAt ?? item.eventDate)}
+                          </span>
                         </div>
-                        <h3 className="mt-1 font-medium text-stone-900">{item.title}</h3>
+                        <p className="mt-1.5 flex flex-wrap items-center gap-2 text-[10px] sm:text-[11px]">
+                          <span
+                            className={`rounded-full px-2 py-0.5 font-semibold ${
+                              (item.deleteType ?? "manual") === "auto"
+                                ? "bg-sky-100 text-sky-800"
+                                : "bg-stone-200 text-stone-600"
+                            }`}
+                          >
+                            {(item.deleteType ?? "manual") === "auto" ? "Auto delete" : "Manual"}
+                          </span>
+                          <span
+                            className={`rounded-full px-2 py-0.5 font-semibold ${
+                              isPast
+                                ? "bg-stone-200 text-stone-600"
+                                : isToday
+                                ? "bg-amber-200 text-amber-800"
+                                : "bg-emerald-100 text-emerald-800"
+                            }`}
+                          >
+                            {label}
+                          </span>
+                        </p>
                         <p className="mt-2 w-full text-sm text-stone-600">
                           <BodyWithLinks text={item.body} />
                         </p>

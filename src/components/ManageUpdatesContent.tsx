@@ -61,11 +61,12 @@ export function ManageUpdatesContent() {
                 ) : (
                   <>
                     <div className="w-full">
-                      <p className="text-xs font-medium text-amber-700">
-                        <span className="font-semibold">Published:</span>{" "}
-                        {formatDateInPST(item.date)}
-                      </p>
-                      <h3 className="mt-1 font-medium text-stone-900">{item.title}</h3>
+                      <div className="flex items-baseline justify-between gap-3">
+                        <h3 className="min-w-0 flex-1 font-medium text-stone-900">{item.title}</h3>
+                        <span className="shrink-0 text-xs text-stone-400">
+                          Published: {formatDateInPST(item.date)}
+                        </span>
+                      </div>
                       <p className="mt-2 w-full text-sm text-stone-600">
                         <BodyWithLinks text={item.body} />
                       </p>
