@@ -7,11 +7,26 @@ import { signOut } from "next-auth/react";
 import { useSession } from "next-auth/react";
 import { TickerBar } from "./TickerBar";
 
+function timeGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning,";
+  if (hour < 17) return "Good afternoon,";
+  return "Good evening,";
+}
+
+function firstDisplayName(name: string | null | undefined, email: string | null | undefined): string {
+  if (name?.trim()) return name.trim().split(/\s+/)[0] ?? name;
+  if (email?.trim()) return email.trim().split("@")[0];
+  return "";
+}
+
 export function Header() {
   const pathname = usePathname() ?? "";
   const { data: session } = useSession();
   const user = session?.user as { role?: string } | undefined;
   const isAdmin = user?.role === "admin";
+  const greeting = timeGreeting();
+  const displayName = firstDisplayName(session?.user?.name ?? null, session?.user?.email ?? null);
 
   return (
     <header className="sticky top-0 z-10 bg-white/95 shadow-sm backdrop-blur-sm">
@@ -75,10 +90,10 @@ export function Header() {
             )}
           </div>
           <div className="flex items-center gap-3 self-end sm:self-center">
-            {(session?.user?.name || session?.user?.email) && (
+            {displayName && (
               <span className="text-sm font-medium text-stone-600">
-                Welcome,&nbsp;
-                {session.user.name || session.user.email}
+                {greeting}&nbsp;
+                {displayName}
               </span>
             )}
             <button

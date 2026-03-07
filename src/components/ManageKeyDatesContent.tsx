@@ -83,7 +83,7 @@ export function ManageKeyDatesContent() {
                           </p>
                           <p className="flex flex-wrap items-center gap-2">
                             <span>
-                              <span className="font-semibold">Expires:</span>{" "}
+                              <span className="font-semibold">Due date:</span>{" "}
                               {formatKeyDateDisplay(item.eventDate)}
                             </span>
                             <span
