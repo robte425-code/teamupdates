@@ -81,11 +81,8 @@ export function TickerBar() {
 
   return (
     <div className="border-b border-amber-200/70 bg-amber-50/90 text-amber-900">
-      <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-2 text-xs sm:text-sm">
-        <span className="shrink-0 rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white sm:text-[11px]">
-          Ticker
-        </span>
-        <div ref={containerRef} className="relative flex-1 overflow-hidden">
+      <div className="mx-auto flex max-w-6xl items-center px-4 py-2 text-xs sm:text-sm">
+        <div ref={containerRef} className="relative min-w-0 flex-1 overflow-hidden">
           <div
             ref={trackRef}
             className="flex whitespace-nowrap will-change-transform"
