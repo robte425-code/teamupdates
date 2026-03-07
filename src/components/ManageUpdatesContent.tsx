@@ -71,7 +71,7 @@ export function ManageUpdatesContent() {
                         <BodyWithLinks text={item.body} />
                       </p>
                     </div>
-                    <div className="mt-3 flex w-full justify-end border-t border-stone-100 pt-3">
+                    <div className="mt-3 -mx-4 -mb-4 flex w-full justify-end border-t border-stone-200/60 bg-stone-50 px-4 py-3">
                       <div className="flex shrink-0 gap-1">
                         <button
                           type="button"
