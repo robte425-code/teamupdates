@@ -114,21 +114,22 @@ export function ManageKeyDatesContent() {
                             <span className="font-semibold">Due date:</span>{" "}
                             {formatKeyDateDisplay(item.eventDate)}
                           </span>
-                        <div className="flex shrink-0 gap-1">
-                          <button
-                            type="button"
-                            onClick={() => setEditingId(item.id)}
-                            className="rounded px-2 py-1 text-xs font-medium text-stone-500 hover:bg-stone-100"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDelete(item.id)}
-                            className="rounded px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
-                          >
-                            Delete
-                          </button>
+                          <div className="flex shrink-0 gap-1">
+                            <button
+                              type="button"
+                              onClick={() => setEditingId(item.id)}
+                              className="rounded px-2 py-1 text-xs font-medium text-stone-500 hover:bg-stone-100"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(item.id)}
+                              className="rounded px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
+                            >
+                              Delete
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </>
