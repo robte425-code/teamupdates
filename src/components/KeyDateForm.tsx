@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
+import { dateTimeInPacificToISO, APP_TIMEZONE } from "@/lib/formatKeyDate";
 
 export type KeyDateDeleteType = "auto" | "manual";
 
@@ -23,11 +24,32 @@ export function KeyDateForm({
   onCancel?: () => void;
 }) {
   const isEdit = !!initial?.id;
+  function getInitialDateAndTime(iso: string) {
+    const d = new Date(iso);
+    const dateParts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: APP_TIMEZONE,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(d);
+    const year = dateParts.find((p) => p.type === "year")?.value ?? "";
+    const month = dateParts.find((p) => p.type === "month")?.value ?? "";
+    const day = dateParts.find((p) => p.type === "day")?.value ?? "";
+    const timeParts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: APP_TIMEZONE,
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).formatToParts(d);
+    const hour = timeParts.find((p) => p.type === "hour")?.value ?? "09";
+    const minute = timeParts.find((p) => p.type === "minute")?.value ?? "00";
+    return { datePart: `${year}-${month}-${day}`, timePart: `${hour}:${minute}` };
+  }
   const [eventDate, setEventDate] = useState(
-    initial?.eventDate ? format(new Date(initial.eventDate), "yyyy-MM-dd") : ""
+    initial?.eventDate ? getInitialDateAndTime(initial.eventDate).datePart : ""
   );
   const [eventTime, setEventTime] = useState(
-    initial?.eventDate ? format(new Date(initial.eventDate), "HH:mm") : "09:00"
+    initial?.eventDate ? getInitialDateAndTime(initial.eventDate).timePart : "09:00"
   );
   useEffect(() => {
     if (!initial?.eventDate) {
@@ -43,20 +65,11 @@ export function KeyDateForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  function toISOWithTimezone(dateStr: string, timeStr: string): string {
-    const offset = -new Date().getTimezoneOffset();
-    const sign = offset >= 0 ? "+" : "-";
-    const hours = Math.floor(Math.abs(offset) / 60);
-    const minutes = Math.abs(offset) % 60;
-    const tz = `${sign}${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
-    return `${dateStr}T${timeStr}:00${tz}`;
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setLoading(true);
-    const eventDateTime = toISOWithTimezone(eventDate, eventTime);
+    const eventDateTime = dateTimeInPacificToISO(eventDate, eventTime);
     try {
       if (isEdit && initial?.id) {
         const res = await fetch(`/api/key-dates/${initial.id}`, {
