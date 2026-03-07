@@ -59,34 +59,36 @@ export function ManageUpdatesContent() {
                     onCancel={() => setEditingId(null)}
                   />
                 ) : (
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
+                  <>
+                    <div className="w-full">
                       <p className="text-xs font-medium text-amber-700">
                         <span className="font-semibold">Published:</span>{" "}
                         {formatDateInPST(item.date)}
                       </p>
                       <h3 className="mt-1 font-medium text-stone-900">{item.title}</h3>
-                      <p className="mt-2 text-sm text-stone-600 line-clamp-2">
+                      <p className="mt-2 w-full text-sm text-stone-600">
                         <BodyWithLinks text={item.body} />
                       </p>
                     </div>
-                    <div className="flex shrink-0 gap-1">
-                      <button
-                        type="button"
-                        onClick={() => setEditingId(item.id)}
-                        className="rounded px-2 py-1 text-xs font-medium text-stone-500 hover:bg-stone-100"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(item.id)}
-                        className="rounded px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
-                      >
-                        Delete
-                      </button>
+                    <div className="mt-3 flex w-full justify-end border-t border-stone-100 pt-3">
+                      <div className="flex shrink-0 gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setEditingId(item.id)}
+                          className="rounded px-2 py-1 text-xs font-medium text-stone-500 hover:bg-stone-100"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(item.id)}
+                          className="rounded px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  </>
                 )}
               </li>
             ))}

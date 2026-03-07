@@ -57,40 +57,40 @@ export function KeyDateItem({
 
   return (
     <li className="group rounded-xl border border-stone-200/80 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <div className="mb-1.5 space-y-0.5 text-xs font-medium uppercase tracking-wide text-amber-600/90">
-            <p>
-              <span className="font-semibold">Published:</span>{" "}
-              {formatDateInPST(item.createdAt ?? item.eventDate)}
-            </p>
-            <p className="flex flex-wrap items-center gap-2">
-              <span>
-                <span className="font-semibold">Due date:</span>{" "}
-                {formatKeyDateDisplay(item.eventDate)}
-              </span>
-              {showCountdown ? (
-                <KeyDateCountdown eventDate={item.eventDate} />
-              ) : (
-                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800 sm:text-[11px]">
-                  {label}
-                </span>
-              )}
-            </p>
-          </div>
-          <h3 className="mt-1.5 font-semibold text-stone-900">{item.title}</h3>
-          <div className="mt-2 text-sm leading-relaxed text-stone-600">
-            <BodyWithLinks text={expanded ? item.body : bodyPreview} />
-            {hasMore && (
-              <button
-                type="button"
-                onClick={() => setExpanded(!expanded)}
-                className="ml-1 font-medium text-amber-600 transition-colors hover:text-amber-700 hover:underline"
-              >
-                {expanded ? " Show less" : "… More"}
-              </button>
-            )}
-          </div>
+      <div className="w-full">
+        <div className="mb-1.5 space-y-0.5 text-xs font-medium uppercase tracking-wide text-amber-600/90">
+          <p>
+            <span className="font-semibold">Published:</span>{" "}
+            {formatDateInPST(item.createdAt ?? item.eventDate)}
+          </p>
+        </div>
+        <h3 className="mt-1.5 font-semibold text-stone-900">{item.title}</h3>
+        <div className="mt-2 w-full text-sm leading-relaxed text-stone-600">
+          <BodyWithLinks text={expanded ? item.body : bodyPreview} />
+          {hasMore && (
+            <button
+              type="button"
+              onClick={() => setExpanded(!expanded)}
+              className="ml-1 font-medium text-amber-600 transition-colors hover:text-amber-700 hover:underline"
+            >
+              {expanded ? " Show less" : "… More"}
+            </button>
+          )}
+        </div>
+      </div>
+      <div className="mt-3 flex w-full items-center justify-between border-t border-stone-100 pt-3">
+        <div className="text-xs font-medium uppercase tracking-wide text-amber-600/90">
+          <span className="font-semibold">Due date:</span>{" "}
+          {formatKeyDateDisplay(item.eventDate)}
+          {showCountdown ? (
+            <span className="ml-2">
+              <KeyDateCountdown eventDate={item.eventDate} />
+            </span>
+          ) : (
+            <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800 sm:text-[11px]">
+              {label}
+            </span>
+          )}
         </div>
         {isAdmin && (
           <div className="flex shrink-0 gap-1">
