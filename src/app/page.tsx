@@ -19,7 +19,7 @@ export default async function HomePage() {
             Your TEAM Dashboard
           </h1>
           <p className="mt-1 text-sm text-stone-500">
-            'Your source for key dates & updates / reminders' — Robert Evans, The Big Baller
+            Your source for key dates & updates / reminders
           </p>
         </div>
         <div className="grid gap-10 lg:grid-cols-2">
