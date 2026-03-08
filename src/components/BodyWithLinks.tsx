@@ -1,117 +1,31 @@
 "use client";
 
 const URL_REGEX = /(https?:\/\/[^\s<>"]+)/g;
-// Match <a href="url">text</a> - allow optional space, single or double quotes, flexible whitespace
-const ANCHOR_REGEX = /<a\s*href\s*=\s*["'](https?:\/\/[^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
 
 function trimTrailingPunctuation(url: string): string {
   return url.replace(/[.,;:!)]+$/, "");
 }
 
-/** Decode common HTML entities so escaped content (e.g. &lt; &gt;) can be parsed as links. */
-function decodeHtmlEntities(s: string): string {
-  return s
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&#x27;/g, "'")
-    .replace(/&amp;/g, "&");
-}
-
-type Segment = { type: "text"; value: string } | { type: "anchor"; href: string; text: string } | { type: "url"; url: string };
-
-function parseSegments(input: string): Segment[] {
-  const decoded = decodeHtmlEntities(input);
-  const segments: Segment[] = [];
-  let pos = 0;
-
-  while (pos < decoded.length) {
-    const rest = decoded.slice(pos);
-    const anchorRe = /<a\s*href\s*=\s*["'](https?:\/\/[^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
-    const urlRe = /https?:\/\/[^\s<>"]+/g;
-    const anchorMatch = anchorRe.exec(rest);
-    const urlMatch = urlRe.exec(rest);
-
-    let match: { index: number; len: number; segment: Segment } | null = null;
-    if (anchorMatch && anchorMatch.index !== undefined) {
-      const href = anchorMatch[1].trim();
-      const linkText = anchorMatch[2].trim();
-      if (/^https?:\/\//i.test(href)) {
-        match = {
-          index: anchorMatch.index,
-          len: anchorMatch[0].length,
-          segment: { type: "anchor", href, text: linkText },
-        };
-      }
-    }
-    if (urlMatch && urlMatch.index !== undefined) {
-      const url = trimTrailingPunctuation(urlMatch[0]);
-      const candidate = { index: urlMatch.index, len: urlMatch[0].length, segment: { type: "url" as const, url } };
-      if (!match || candidate.index < match.index) match = candidate;
-    }
-
-    if (match) {
-      if (match.index > 0) segments.push({ type: "text", value: rest.slice(0, match.index) });
-      segments.push(match.segment);
-      pos += match.index + match.len;
-    } else {
-      segments.push({ type: "text", value: rest });
-      break;
-    }
-  }
-  return segments;
-}
-
 export function BodyWithLinks({ text, className }: { text: string; className?: string }) {
-  const segments = parseSegments(text);
+  const parts = text.split(URL_REGEX);
   return (
     <span className={className}>
-      {segments.flatMap((seg, i) => {
-        if (seg.type === "text") {
-          const parts = seg.value.split(URL_REGEX);
-          return parts.map((part, j) => {
-            if (/^https?:\/\//.test(part)) {
-              const href = trimTrailingPunctuation(part);
-              return (
-                <a
-                  key={`t-${i}-${j}`}
-                  href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-stone-900 underline break-all"
-                >
-                  {part}
-                </a>
-              );
-            }
-            return <span key={`t-${i}-${j}`}>{part}</span>;
-          });
-        }
-        if (seg.type === "anchor") {
+      {parts.map((part, i) => {
+        if (/^https?:\/\//.test(part)) {
+          const href = trimTrailingPunctuation(part);
           return (
             <a
-              key={`a-${i}`}
-              href={seg.href}
+              key={i}
+              href={href}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-stone-900 underline"
+              className="text-stone-900 underline break-all"
             >
-              {seg.text}
+              {part}
             </a>
           );
         }
-        return (
-          <a
-            key={`u-${i}`}
-            href={seg.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-stone-900 underline break-all"
-          >
-            {seg.url}
-          </a>
-        );
+        return part;
       })}
     </span>
   );
