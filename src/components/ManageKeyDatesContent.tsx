@@ -65,7 +65,7 @@ export function ManageKeyDatesContent() {
                 ? formatKeyDateRange(item.eventDate, item.eventEndDate)
                 : formatKeyDateDisplay(item.eventDate);
               return (
-                <li key={item.id} className="relative overflow-hidden rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
+                <li key={item.id} className="rounded-xl border border-stone-200 bg-white shadow-sm">
                   {editingId === item.id ? (
                     <KeyDateForm
                       initial={{
@@ -85,7 +85,7 @@ export function ManageKeyDatesContent() {
                     />
                   ) : (
                     <>
-                      <div className="mb-12 w-full">
+                      <div className="w-full p-4 pb-0">
                         <div className="flex items-baseline justify-between gap-3">
                           <h3 className="min-w-0 flex-1 font-medium text-stone-900">{item.title}</h3>
                           <span className="shrink-0 text-xs text-stone-400">
@@ -118,7 +118,7 @@ export function ManageKeyDatesContent() {
                           <BodyWithLinks text={item.body} />
                         </p>
                       </div>
-                      <div className="absolute bottom-0 left-0 right-0 flex w-full items-center justify-between border-t border-stone-200/60 bg-stone-50 px-4 py-3">
+                      <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-stone-200/60 bg-stone-50 px-4 py-3">
                         <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium uppercase tracking-wide text-amber-600/90">
                           <span className="text-stone-900">
                             <span className="font-semibold">{dateLabel}</span>{" "}
