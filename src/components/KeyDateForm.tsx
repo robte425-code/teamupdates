@@ -5,10 +5,13 @@ import { format } from "date-fns";
 import { dateTimeInPacificToISO, APP_TIMEZONE } from "@/lib/formatKeyDate";
 
 export type KeyDateDeleteType = "auto" | "manual";
+export type KeyDateDateType = "due" | "event";
 
 type Initial = {
   id?: string;
+  dateType?: KeyDateDateType;
   eventDate: string;
+  eventEndDate?: string | null;
   title: string;
   body: string;
   deleteType?: KeyDateDeleteType;
@@ -45,16 +48,27 @@ export function KeyDateForm({
     const minute = timeParts.find((p) => p.type === "minute")?.value ?? "00";
     return { datePart: `${year}-${month}-${day}`, timePart: `${hour}:${minute}` };
   }
+  const [dateType, setDateType] = useState<KeyDateDateType>(
+    initial?.dateType ?? (initial?.eventEndDate ? "event" : "due")
+  );
   const [eventDate, setEventDate] = useState(
     initial?.eventDate ? getInitialDateAndTime(initial.eventDate).datePart : ""
   );
   const [eventTime, setEventTime] = useState(
     initial?.eventDate ? getInitialDateAndTime(initial.eventDate).timePart : "09:00"
   );
+  const [endDate, setEndDate] = useState(
+    initial?.eventEndDate ? getInitialDateAndTime(initial.eventEndDate).datePart : ""
+  );
+  const [endTime, setEndTime] = useState(
+    initial?.eventEndDate ? getInitialDateAndTime(initial.eventEndDate).timePart : "17:00"
+  );
   useEffect(() => {
     if (!initial?.eventDate) {
       setEventDate(format(new Date(), "yyyy-MM-dd"));
       setEventTime("09:00");
+      setEndDate(format(new Date(), "yyyy-MM-dd"));
+      setEndTime("17:00");
     }
   }, [initial?.eventDate]);
   const [deleteType, setDeleteType] = useState<KeyDateDeleteType>(
@@ -70,29 +84,29 @@ export function KeyDateForm({
     setError("");
     setLoading(true);
     const eventDateTime = dateTimeInPacificToISO(eventDate, eventTime);
+    const eventEndDateTime =
+      dateType === "event" ? dateTimeInPacificToISO(endDate, endTime) : undefined;
+    const payload = {
+      dateType,
+      eventDate: eventDateTime,
+      ...(dateType === "event" && eventEndDateTime && { eventEndDate: eventEndDateTime }),
+      title,
+      text: body,
+      deleteType,
+    };
     try {
       if (isEdit && initial?.id) {
         const res = await fetch(`/api/key-dates/${initial.id}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            eventDate: eventDateTime,
-            title,
-            text: body,
-            deleteType,
-          }),
+          body: JSON.stringify(payload),
         });
         if (!res.ok) throw new Error(await res.text());
       } else {
         const res = await fetch("/api/key-dates", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            eventDate: eventDateTime,
-            title,
-            text: body,
-            deleteType,
-          }),
+          body: JSON.stringify(payload),
         });
         if (!res.ok) throw new Error(await res.text());
       }
@@ -100,6 +114,8 @@ export function KeyDateForm({
       setBody("");
       setEventDate(format(new Date(), "yyyy-MM-dd"));
       setEventTime("09:00");
+      setEndDate(format(new Date(), "yyyy-MM-dd"));
+      setEndTime("17:00");
       onSaved();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save");
@@ -117,6 +133,118 @@ export function KeyDateForm({
         {isEdit ? "Edit key date" : "Add key date"}
       </h3>
       <div className="space-y-3">
+        <div>
+          <label className="mb-1 block text-xs font-medium text-stone-500">
+            Type
+          </label>
+          <div className="flex flex-wrap gap-4">
+            <label className="flex cursor-pointer items-center gap-2 text-sm">
+              <input
+                type="radio"
+                name="dateType"
+                value="due"
+                checked={dateType === "due"}
+                onChange={() => setDateType("due")}
+                className="rounded-full border-stone-300 text-emerald-600"
+              />
+              <span>Due date</span>
+            </label>
+            <label className="flex cursor-pointer items-center gap-2 text-sm">
+              <input
+                type="radio"
+                name="dateType"
+                value="event"
+                checked={dateType === "event"}
+                onChange={() => setDateType("event")}
+                className="rounded-full border-stone-300 text-emerald-600"
+              />
+              <span>Event date</span>
+            </label>
+          </div>
+        </div>
+        {dateType === "due" ? (
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-0.5 block text-xs font-medium text-stone-500">
+                Due date
+              </label>
+              <input
+                type="date"
+                value={eventDate}
+                onChange={(e) => setEventDate(e.target.value)}
+                required
+                className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="mb-0.5 block text-xs font-medium text-stone-500">
+                Time
+              </label>
+              <input
+                type="time"
+                value={eventTime}
+                onChange={(e) => setEventTime(e.target.value)}
+                required
+                className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm"
+              />
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="mb-0.5 block text-xs font-medium text-stone-500">
+                  Start date
+                </label>
+                <input
+                  type="date"
+                  value={eventDate}
+                  onChange={(e) => setEventDate(e.target.value)}
+                  required
+                  className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label className="mb-0.5 block text-xs font-medium text-stone-500">
+                  Start time
+                </label>
+                <input
+                  type="time"
+                  value={eventTime}
+                  onChange={(e) => setEventTime(e.target.value)}
+                  required
+                  className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="mb-0.5 block text-xs font-medium text-stone-500">
+                  End date
+                </label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  required={dateType === "event"}
+                  className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label className="mb-0.5 block text-xs font-medium text-stone-500">
+                  End time
+                </label>
+                <input
+                  type="time"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  required={dateType === "event"}
+                  className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm"
+                />
+              </div>
+            </div>
+          </>
+        )}
         <div>
           <label className="mb-1 block text-xs font-medium text-stone-500">
             Delete behavior
@@ -144,32 +272,6 @@ export function KeyDateForm({
               />
               <span>Auto — removed 1 day after it expires</span>
             </label>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="mb-0.5 block text-xs font-medium text-stone-500">
-              Due date
-            </label>
-            <input
-              type="date"
-              value={eventDate}
-              onChange={(e) => setEventDate(e.target.value)}
-              required
-              className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="mb-0.5 block text-xs font-medium text-stone-500">
-              Time
-            </label>
-            <input
-              type="time"
-              value={eventTime}
-              onChange={(e) => setEventTime(e.target.value)}
-              required
-              className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm"
-            />
           </div>
         </div>
         <div>

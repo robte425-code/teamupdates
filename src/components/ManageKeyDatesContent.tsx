@@ -6,12 +6,15 @@ import { BodyWithLinks } from "./BodyWithLinks";
 import {
   formatDateInPST,
   formatKeyDateDisplay,
+  formatKeyDateRange,
   formatTimeLeft,
 } from "@/lib/formatKeyDate";
 
 type KeyDate = {
   id: string;
+  dateType?: "due" | "event";
   eventDate: string;
+  eventEndDate?: string | null;
   title: string;
   body: string;
   deleteType?: "auto" | "manual";
@@ -54,15 +57,22 @@ export function ManageKeyDatesContent() {
         ) : (
           <ul className="space-y-4">
             {items.map((item) => {
-              const { label, isPast, isDueWithin24h } = formatTimeLeft(item.eventDate);
+              const refDate = item.dateType === "event" && item.eventEndDate ? item.eventEndDate : item.eventDate;
+              const { label, isPast, isDueWithin24h } = formatTimeLeft(refDate);
               const isToday = isDueWithin24h && !isPast;
+              const dateLabel = item.dateType === "event" ? "Event date:" : "Due date:";
+              const dateValue = item.dateType === "event" && item.eventEndDate
+                ? formatKeyDateRange(item.eventDate, item.eventEndDate)
+                : formatKeyDateDisplay(item.eventDate);
               return (
                 <li key={item.id} className="relative overflow-hidden rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
                   {editingId === item.id ? (
                     <KeyDateForm
                       initial={{
                         id: item.id,
+                        dateType: item.dateType ?? "due",
                         eventDate: item.eventDate,
+                        eventEndDate: item.eventEndDate ?? undefined,
                         title: item.title,
                         body: item.body,
                         deleteType: item.deleteType ?? "manual",
@@ -111,8 +121,8 @@ export function ManageKeyDatesContent() {
                       <div className="absolute bottom-0 left-0 right-0 flex w-full items-center justify-between border-t border-stone-200/60 bg-stone-50 px-4 py-3">
                         <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium uppercase tracking-wide text-amber-600/90">
                           <span className="text-stone-900">
-                            <span className="font-semibold">Due date:</span>{" "}
-                            {formatKeyDateDisplay(item.eventDate)}
+                            <span className="font-semibold">{dateLabel}</span>{" "}
+                            {dateValue}
                           </span>
                           <div className="flex shrink-0 gap-1">
                             <button

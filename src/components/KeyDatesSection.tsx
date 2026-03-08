@@ -7,7 +7,9 @@ import { KeyDateForm } from "./KeyDateForm";
 
 export type KeyDate = {
   id: string;
+  dateType?: "due" | "event";
   eventDate: string;
+  eventEndDate?: string | null;
   title: string;
   body: string;
   deleteType?: "auto" | "manual";

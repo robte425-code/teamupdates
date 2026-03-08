@@ -13,14 +13,22 @@ export async function PATCH(
   }
   const { id } = await params;
   const body = await _req.json();
-  const { eventDate, title, text, deleteType } = body;
+  const { dateType, eventDate, eventEndDate, title, text, deleteType } = body;
   const data: {
+    dateType?: string;
     eventDate?: Date;
+    eventEndDate?: Date | null;
     title?: string;
     body?: string;
     deleteType?: string;
   } = {};
+  if (dateType === "event" || dateType === "due") {
+    data.dateType = dateType;
+    if (dateType === "due") data.eventEndDate = null;
+  }
   if (eventDate != null) data.eventDate = new Date(eventDate);
+  if (eventEndDate !== undefined)
+    data.eventEndDate = eventEndDate == null ? null : new Date(eventEndDate);
   if (title != null) data.title = String(title).trim();
   if (text != null) data.body = String(text).trim();
   if (deleteType === "auto" || deleteType === "manual")

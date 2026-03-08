@@ -60,6 +60,19 @@ export function formatKeyDateDisplay(eventDate: string): string {
   return `${datePart} at ${timePart}`;
 }
 
+/**
+ * Format event date range (start – end) in PST.
+ */
+export function formatKeyDateRange(startDate: string, endDate: string): string {
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  if (Number.isNaN(start.getTime())) return startDate;
+  if (Number.isNaN(end.getTime())) return `${formatKeyDateDisplay(startDate)} – ${endDate}`;
+  const startStr = formatKeyDateDisplay(startDate);
+  const endStr = formatKeyDateDisplay(endDate);
+  return `${startStr} – ${endStr}`;
+}
+
 export type TimeLeftResult = {
   label: string;
   isPast: boolean;
