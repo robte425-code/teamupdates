@@ -1,21 +1,34 @@
 "use client";
 
 const URL_REGEX = /(https?:\/\/[^\s<>"]+)/g;
-const ANCHOR_REGEX = /<a\s+href=["'](https?:\/\/[^"']+)["'][^>]*>([^<]*)<\/a>/gi;
+// Match <a href="url">text</a> - allow optional space, single or double quotes, flexible whitespace
+const ANCHOR_REGEX = /<a\s*href\s*=\s*["'](https?:\/\/[^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
 
 function trimTrailingPunctuation(url: string): string {
   return url.replace(/[.,;:!)]+$/, "");
 }
 
+/** Decode common HTML entities so escaped content (e.g. &lt; &gt;) can be parsed as links. */
+function decodeHtmlEntities(s: string): string {
+  return s
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#x27;/g, "'")
+    .replace(/&amp;/g, "&");
+}
+
 type Segment = { type: "text"; value: string } | { type: "anchor"; href: string; text: string } | { type: "url"; url: string };
 
 function parseSegments(input: string): Segment[] {
+  const decoded = decodeHtmlEntities(input);
   const segments: Segment[] = [];
   let pos = 0;
 
-  while (pos < input.length) {
-    const rest = input.slice(pos);
-    const anchorRe = /<a\s+href=["'](https?:\/\/[^"']+)["'][^>]*>([^<]*)<\/a>/gi;
+  while (pos < decoded.length) {
+    const rest = decoded.slice(pos);
+    const anchorRe = /<a\s*href\s*=\s*["'](https?:\/\/[^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
     const urlRe = /https?:\/\/[^\s<>"]+/g;
     const anchorMatch = anchorRe.exec(rest);
     const urlMatch = urlRe.exec(rest);
@@ -23,11 +36,12 @@ function parseSegments(input: string): Segment[] {
     let match: { index: number; len: number; segment: Segment } | null = null;
     if (anchorMatch && anchorMatch.index !== undefined) {
       const href = anchorMatch[1].trim();
+      const linkText = anchorMatch[2].trim();
       if (/^https?:\/\//i.test(href)) {
         match = {
           index: anchorMatch.index,
           len: anchorMatch[0].length,
-          segment: { type: "anchor", href, text: anchorMatch[2] },
+          segment: { type: "anchor", href, text: linkText },
         };
       }
     }
