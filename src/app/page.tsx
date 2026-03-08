@@ -11,10 +11,9 @@ export default async function HomePage() {
     redirect("/login");
   }
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50/90 via-stone-50 to-slate-100/90">
       <Header />
-      <main className="min-h-[calc(100vh-7rem)] bg-gradient-to-br from-amber-50/90 via-stone-50 to-slate-100/90">
-        <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
+      <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
         <div className="mb-10">
           <h1 className="text-2xl font-semibold tracking-tight text-stone-900 sm:text-3xl">
             Your TEAM Dashboard
@@ -30,7 +29,6 @@ export default async function HomePage() {
           <section className="min-w-0">
             <KeyDatesSection showAddForm={false} />
           </section>
-        </div>
         </div>
       </main>
     </div>
