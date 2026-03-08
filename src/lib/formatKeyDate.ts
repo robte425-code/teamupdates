@@ -61,16 +61,43 @@ export function formatKeyDateDisplay(eventDate: string): string {
 }
 
 /**
+ * Format time only in PST (for same-day event end).
+ */
+function formatTimeInPST(date: Date): string {
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: APP_TIMEZONE,
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).format(date);
+}
+
+/**
  * Format event date range (start – end) in PST.
+ * When start and end are the same calendar day, the date is shown once: "Mar 8, 2026 at 9:00 AM – 5:00 PM".
  */
 export function formatKeyDateRange(startDate: string, endDate: string): string {
   const start = new Date(startDate);
   const end = new Date(endDate);
   if (Number.isNaN(start.getTime())) return startDate;
   if (Number.isNaN(end.getTime())) return `${formatKeyDateDisplay(startDate)} – ${endDate}`;
-  const startStr = formatKeyDateDisplay(startDate);
-  const endStr = formatKeyDateDisplay(endDate);
-  return `${startStr} – ${endStr}`;
+  const startDatePart = new Intl.DateTimeFormat("en-US", {
+    timeZone: APP_TIMEZONE,
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(start);
+  const endDatePart = new Intl.DateTimeFormat("en-US", {
+    timeZone: APP_TIMEZONE,
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(end);
+  const sameDay = startDatePart === endDatePart;
+  if (sameDay) {
+    return `${startDatePart} at ${formatTimeInPST(start)} – ${formatTimeInPST(end)}`;
+  }
+  return `${formatKeyDateDisplay(startDate)} – ${formatKeyDateDisplay(endDate)}`;
 }
 
 export type TimeLeftResult = {
