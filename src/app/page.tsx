@@ -11,7 +11,7 @@ export default async function HomePage() {
     redirect("/login");
   }
   return (
-    <div className="min-h-screen bg-gradient-to-b from-stone-50 to-stone-100/80">
+    <div className="min-h-screen bg-gradient-to-br from-amber-50/90 via-stone-50 to-slate-100/90">
       <Header />
       <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
         <div className="mb-10">
