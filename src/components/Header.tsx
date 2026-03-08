@@ -1,11 +1,14 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { useSession } from "next-auth/react";
 import { TickerBar } from "./TickerBar";
+
+const VIEW_MODE_KEY = "teamvoc-view-mode";
 
 function timeGreeting(): string {
   const hour = new Date().getHours();
@@ -25,6 +28,23 @@ export function Header() {
   const { data: session } = useSession();
   const user = session?.user as { role?: string } | undefined;
   const isAdmin = user?.role === "admin";
+  const [showAdminView, setShowAdminView] = useState(true);
+
+  useEffect(() => {
+    const stored = typeof window !== "undefined" ? localStorage.getItem(VIEW_MODE_KEY) : null;
+    if (stored === "user") setShowAdminView(false);
+    else if (stored === "admin") setShowAdminView(true);
+  }, []);
+
+  function toggleViewMode() {
+    const next = !showAdminView;
+    setShowAdminView(next);
+    if (typeof window !== "undefined") {
+      localStorage.setItem(VIEW_MODE_KEY, next ? "admin" : "user");
+    }
+  }
+
+  const showAdminNav = isAdmin && showAdminView;
   const greeting = timeGreeting();
   const displayName = firstDisplayName(session?.user?.name ?? null, session?.user?.email ?? null);
 
@@ -44,7 +64,7 @@ export function Header() {
                 unoptimized
               />
             </Link>
-            {isAdmin && (
+            {showAdminNav && (
               <nav className="flex flex-wrap gap-0.5">
                 <Link
                   href="/"
@@ -95,6 +115,16 @@ export function Header() {
                 {greeting}&nbsp;
                 {displayName}
               </span>
+            )}
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={toggleViewMode}
+                className="rounded-lg px-3 py-2 text-sm font-medium text-stone-600 transition-colors hover:bg-stone-100 hover:text-stone-800"
+                title={showAdminView ? "Switch to user view (hide manage links)" : "Switch to admin view (show manage links)"}
+              >
+                {showAdminView ? "View as user" : "View as admin"}
+              </button>
             )}
             <button
               onClick={() => signOut({ callbackUrl: "/login" })}
