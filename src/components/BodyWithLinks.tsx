@@ -19,7 +19,7 @@ export function BodyWithLinks({ text, className }: { text: string; className?: s
               href={href}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-amber-600 hover:underline break-all"
+              className="text-stone-900 underline break-all"
             >
               {part}
             </a>

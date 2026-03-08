@@ -9,7 +9,7 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const items = await prisma.update.findMany({
-    orderBy: { date: "asc" },
+    orderBy: { date: "desc" },
   });
   return NextResponse.json(items);
 }

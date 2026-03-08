@@ -110,7 +110,7 @@ export function ManageKeyDatesContent() {
                       </div>
                       <div className="absolute bottom-0 left-0 right-0 flex w-full items-center justify-between border-t border-stone-200/60 bg-stone-50 px-4 py-3">
                         <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium uppercase tracking-wide text-amber-600/90">
-                          <span className="text-red-500">
+                          <span className="text-stone-900">
                             <span className="font-semibold">Due date:</span>{" "}
                             {formatKeyDateDisplay(item.eventDate)}
                           </span>
