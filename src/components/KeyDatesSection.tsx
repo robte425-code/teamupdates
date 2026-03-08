@@ -40,7 +40,7 @@ export function KeyDatesSection({ showAddForm = true }: { showAddForm?: boolean 
   }
 
   return (
-    <div className="rounded-2xl border border-stone-200/80 bg-white p-6 shadow-sm">
+    <div className="rounded-2xl border border-stone-200/80 bg-stone-100/80 p-6 shadow-sm">
       <div className="mb-5 flex items-center gap-3">
         <div className="flex h-9 w-1 rounded-full bg-emerald-400" aria-hidden />
         <h2 className="text-xl font-semibold tracking-tight text-stone-900">
