@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import { useViewMode } from "@/contexts/ViewModeContext";
 import { KeyDateItem } from "./KeyDateItem";
 import { KeyDateForm } from "./KeyDateForm";
 
@@ -21,7 +22,9 @@ export function KeyDatesSection({ showAddForm = true }: { showAddForm?: boolean 
   const [items, setItems] = useState<KeyDate[]>([]);
   const [loading, setLoading] = useState(true);
   const user = session?.user as { role?: string } | undefined;
+  const { showAdminView } = useViewMode();
   const isAdmin = user?.role === "admin";
+  const showAdminUI = isAdmin && showAdminView;
 
   useEffect(() => {
     fetch("/api/key-dates?list=homepage")
@@ -51,7 +54,7 @@ export function KeyDatesSection({ showAddForm = true }: { showAddForm?: boolean 
         <p className="py-8 text-center text-sm text-stone-500">Loading…</p>
       ) : (
         <ul className="space-y-3">
-          {items.length === 0 && !isAdmin && (
+          {items.length === 0 && !showAdminUI && (
             <li className="rounded-xl border border-dashed border-stone-200 bg-stone-50/50 px-4 py-6 text-center text-sm text-stone-500">
               No key dates yet.
             </li>
@@ -60,14 +63,14 @@ export function KeyDatesSection({ showAddForm = true }: { showAddForm?: boolean 
             <KeyDateItem
               key={item.id}
               item={item}
-              isAdmin={isAdmin}
+              isAdmin={showAdminUI}
               onSaved={refetch}
               onDeleted={refetch}
             />
           ))}
         </ul>
       )}
-      {isAdmin && showAddForm && (
+      {showAdminUI && showAddForm && (
         <div className="mt-4">
           <KeyDateForm onSaved={refetch} />
         </div>

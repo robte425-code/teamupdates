@@ -1,14 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { useSession } from "next-auth/react";
+import { useViewMode } from "@/contexts/ViewModeContext";
 import { TickerBar } from "./TickerBar";
-
-const VIEW_MODE_KEY = "teamvoc-view-mode";
 
 function timeGreeting(): string {
   const hour = new Date().getHours();
@@ -28,20 +26,10 @@ export function Header() {
   const { data: session } = useSession();
   const user = session?.user as { role?: string } | undefined;
   const isAdmin = user?.role === "admin";
-  const [showAdminView, setShowAdminView] = useState(true);
-
-  useEffect(() => {
-    const stored = typeof window !== "undefined" ? localStorage.getItem(VIEW_MODE_KEY) : null;
-    if (stored === "user") setShowAdminView(false);
-    else if (stored === "admin") setShowAdminView(true);
-  }, []);
+  const { showAdminView, setShowAdminView } = useViewMode();
 
   function toggleViewMode() {
-    const next = !showAdminView;
-    setShowAdminView(next);
-    if (typeof window !== "undefined") {
-      localStorage.setItem(VIEW_MODE_KEY, next ? "admin" : "user");
-    }
+    setShowAdminView(!showAdminView);
   }
 
   const showAdminNav = isAdmin && showAdminView;
