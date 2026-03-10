@@ -64,9 +64,18 @@ export function KeyDateItem({
   const bodyPreview = item.body.slice(0, 120);
   const hasMore = item.body.length > 120;
 
+  const publishedAt = item.createdAt ? new Date(item.createdAt).getTime() : new Date(item.eventDate).getTime();
+  const threeDaysMs = 3 * 24 * 60 * 60 * 1000;
+  const isNew = publishedAt >= Date.now() - threeDaysMs;
+
   return (
     <li className="group rounded-xl border border-stone-200/80 bg-white shadow-sm transition-shadow hover:shadow-md">
       <div className="w-full p-4 pb-0">
+        {isNew && (
+          <span className="mb-2 inline-block rounded-full bg-red-500 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white sm:text-xs">
+            NEW
+          </span>
+        )}
         <div className="flex items-baseline justify-between gap-3">
           <h3 className="min-w-0 flex-1 font-semibold text-stone-900">{item.title}</h3>
           <span className="shrink-0 text-xs text-stone-400">

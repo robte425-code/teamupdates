@@ -86,6 +86,15 @@ export function ManageKeyDatesContent() {
                   ) : (
                     <>
                       <div className="w-full p-4 pb-0">
+                        {(() => {
+                          const publishedAt = item.createdAt ? new Date(item.createdAt).getTime() : new Date(item.eventDate).getTime();
+                          const isNew = publishedAt >= Date.now() - 3 * 24 * 60 * 60 * 1000;
+                          return isNew ? (
+                            <span className="mb-2 inline-block rounded-full bg-red-500 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white sm:text-xs">
+                              NEW
+                            </span>
+                          ) : null;
+                        })()}
                         <div className="flex items-baseline justify-between gap-3">
                           <h3 className="min-w-0 flex-1 font-medium text-stone-900">{item.title}</h3>
                           <span className="shrink-0 text-xs text-stone-400">
