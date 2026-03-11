@@ -9,6 +9,7 @@ import {
   formatKeyDateRange,
   formatTimeLeft,
 } from "@/lib/formatKeyDate";
+import { useNewBadgeDays } from "@/hooks/useNewBadgeDays";
 
 type KeyDate = {
   id: string;
@@ -25,6 +26,7 @@ export function ManageKeyDatesContent() {
   const [items, setItems] = useState<KeyDate[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [newBadgeDays, setNewBadgeDays] = useNewBadgeDays();
 
   function refetch() {
     return fetch("/api/key-dates")
@@ -49,7 +51,21 @@ export function ManageKeyDatesContent() {
         <KeyDateForm onSaved={refetch} />
       </section>
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-stone-800">Existing key dates</h2>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold text-stone-800">Existing key dates</h2>
+          <label className="flex items-center gap-2 text-xs text-stone-600">
+            <span>Show NEW badge for</span>
+            <input
+              type="number"
+              min={0}
+              max={365}
+              value={newBadgeDays}
+              onChange={(e) => setNewBadgeDays(Number(e.target.value) || 0)}
+              className="w-14 rounded-md border border-stone-300 bg-white px-1.5 py-1 text-xs text-stone-800 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            />
+            <span>days after publish</span>
+          </label>
+        </div>
         {loading ? (
           <p className="text-sm text-stone-500">Loading…</p>
         ) : items.length === 0 ? (
@@ -88,7 +104,8 @@ export function ManageKeyDatesContent() {
                       <div className="w-full p-4 pb-0">
                         {(() => {
                           const publishedAt = item.createdAt ? new Date(item.createdAt).getTime() : new Date(item.eventDate).getTime();
-                          const isNew = publishedAt >= Date.now() - 3 * 24 * 60 * 60 * 1000;
+                          const windowMs = newBadgeDays * 24 * 60 * 60 * 1000;
+                          const isNew = newBadgeDays > 0 && publishedAt >= Date.now() - windowMs;
                           return isNew ? (
                             <span className="mb-2 inline-block rounded-full bg-red-500 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white sm:text-xs">
                               NEW

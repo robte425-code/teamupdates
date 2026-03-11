@@ -8,6 +8,7 @@ import {
   formatKeyDateRange,
   formatTimeLeft,
 } from "@/lib/formatKeyDate";
+import { useNewBadgeDays } from "@/hooks/useNewBadgeDays";
 import { KeyDateForm } from "./KeyDateForm";
 import { BodyWithLinks } from "./BodyWithLinks";
 import { KeyDateCountdown } from "./KeyDateCountdown";
@@ -33,6 +34,7 @@ export function KeyDateItem({
     : formatKeyDateDisplay(item.eventDate);
   const [editing, setEditing] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [newBadgeDays] = useNewBadgeDays();
 
   async function handleDelete() {
     if (!confirm("Delete this key date?")) return;
@@ -65,8 +67,8 @@ export function KeyDateItem({
   const hasMore = item.body.length > 120;
 
   const publishedAt = item.createdAt ? new Date(item.createdAt).getTime() : new Date(item.eventDate).getTime();
-  const threeDaysMs = 3 * 24 * 60 * 60 * 1000;
-  const isNew = publishedAt >= Date.now() - threeDaysMs;
+  const windowMs = newBadgeDays * 24 * 60 * 60 * 1000;
+  const isNew = newBadgeDays > 0 && publishedAt >= Date.now() - windowMs;
 
   return (
     <li className="group rounded-xl border border-stone-200/80 bg-white shadow-sm transition-shadow hover:shadow-md">
