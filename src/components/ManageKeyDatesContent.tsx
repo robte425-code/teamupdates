@@ -47,12 +47,8 @@ export function ManageKeyDatesContent() {
   return (
     <div className="space-y-8">
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-stone-800">Add new</h2>
-        <KeyDateForm onSaved={refetch} />
-      </section>
-      <section>
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold text-stone-800">Existing key dates</h2>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold text-stone-800">Key date settings</h2>
           <label className="flex items-center gap-2 text-xs text-stone-600">
             <span>Show NEW badge for</span>
             <input
@@ -66,6 +62,11 @@ export function ManageKeyDatesContent() {
             <span>days after publish</span>
           </label>
         </div>
+        <h2 className="mb-3 text-lg font-semibold text-stone-800">Add new</h2>
+        <KeyDateForm onSaved={refetch} />
+      </section>
+      <section>
+        <h2 className="mb-3 text-lg font-semibold text-stone-800">Existing key dates</h2>
         {loading ? (
           <p className="text-sm text-stone-500">Loading…</p>
         ) : items.length === 0 ? (
