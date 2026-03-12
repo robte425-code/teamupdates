@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { UpdatesSection } from "@/components/UpdatesSection";
 import { KeyDatesSection } from "@/components/KeyDatesSection";
 import { Header } from "@/components/Header";
+import { HomeAutoReload } from "@/components/HomeAutoReload";
 
 export default async function HomePage() {
   const session = await getServerSession(authOptions);
@@ -12,6 +13,7 @@ export default async function HomePage() {
   }
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50/90 via-stone-50 to-slate-100/90">
+      <HomeAutoReload />
       <Header />
       <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
         <div className="mb-10">
