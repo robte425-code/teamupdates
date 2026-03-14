@@ -24,10 +24,23 @@ function formatDateTime(iso: string) {
   });
 }
 
+function getVisitUserKey(v: Visit): string {
+  if (v.userId) return v.userId;
+  if (v.userEmail) return v.userEmail;
+  return (v.userName ?? "").trim() || "—";
+}
+
+function getVisitUserLabel(v: Visit): string {
+  if (v.userName?.trim()) return `${v.userName.trim()}${v.userEmail ? ` (${v.userEmail})` : ""}`;
+  if (v.userEmail) return v.userEmail;
+  return "—";
+}
+
 export function UsageStatsContent() {
   const [visits, setVisits] = useState<Visit[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedUserKey, setSelectedUserKey] = useState<string>("");
 
   useEffect(() => {
     setLoading(true);
@@ -44,6 +57,24 @@ export function UsageStatsContent() {
       .finally(() => setLoading(false));
   }, []);
 
+  const uniqueUsers = (() => {
+    const seen = new Set<string>();
+    const list: { key: string; label: string }[] = [];
+    for (const v of visits) {
+      const key = getVisitUserKey(v);
+      if (key && !seen.has(key)) {
+        seen.add(key);
+        list.push({ key, label: getVisitUserLabel(v) });
+      }
+    }
+    list.sort((a, b) => a.label.localeCompare(b.label));
+    return list;
+  })();
+
+  const filteredVisits = !selectedUserKey
+    ? visits
+    : visits.filter((v) => getVisitUserKey(v) === selectedUserKey);
+
   return (
     <div className="space-y-4">
       <p className="text-sm text-stone-600">
@@ -56,18 +87,41 @@ export function UsageStatsContent() {
       ) : visits.length === 0 ? (
         <p className="text-sm text-stone-500">No visits recorded yet.</p>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-stone-200 bg-white shadow-sm">
-          <table className="min-w-full divide-y divide-stone-200 text-left text-sm">
-            <thead className="bg-stone-50">
-              <tr>
+        <>
+          <div className="flex flex-wrap items-center gap-2">
+            <label htmlFor="usage-filter-user" className="text-sm font-medium text-stone-700">
+              Filter by user:
+            </label>
+            <select
+              id="usage-filter-user"
+              value={selectedUserKey}
+              onChange={(e) => setSelectedUserKey(e.target.value)}
+              className="rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm text-stone-800 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            >
+              <option value="">All users</option>
+              {uniqueUsers.map((u) => (
+                <option key={u.key} value={u.key}>
+                  {u.label}
+                </option>
+              ))}
+            </select>
+            {selectedUserKey && (
+              <span className="text-sm text-stone-500">
+                ({filteredVisits.length} visit{filteredVisits.length !== 1 ? "s" : ""})
+              </span>
+            )}
+          </div>
+          <div className="overflow-x-auto rounded-xl border border-stone-200 bg-white shadow-sm">
+            <table className="min-w-full divide-y divide-stone-200 text-left text-sm">
+              <thead className="bg-stone-50">
+                <tr>
                 <th className="px-4 py-2 font-semibold text-stone-700">When</th>
                 <th className="px-4 py-2 font-semibold text-stone-700">User</th>
                 <th className="px-4 py-2 font-semibold text-stone-700">Email</th>
-                <th className="px-4 py-2 font-semibold text-stone-700">Path</th>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-stone-100">
-              {visits.map((v) => (
+              </thead>
+              <tbody className="divide-y divide-stone-100">
+                {filteredVisits.map((v) => (
                 <tr key={v.id} className="hover:bg-stone-50/60">
                   <td className="whitespace-nowrap px-4 py-2 text-stone-800">
                     {formatDateTime(v.visitedAt)}
@@ -78,14 +132,12 @@ export function UsageStatsContent() {
                   <td className="whitespace-nowrap px-4 py-2 text-stone-600">
                     {v.userEmail || "—"}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-2 text-stone-600">
-                    {v.path}
-                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+        </>
       )}
     </div>
   );
