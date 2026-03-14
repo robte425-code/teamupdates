@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { UpdatesSection } from "@/components/UpdatesSection";
 import { KeyDatesSection } from "@/components/KeyDatesSection";
 import { Header } from "@/components/Header";
@@ -11,6 +12,32 @@ export default async function HomePage() {
   if (!session) {
     redirect("/login");
   }
+
+  // Log this visit and prune visits older than ~2 months
+  const user = session.user as { id?: string; name?: string | null; email?: string | null };
+  const userId = user.id;
+  const userName = user.name ?? null;
+  const userEmail = user.email ?? null;
+
+  const now = new Date();
+  const twoMonthsAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+
+  await prisma.$transaction([
+    prisma.pageVisit.create({
+      data: {
+        userId: userId ?? undefined,
+        userName: userName ?? undefined,
+        userEmail: userEmail ?? undefined,
+        path: "/",
+      },
+    }),
+    prisma.pageVisit.deleteMany({
+      where: {
+        visitedAt: { lt: twoMonthsAgo },
+      },
+    }),
+  ]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50/90 via-stone-50 to-slate-100/90">
       <HomeAutoReload />
