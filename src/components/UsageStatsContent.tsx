@@ -78,7 +78,7 @@ export function UsageStatsContent() {
   return (
     <div className="space-y-4">
       <p className="text-sm text-stone-600">
-        History of user dashboard visits for the last 2 months.
+        History of user dashboard visits for the last 60 days.
       </p>
       {loading ? (
         <p className="text-sm text-stone-500">Loading…</p>
