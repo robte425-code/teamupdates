@@ -6,7 +6,7 @@ import { Providers } from "./providers";
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
-  title: "Teamvoc Updates",
+  title: "TEAM Updates",
   description: "Updates, reminders and key dates",
 };
 
