@@ -12,7 +12,7 @@ export default async function HomePage() {
     redirect("/login");
   }
 
-  // Log this visit and prune visits older than ~2 months
+  // Log this visit (except for specific excluded users) and prune visits older than ~2 months
   const user = session.user as { id?: string; name?: string | null; email?: string | null };
   const userId = user.id;
   const userName = user.name ?? null;
@@ -21,21 +21,42 @@ export default async function HomePage() {
   const now = new Date();
   const twoMonthsAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
 
-  await prisma.$transaction([
-    prisma.pageVisit.create({
-      data: {
-        userId: userId ?? undefined,
-        userName: userName ?? undefined,
-        userEmail: userEmail ?? undefined,
-        path: "/",
-      },
-    }),
-    prisma.pageVisit.deleteMany({
+  const isExcludedUser =
+    (userEmail && userEmail.toLowerCase() === "robert@team-voc.com") ||
+    (userName && userName.toLowerCase() === "robert evans");
+
+  if (isExcludedUser) {
+    // Still prune old records, but don't record this user's visits
+    await prisma.pageVisit.deleteMany({
       where: {
         visitedAt: { lt: twoMonthsAgo },
+        OR: [
+          { userEmail: { equals: "robert@team-voc.com", mode: "insensitive" } },
+          { userName: { equals: "Robert Evans", mode: "insensitive" } },
+        ],
       },
-    }),
-  ]);
+    });
+  } else {
+    await prisma.$transaction([
+      prisma.pageVisit.create({
+        data: {
+          userId: userId ?? undefined,
+          userName: userName ?? undefined,
+          userEmail: userEmail ?? undefined,
+          path: "/",
+        },
+      }),
+      prisma.pageVisit.deleteMany({
+        where: {
+          visitedAt: { lt: twoMonthsAgo },
+          OR: [
+            { userEmail: { equals: "robert@team-voc.com", mode: "insensitive" } },
+            { userName: { equals: "Robert Evans", mode: "insensitive" } },
+          ],
+        },
+      }),
+    ]);
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50/90 via-stone-50 to-slate-100/90">

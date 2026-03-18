@@ -14,6 +14,14 @@ export async function GET() {
   }
 
   const visits = await prisma.pageVisit.findMany({
+    where: {
+      NOT: {
+        OR: [
+          { userEmail: { equals: "robert@team-voc.com", mode: "insensitive" } },
+          { userName: { equals: "Robert Evans", mode: "insensitive" } },
+        ],
+      },
+    },
     orderBy: { visitedAt: "desc" },
   });
 
