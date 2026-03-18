@@ -74,8 +74,8 @@ export function ManageKeyDatesContent() {
         ) : (
           <ul className="space-y-4">
             {items.map((item) => {
-              const refDate = item.dateType === "event" && item.eventEndDate ? item.eventEndDate : item.eventDate;
-              const { label, isPast, isDueWithin24h } = formatTimeLeft(refDate);
+              // Countdown logic is based on the start of the event (eventDate)
+              const { label, isPast, isDueWithin24h } = formatTimeLeft(item.eventDate);
               const isToday = isDueWithin24h && !isPast;
               const dateLabel = item.dateType === "event" ? "Event date:" : "Due date:";
               const dateValue = item.dateType === "event" && item.eventEndDate

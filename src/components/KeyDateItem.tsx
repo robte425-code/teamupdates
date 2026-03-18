@@ -25,8 +25,8 @@ export function KeyDateItem({
   onDeleted: () => void;
 }) {
   const isEvent = item.dateType === "event";
-  const refDate = isEvent && item.eventEndDate ? item.eventEndDate : item.eventDate;
-  const { label, isPast, isDueWithin24h } = formatTimeLeft(refDate);
+  // Countdown and \"time left\" should always be to the start of the event (eventDate)
+  const { label, isPast, isDueWithin24h } = formatTimeLeft(item.eventDate);
   const showCountdown = isDueWithin24h || isPast;
   const displayLabel = isEvent ? "Event date:" : "Due date:";
   const displayValue = isEvent && item.eventEndDate
@@ -105,7 +105,7 @@ export function KeyDateItem({
           </span>
           {showCountdown ? (
             <span className="shrink-0 whitespace-nowrap">
-              <KeyDateCountdown eventDate={refDate} />
+              <KeyDateCountdown eventDate={item.eventDate} />
             </span>
           ) : (
             <span className="shrink-0 whitespace-nowrap rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800 sm:text-[11px]">
