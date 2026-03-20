@@ -67,22 +67,12 @@ export function Header() {
                 <Link
                   href="/manage/updates"
                   className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                    pathname.startsWith("/manage/updates") && !pathname.startsWith("/manage/archived-updates")
+                    pathname.startsWith("/manage/updates")
                       ? "bg-stone-100 text-stone-900"
                       : "text-stone-600 hover:bg-stone-50 hover:text-stone-900"
                   }`}
                 >
                   Updates
-                </Link>
-                <Link
-                  href="/manage/archived-updates"
-                  className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                    pathname.startsWith("/manage/archived-updates")
-                      ? "bg-stone-100 text-stone-900"
-                      : "text-stone-600 hover:bg-stone-50 hover:text-stone-900"
-                  }`}
-                >
-                  Archived updates
                 </Link>
                 <Link
                   href="/manage/key-dates"
