@@ -11,11 +11,14 @@ export function UpdateItem({
   isAdmin,
   onSaved,
   onDeleted,
+  listArchived = false,
 }: {
   item: Update;
   isAdmin: boolean;
   onSaved: () => void;
   onDeleted: () => void;
+  /** When true, show Unarchive instead of Archive (archived list page). */
+  listArchived?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -23,6 +26,18 @@ export function UpdateItem({
   async function handleDelete() {
     if (!confirm("Delete this update?")) return;
     const res = await fetch(`/api/updates/${item.id}`, { method: "DELETE" });
+    if (res.ok) onDeleted();
+  }
+
+  async function handleArchiveToggle() {
+    const next = !listArchived;
+    const label = next ? "Archive this update?" : "Unarchive this update?";
+    if (!confirm(label)) return;
+    const res = await fetch(`/api/updates/${item.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ archived: next }),
+    });
     if (res.ok) onDeleted();
   }
 
@@ -73,6 +88,13 @@ export function UpdateItem({
               className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-stone-500 hover:bg-stone-100 hover:text-stone-700"
             >
               Edit
+            </button>
+            <button
+              type="button"
+              onClick={handleArchiveToggle}
+              className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-stone-600 hover:bg-stone-100 hover:text-stone-800"
+            >
+              {listArchived ? "Unarchive" : "Archive"}
             </button>
             <button
               type="button"

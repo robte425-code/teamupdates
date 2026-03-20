@@ -21,6 +21,7 @@ model Update {
   date      DateTime // when the item was posted
   title     String
   body      String
+  archived  Boolean  @default(false)
   createdAt DateTime @default(now())
 }
 

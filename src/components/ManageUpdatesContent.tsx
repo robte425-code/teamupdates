@@ -33,6 +33,16 @@ export function ManageUpdatesContent() {
     if (res.ok) refetch();
   }
 
+  async function handleArchive(id: string) {
+    if (!confirm("Archive this update? It will move to Archived updates.")) return;
+    const res = await fetch(`/api/updates/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ archived: true }),
+    });
+    if (res.ok) refetch();
+  }
+
   return (
     <div className="space-y-8">
       <section>
@@ -79,6 +89,13 @@ export function ManageUpdatesContent() {
                           className="rounded px-2 py-1 text-xs font-medium text-stone-500 hover:bg-stone-100"
                         >
                           Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleArchive(item.id)}
+                          className="rounded px-2 py-1 text-xs font-medium text-stone-600 hover:bg-stone-100"
+                        >
+                          Archive
                         </button>
                         <button
                           type="button"

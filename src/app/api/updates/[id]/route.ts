@@ -13,10 +13,14 @@ export async function PATCH(
   }
   const { id } = await params;
   const body = await _req.json();
-  const { title, text } = body;
-  const data: { title?: string; body?: string } = {};
+  const { title, text, archived } = body;
+  const data: { title?: string; body?: string; archived?: boolean } = {};
   if (title != null) data.title = String(title).trim();
   if (text != null) data.body = String(text).trim();
+  if (archived !== undefined) data.archived = Boolean(archived);
+  if (Object.keys(data).length === 0) {
+    return NextResponse.json({ error: "No fields to update" }, { status: 400 });
+  }
   const item = await prisma.update.update({
     where: { id },
     data,
