@@ -5,11 +5,7 @@ const clientId = process.env.AZURE_AD_CLIENT_ID;
 const clientSecret = process.env.AZURE_AD_CLIENT_SECRET;
 const tenantId = process.env.AZURE_AD_TENANT_ID ?? "common";
 
-if (!clientId?.trim() || !clientSecret?.trim()) {
-  throw new Error(
-    "Azure AD is not configured. Set AZURE_AD_CLIENT_ID and AZURE_AD_CLIENT_SECRET in your environment (e.g. Vercel project settings)."
-  );
-}
+const azureConfigured = Boolean(clientId?.trim() && clientSecret?.trim());
 
 const adminEmails = (process.env.ADMIN_EMAILS ?? "")
   .split(",")
@@ -35,26 +31,28 @@ function isAllowedDomain(email: string | null | undefined): boolean {
 export const authOptions: NextAuthOptions = {
   session: { strategy: "jwt", maxAge: 30 * 24 * 60 * 60 },
   pages: { signIn: "/login", error: "/login" },
-  providers: [
-    AzureADProvider({
-      clientId: clientId.trim(),
-      clientSecret: clientSecret.trim(),
-      tenantId: tenantId.trim(),
-      authorization: {
-        params: {
-          scope: "openid profile email",
-        },
-      },
-      profile(profile: { sub?: string; name?: string; email?: string; preferred_username?: string }, tokens) {
-        return {
-          id: profile.sub,
-          name: profile.name ?? null,
-          email: profile.email ?? profile.preferred_username ?? null,
-          image: null,
-        };
-      },
-    }),
-  ],
+  providers: azureConfigured
+    ? [
+        AzureADProvider({
+          clientId: clientId!.trim(),
+          clientSecret: clientSecret!.trim(),
+          tenantId: tenantId.trim(),
+          authorization: {
+            params: {
+              scope: "openid profile email",
+            },
+          },
+          profile(profile: { sub?: string; name?: string; email?: string; preferred_username?: string }, tokens) {
+            return {
+              id: profile.sub,
+              name: profile.name ?? null,
+              email: profile.email ?? profile.preferred_username ?? null,
+              image: null,
+            };
+          },
+        }),
+      ]
+    : [],
   callbacks: {
     async signIn({ user }) {
       const email = user?.email ?? null;

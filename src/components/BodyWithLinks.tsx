@@ -8,8 +8,9 @@ function trimTrailingPunctuation(url: string): string {
 
 export function BodyWithLinks({ text, className }: { text: string; className?: string }) {
   const parts = text.split(URL_REGEX);
+  const mergedClassName = [className, "whitespace-pre-line"].filter(Boolean).join(" ");
   return (
-    <span className={className}>
+    <span className={mergedClassName}>
       {parts.map((part, i) => {
         if (/^https?:\/\//.test(part)) {
           const href = trimTrailingPunctuation(part);
