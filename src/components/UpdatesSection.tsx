@@ -68,12 +68,20 @@ export function UpdatesSection({
             {isArchivedPage ? "Archived Updates & Reminders" : "Updates & Reminders"}
           </h2>
         </div>
-        {isAdmin && !isArchivedPage && (
+        {!isArchivedPage && (
           <Link
-            href="/manage/archived-updates"
+            href="/archived-updates"
             className="shrink-0 text-sm font-medium text-amber-700 transition-colors hover:text-amber-800 hover:underline"
           >
             Archive
+          </Link>
+        )}
+        {isArchivedPage && (
+          <Link
+            href="/"
+            className="shrink-0 text-sm font-medium text-amber-700 transition-colors hover:text-amber-800 hover:underline"
+          >
+            ← Active updates
           </Link>
         )}
       </div>
