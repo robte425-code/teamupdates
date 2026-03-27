@@ -52,6 +52,16 @@ export function Header() {
                 unoptimized
               />
             </Link>
+            {session && (
+              <a
+                href="https://team-payroll.vercel.app/my-leave.html"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-lg px-3 py-2 text-sm font-medium text-stone-600 transition-colors hover:bg-stone-50 hover:text-stone-900"
+              >
+                Check my balances
+              </a>
+            )}
             {showAdminNav && (
               <nav className="flex flex-wrap gap-0.5">
                 <Link
