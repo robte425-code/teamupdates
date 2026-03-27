@@ -60,7 +60,7 @@ export function Header() {
                   rel="noopener noreferrer"
                   className="rounded-lg px-3 py-2 text-sm font-medium text-stone-600 transition-colors hover:bg-stone-50 hover:text-stone-900"
                 >
-                  Check my balances
+                  My balances
                 </a>
                 {showAdminNav && (
                   <>
