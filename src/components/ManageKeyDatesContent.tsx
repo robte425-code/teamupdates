@@ -19,7 +19,6 @@ type KeyDate = {
   eventEndDate?: string | null;
   title: string;
   body: string;
-  deleteType?: "auto" | "manual";
   archived?: boolean;
   createdAt?: string;
 };
@@ -144,7 +143,6 @@ export function ManageKeyDatesContent({
                         eventEndDate: item.eventEndDate ?? undefined,
                         title: item.title,
                         body: item.body,
-                        deleteType: item.deleteType ?? "manual",
                       }}
                       onSaved={() => {
                         setEditingId(null);
@@ -172,15 +170,6 @@ export function ManageKeyDatesContent({
                           </span>
                         </div>
                         <p className="mt-1.5 flex flex-wrap items-center gap-2 text-[10px] sm:text-[11px]">
-                          <span
-                            className={`rounded-full px-2 py-0.5 font-semibold ${
-                              (item.deleteType ?? "manual") === "auto"
-                                ? "bg-sky-100 text-sky-800"
-                                : "bg-stone-200 text-stone-600"
-                            }`}
-                          >
-                            {(item.deleteType ?? "manual") === "auto" ? "Auto-archive" : "Manual"}
-                          </span>
                           <span
                             className={`rounded-full px-2 py-0.5 font-semibold ${
                               isPast

@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { dateTimeInPacificToISO, APP_TIMEZONE } from "@/lib/formatKeyDate";
 
-export type KeyDateDeleteType = "auto" | "manual";
 export type KeyDateDateType = "due" | "event";
 
 type Initial = {
@@ -14,7 +13,6 @@ type Initial = {
   eventEndDate?: string | null;
   title: string;
   body: string;
-  deleteType?: KeyDateDeleteType;
 };
 
 export function KeyDateForm({
@@ -71,9 +69,6 @@ export function KeyDateForm({
       setEndTime("17:00");
     }
   }, [initial?.eventDate]);
-  const [deleteType, setDeleteType] = useState<KeyDateDeleteType>(
-    initial?.deleteType ?? "manual"
-  );
   const [title, setTitle] = useState(initial?.title ?? "");
   const [body, setBody] = useState(initial?.body ?? "");
   const [loading, setLoading] = useState(false);
@@ -92,7 +87,6 @@ export function KeyDateForm({
       ...(dateType === "event" && eventEndDateTime && { eventEndDate: eventEndDateTime }),
       title,
       text: body,
-      deleteType,
     };
     try {
       if (isEdit && initial?.id) {
@@ -245,35 +239,6 @@ export function KeyDateForm({
             </div>
           </>
         )}
-        <div>
-          <label className="mb-1 block text-xs font-medium text-stone-500">
-            After expiry
-          </label>
-          <div className="flex flex-wrap gap-4">
-            <label className="flex cursor-pointer items-center gap-2 text-sm">
-              <input
-                type="radio"
-                name="deleteType"
-                value="manual"
-                checked={deleteType === "manual"}
-                onChange={() => setDeleteType("manual")}
-                className="rounded-full border-stone-300 text-emerald-600"
-              />
-              <span>Manual — hidden when expired on the home page; you archive or delete it</span>
-            </label>
-            <label className="flex cursor-pointer items-center gap-2 text-sm">
-              <input
-                type="radio"
-                name="deleteType"
-                value="auto"
-                checked={deleteType === "auto"}
-                onChange={() => setDeleteType("auto")}
-                className="rounded-full border-stone-300 text-emerald-600"
-              />
-              <span>Auto — archived 1 day after it expires</span>
-            </label>
-          </div>
-        </div>
         <div>
           <label className="mb-0.5 block text-xs font-medium text-stone-500">
             Title

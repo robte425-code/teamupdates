@@ -67,7 +67,6 @@ export function KeyDateItem({
           eventEndDate: item.eventEndDate ?? undefined,
           title: item.title,
           body: item.body,
-          deleteType: item.deleteType ?? "manual",
         }}
         onSaved={() => {
           setEditing(false);

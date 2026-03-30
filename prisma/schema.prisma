@@ -34,7 +34,6 @@ model KeyDate {
   eventEndDate DateTime? // event end (only when dateType === "event")
   title        String
   body         String
-  deleteType   String    @default("manual") // "auto" = archive 1 day after expiry; "manual" = hide when expired on homepage, delete only by user
   archived     Boolean   @default(false)
   createdAt    DateTime  @default(now())
 }

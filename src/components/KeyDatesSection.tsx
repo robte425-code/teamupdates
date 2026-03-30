@@ -14,7 +14,6 @@ export type KeyDate = {
   eventEndDate?: string | null;
   title: string;
   body: string;
-  deleteType?: "auto" | "manual";
   archived?: boolean;
   createdAt?: string;
 };

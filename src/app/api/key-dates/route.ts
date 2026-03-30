@@ -3,8 +3,6 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-const ONE_DAY_MS = 24 * 60 * 60 * 1000;
-
 function keyDateExpiry(item: {
   dateType: string;
   eventDate: Date;
@@ -26,20 +24,14 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  // Manual: archive as soon as past end/due (same moment they're hidden on the home page).
-  // Auto: keep the legacy 1-day buffer after expiry (same as old auto-delete timing).
+  // Archive as soon as past end/due (manual and auto; no grace period).
   const now = new Date();
-  const cutoff = new Date(Date.now() - ONE_DAY_MS);
   const notArchived = await prisma.keyDate.findMany({
     where: { archived: false },
-    select: { id: true, dateType: true, eventDate: true, eventEndDate: true, deleteType: true },
+    select: { id: true, dateType: true, eventDate: true, eventEndDate: true },
   });
   const idsToArchive = notArchived
-    .filter((row) => {
-      const exp = keyDateExpiry(row);
-      if (row.deleteType === "auto") return exp < cutoff;
-      return exp < now;
-    })
+    .filter((row) => keyDateExpiry(row) < now)
     .map((row) => row.id);
   if (idsToArchive.length > 0) {
     await prisma.keyDate.updateMany({
@@ -53,11 +45,9 @@ export async function GET(req: Request) {
     orderBy: { eventDate: "asc" },
   });
 
-  // Homepage: show auto items until 1 day after expiry; show manual only if not yet expired
+  // Homepage: only items not yet past end/due
   if (list === "homepage") {
     items = items.filter((item) => {
-      if (item.deleteType === "auto") return true;
-      if (item.deleteType !== "manual") return true;
       const expiry = item.dateType === "event" && item.eventEndDate ? item.eventEndDate : item.eventDate;
       return expiry >= now;
     });
@@ -80,7 +70,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   const body = await req.json();
-  const { dateType, eventDate, eventEndDate, title, text, deleteType } = body;
+  const { dateType, eventDate, eventEndDate, title, text } = body;
   if (!eventDate || !title || text === undefined) {
     return NextResponse.json(
       { error: "eventDate, title, and text are required" },
@@ -94,8 +84,6 @@ export async function POST(req: Request) {
       { status: 400 }
     );
   }
-  const type =
-    deleteType === "auto" || deleteType === "manual" ? deleteType : "manual";
   const item = await prisma.keyDate.create({
     data: {
       dateType: keyDateType,
@@ -103,7 +91,6 @@ export async function POST(req: Request) {
       eventEndDate: keyDateType === "event" ? new Date(eventEndDate) : null,
       title: String(title).trim(),
       body: String(text).trim(),
-      deleteType: type,
     },
   });
   return NextResponse.json(item);
