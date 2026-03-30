@@ -1,0 +1,46 @@
+# Weekly Neon/Postgres backup to Microsoft OneDrive (Microsoft 365) via Microsoft Graph.
+#
+# Prerequisites (Azure AD / Entra):
+#   1. App registration → Certificates & secrets → new client secret.
+#   2. API permissions → Microsoft Graph → Application permissions:
+#        Files.ReadWrite.All  (admin consent required)
+#   3. GitHub repo secrets (Settings → Secrets and variables → Actions):
+#        DATABASE_URL          — Neon connection string (same as Vercel / local prod)
+#        AZURE_TENANT_ID       — Directory (tenant) ID
+#        AZURE_CLIENT_ID       — Application (client) ID
+#        AZURE_CLIENT_SECRET   — Client secret value
+#        ONEDRIVE_USER_UPN     — User whose OneDrive receives files (e.g. backup@yourcompany.com)
+#   Optional secret:
+#        ONEDRIVE_FOLDER       — Folder path under drive root (default: NeonBackups/teamvoc-updates)
+#
+# Personal @outlook.com OneDrive is not supported with app-only (client credentials).
+# Use a Microsoft 365 work/school account in your tenant.
+#
+# Schedule: Sundays 06:15 UTC (adjust cron as needed).
+
+name: Database backup to OneDrive
+
+on:
+  schedule:
+    - cron: "15 6 * * 0"
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      ONEDRIVE_USER_UPN: ${{ secrets.ONEDRIVE_USER_UPN }}
+      ONEDRIVE_FOLDER: ${{ secrets.ONEDRIVE_FOLDER }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: pg_dump → gzip → OneDrive (Graph API)
+        run: python3 scripts/backup_neondb_onedrive.py
