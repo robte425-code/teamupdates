@@ -26,15 +26,20 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  // Move expired items to archive (was: delete auto-only rows). Applies to both manual and auto:
-  // same "more than 1 day past expiry" rule as before for auto-delete.
+  // Manual: archive as soon as past end/due (same moment they're hidden on the home page).
+  // Auto: keep the legacy 1-day buffer after expiry (same as old auto-delete timing).
+  const now = new Date();
   const cutoff = new Date(Date.now() - ONE_DAY_MS);
   const notArchived = await prisma.keyDate.findMany({
     where: { archived: false },
-    select: { id: true, dateType: true, eventDate: true, eventEndDate: true },
+    select: { id: true, dateType: true, eventDate: true, eventEndDate: true, deleteType: true },
   });
   const idsToArchive = notArchived
-    .filter((row) => keyDateExpiry(row) < cutoff)
+    .filter((row) => {
+      const exp = keyDateExpiry(row);
+      if (row.deleteType === "auto") return exp < cutoff;
+      return exp < now;
+    })
     .map((row) => row.id);
   if (idsToArchive.length > 0) {
     await prisma.keyDate.updateMany({
@@ -50,7 +55,6 @@ export async function GET(req: Request) {
 
   // Homepage: show auto items until 1 day after expiry; show manual only if not yet expired
   if (list === "homepage") {
-    const now = new Date();
     items = items.filter((item) => {
       if (item.deleteType === "auto") return true;
       if (item.deleteType !== "manual") return true;
