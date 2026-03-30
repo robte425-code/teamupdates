@@ -5,6 +5,14 @@ import { prisma } from "@/lib/prisma";
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
+function keyDateExpiry(item: {
+  dateType: string;
+  eventDate: Date;
+  eventEndDate: Date | null;
+}): Date {
+  return item.dateType === "event" && item.eventEndDate ? item.eventEndDate : item.eventDate;
+}
+
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session) {
@@ -18,20 +26,22 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  // Auto-delete type: archive items that expired more than 1 day ago (was: delete)
+  // Move expired items to archive (was: delete auto-only rows). Applies to both manual and auto:
+  // same "more than 1 day past expiry" rule as before for auto-delete.
   const cutoff = new Date(Date.now() - ONE_DAY_MS);
-  await prisma.keyDate.updateMany({
-    where: {
-      archived: false,
-      deleteType: "auto",
-      OR: [
-        { dateType: "due", eventDate: { lt: cutoff } },
-        { dateType: "event", eventEndDate: { lt: cutoff } },
-        { dateType: "event", eventEndDate: null, eventDate: { lt: cutoff } },
-      ],
-    },
-    data: { archived: true },
+  const notArchived = await prisma.keyDate.findMany({
+    where: { archived: false },
+    select: { id: true, dateType: true, eventDate: true, eventEndDate: true },
   });
+  const idsToArchive = notArchived
+    .filter((row) => keyDateExpiry(row) < cutoff)
+    .map((row) => row.id);
+  if (idsToArchive.length > 0) {
+    await prisma.keyDate.updateMany({
+      where: { id: { in: idsToArchive } },
+      data: { archived: true },
+    });
+  }
 
   let items = await prisma.keyDate.findMany({
     where: { archived: archivedOnly },
