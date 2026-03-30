@@ -52,59 +52,70 @@ export function Header() {
                 unoptimized
               />
             </Link>
-            {/* "My balances" → team-payroll my-leave — hidden for now */}
-            {showAdminNav && (
+            {session && (
               <nav className="flex min-w-0 flex-1 flex-wrap items-center gap-0.5 sm:flex-nowrap">
-                <Link
-                  href="/"
-                  className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                    pathname === "/"
-                      ? "bg-stone-100 text-stone-900"
-                      : "text-stone-600 hover:bg-stone-50 hover:text-stone-900"
-                  }`}
+                {showAdminNav && (
+                  <>
+                    <Link
+                      href="/"
+                      className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                        pathname === "/"
+                          ? "bg-stone-100 text-stone-900"
+                          : "text-stone-600 hover:bg-stone-50 hover:text-stone-900"
+                      }`}
+                    >
+                      Home
+                    </Link>
+                    <Link
+                      href="/manage/updates"
+                      className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                        pathname.startsWith("/manage/updates")
+                          ? "bg-stone-100 text-stone-900"
+                          : "text-stone-600 hover:bg-stone-50 hover:text-stone-900"
+                      }`}
+                    >
+                      Updates
+                    </Link>
+                    <Link
+                      href="/manage/key-dates"
+                      className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                        pathname.startsWith("/manage/key-dates")
+                          ? "bg-stone-100 text-stone-900"
+                          : "text-stone-600 hover:bg-stone-50 hover:text-stone-900"
+                      }`}
+                    >
+                      Key dates
+                    </Link>
+                    <Link
+                      href="/manage/ticker"
+                      className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                        pathname.startsWith("/manage/ticker")
+                          ? "bg-stone-100 text-stone-900"
+                          : "text-stone-600 hover:bg-stone-50 hover:text-stone-900"
+                      }`}
+                    >
+                      Ticker
+                    </Link>
+                    <Link
+                      href="/manage/usage-stats"
+                      className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                        pathname.startsWith("/manage/usage-stats")
+                          ? "bg-stone-100 text-stone-900"
+                          : "text-stone-600 hover:bg-stone-50 hover:text-stone-900"
+                      }`}
+                    >
+                      Usage stats
+                    </Link>
+                  </>
+                )}
+                <a
+                  href="https://team-payroll.vercel.app/my-leave.html"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-lg px-3 py-2 text-sm font-medium text-stone-600 transition-colors hover:bg-stone-50 hover:text-stone-900"
                 >
-                  Home
-                </Link>
-                <Link
-                  href="/manage/updates"
-                  className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                    pathname.startsWith("/manage/updates")
-                      ? "bg-stone-100 text-stone-900"
-                      : "text-stone-600 hover:bg-stone-50 hover:text-stone-900"
-                  }`}
-                >
-                  Updates
-                </Link>
-                <Link
-                  href="/manage/key-dates"
-                  className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                    pathname.startsWith("/manage/key-dates")
-                      ? "bg-stone-100 text-stone-900"
-                      : "text-stone-600 hover:bg-stone-50 hover:text-stone-900"
-                  }`}
-                >
-                  Key dates
-                </Link>
-                <Link
-                  href="/manage/ticker"
-                  className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                    pathname.startsWith("/manage/ticker")
-                      ? "bg-stone-100 text-stone-900"
-                      : "text-stone-600 hover:bg-stone-50 hover:text-stone-900"
-                  }`}
-                >
-                  Ticker
-                </Link>
-                <Link
-                  href="/manage/usage-stats"
-                  className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                    pathname.startsWith("/manage/usage-stats")
-                      ? "bg-stone-100 text-stone-900"
-                      : "text-stone-600 hover:bg-stone-50 hover:text-stone-900"
-                  }`}
-                >
-                  Usage stats
-                </Link>
+                  My balances
+                </a>
               </nav>
             )}
           </div>
