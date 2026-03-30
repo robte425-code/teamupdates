@@ -113,7 +113,7 @@ export function ManageKeyDatesContent({
               href="/manage/archived-key-dates"
               className="shrink-0 text-sm font-medium text-emerald-700 transition-colors hover:text-emerald-800 hover:underline"
             >
-              Archived key dates
+              Archive
             </Link>
           )}
         </div>
