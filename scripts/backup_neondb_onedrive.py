@@ -13,6 +13,7 @@ Environment:
   ONEDRIVE_USER_UPN     Target user principal name (e.g. backup@yourcompany.com)
 Optional:
   ONEDRIVE_FOLDER       Folder path under drive root (default: NeonBackups/teamvoc-updates)
+  PG_DUMP_BIN           Path to pg_dump if the default on PATH is too old (e.g. …/postgresql/17/bin/pg_dump)
 """
 
 from __future__ import annotations
@@ -150,8 +151,10 @@ def upload_session(token: str, user_upn: str, remote_path: str, file_path: str) 
 
 
 def run_pg_dump(db_url: str, out_path: str) -> None:
+    # CI: set PG_DUMP_BIN=/usr/lib/postgresql/17/bin/pg_dump so we don’t pick /usr/bin/pg_dump (v16).
+    pg_dump = os.environ.get("PG_DUMP_BIN", "pg_dump")
     pg = subprocess.Popen(
-        ["pg_dump", db_url, "--no-owner", "--no-acl", "--format", "plain"],
+        [pg_dump, db_url, "--no-owner", "--no-acl", "--format", "plain"],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
