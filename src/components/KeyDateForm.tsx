@@ -247,7 +247,7 @@ export function KeyDateForm({
         )}
         <div>
           <label className="mb-1 block text-xs font-medium text-stone-500">
-            Delete behavior
+            After expiry
           </label>
           <div className="flex flex-wrap gap-4">
             <label className="flex cursor-pointer items-center gap-2 text-sm">
@@ -259,7 +259,7 @@ export function KeyDateForm({
                 onChange={() => setDeleteType("manual")}
                 className="rounded-full border-stone-300 text-emerald-600"
               />
-              <span>Manual — hidden when expired; you delete it</span>
+              <span>Manual — hidden when expired on the home page; you archive or delete it</span>
             </label>
             <label className="flex cursor-pointer items-center gap-2 text-sm">
               <input
@@ -270,7 +270,7 @@ export function KeyDateForm({
                 onChange={() => setDeleteType("auto")}
                 className="rounded-full border-stone-300 text-emerald-600"
               />
-              <span>Auto — removed 1 day after it expires</span>
+              <span>Auto — archived 1 day after it expires</span>
             </label>
           </div>
         </div>

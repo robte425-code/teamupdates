@@ -12,11 +12,17 @@ export async function GET(req: Request) {
   }
   const { searchParams } = new URL(req.url);
   const list = searchParams.get("list");
+  const archivedOnly = searchParams.get("archived") === "true";
+  const user = session.user as { role?: string } | undefined;
+  if (archivedOnly && user?.role !== "admin") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
-  // Remove auto-delete items that expired more than 1 day ago
+  // Auto-delete type: archive items that expired more than 1 day ago (was: delete)
   const cutoff = new Date(Date.now() - ONE_DAY_MS);
-  await prisma.keyDate.deleteMany({
+  await prisma.keyDate.updateMany({
     where: {
+      archived: false,
       deleteType: "auto",
       OR: [
         { dateType: "due", eventDate: { lt: cutoff } },
@@ -24,9 +30,11 @@ export async function GET(req: Request) {
         { dateType: "event", eventEndDate: null, eventDate: { lt: cutoff } },
       ],
     },
+    data: { archived: true },
   });
 
   let items = await prisma.keyDate.findMany({
+    where: { archived: archivedOnly },
     orderBy: { eventDate: "asc" },
   });
 
@@ -41,8 +49,9 @@ export async function GET(req: Request) {
     });
   }
 
-  const serialized = items.map(({ eventDate, eventEndDate, createdAt, ...rest }) => ({
+  const serialized = items.map(({ eventDate, eventEndDate, createdAt, archived, ...rest }) => ({
     ...rest,
+    archived,
     eventDate: eventDate instanceof Date ? eventDate.toISOString() : eventDate,
     eventEndDate:
       eventEndDate instanceof Date ? eventEndDate.toISOString() : eventEndDate ?? undefined,

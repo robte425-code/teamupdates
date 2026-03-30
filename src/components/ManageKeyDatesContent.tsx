@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { KeyDateForm } from "./KeyDateForm";
 import { BodyWithLinks } from "./BodyWithLinks";
 import {
@@ -19,24 +20,31 @@ type KeyDate = {
   title: string;
   body: string;
   deleteType?: "auto" | "manual";
+  archived?: boolean;
   createdAt?: string;
 };
 
-export function ManageKeyDatesContent() {
+export function ManageKeyDatesContent({
+  variant = "default",
+}: {
+  variant?: "default" | "archived";
+}) {
+  const isArchived = variant === "archived";
+  const listUrl = isArchived ? "/api/key-dates?archived=true" : "/api/key-dates";
   const [items, setItems] = useState<KeyDate[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [newBadgeDays, setNewBadgeDays] = useNewBadgeDays();
 
-  function refetch() {
-    return fetch("/api/key-dates")
+  const refetch = useCallback(() => {
+    return fetch(listUrl)
       .then((r) => r.json())
       .then((data) => setItems(Array.isArray(data) ? data : []));
-  }
+  }, [listUrl]);
 
   useEffect(() => {
     refetch().finally(() => setLoading(false));
-  }, []);
+  }, [refetch]);
 
   async function handleDelete(id: string) {
     if (!confirm("Delete this key date?")) return;
@@ -44,8 +52,29 @@ export function ManageKeyDatesContent() {
     if (res.ok) refetch();
   }
 
+  async function handleArchive(id: string) {
+    if (!confirm("Archive this key date? It will move to Archived key dates.")) return;
+    const res = await fetch(`/api/key-dates/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ archived: true }),
+    });
+    if (res.ok) refetch();
+  }
+
+  async function handleUnarchive(id: string) {
+    if (!confirm("Unarchive this key date? It will return to active key dates.")) return;
+    const res = await fetch(`/api/key-dates/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ archived: false }),
+    });
+    if (res.ok) refetch();
+  }
+
   return (
     <div className="space-y-8">
+      {!isArchived && (
       <section>
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-lg font-semibold text-stone-800">Key date settings</h2>
@@ -65,12 +94,35 @@ export function ManageKeyDatesContent() {
         <h2 className="mb-3 text-lg font-semibold text-stone-800">Add new</h2>
         <KeyDateForm onSaved={refetch} />
       </section>
+      )}
       <section>
-        <h2 className="mb-3 text-lg font-semibold text-stone-800">Existing key dates</h2>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold text-stone-800">
+            {isArchived ? "Archived key dates" : "Existing key dates"}
+          </h2>
+          {isArchived && (
+            <Link
+              href="/manage/key-dates"
+              className="shrink-0 text-sm font-medium text-emerald-700 transition-colors hover:text-emerald-800 hover:underline"
+            >
+              ← Active key dates
+            </Link>
+          )}
+          {!isArchived && (
+            <Link
+              href="/manage/archived-key-dates"
+              className="shrink-0 text-sm font-medium text-emerald-700 transition-colors hover:text-emerald-800 hover:underline"
+            >
+              Archived key dates
+            </Link>
+          )}
+        </div>
         {loading ? (
           <p className="text-sm text-stone-500">Loading…</p>
         ) : items.length === 0 ? (
-          <p className="text-sm text-stone-500">No key dates yet.</p>
+          <p className="text-sm text-stone-500">
+            {isArchived ? "No archived key dates." : "No key dates yet."}
+          </p>
         ) : (
           <ul className="space-y-4">
             {items.map((item) => {
@@ -127,7 +179,7 @@ export function ManageKeyDatesContent() {
                                 : "bg-stone-200 text-stone-600"
                             }`}
                           >
-                            {(item.deleteType ?? "manual") === "auto" ? "Auto delete" : "Manual"}
+                            {(item.deleteType ?? "manual") === "auto" ? "Auto-archive" : "Manual"}
                           </span>
                           <span
                             className={`rounded-full px-2 py-0.5 font-semibold ${
@@ -159,6 +211,23 @@ export function ManageKeyDatesContent() {
                             >
                               Edit
                             </button>
+                            {isArchived ? (
+                              <button
+                                type="button"
+                                onClick={() => handleUnarchive(item.id)}
+                                className="rounded px-2 py-1 text-xs font-medium text-stone-600 hover:bg-stone-100"
+                              >
+                                Unarchive
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => handleArchive(item.id)}
+                                className="rounded px-2 py-1 text-xs font-medium text-stone-600 hover:bg-stone-100"
+                              >
+                                Archive
+                              </button>
+                            )}
                             <button
                               type="button"
                               onClick={() => handleDelete(item.id)}

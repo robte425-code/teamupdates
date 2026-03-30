@@ -18,11 +18,14 @@ export function KeyDateItem({
   isAdmin,
   onSaved,
   onDeleted,
+  listArchived = false,
 }: {
   item: KeyDate;
   isAdmin: boolean;
   onSaved: () => void;
   onDeleted: () => void;
+  /** When true, show Unarchive instead of Archive (archived list). */
+  listArchived?: boolean;
 }) {
   const isEvent = item.dateType === "event";
   // Countdown and \"time left\" should always be to the start of the event (eventDate)
@@ -39,6 +42,18 @@ export function KeyDateItem({
   async function handleDelete() {
     if (!confirm("Delete this key date?")) return;
     const res = await fetch(`/api/key-dates/${item.id}`, { method: "DELETE" });
+    if (res.ok) onDeleted();
+  }
+
+  async function handleArchiveToggle() {
+    const next = !listArchived;
+    const label = next ? "Archive this key date?" : "Unarchive this key date?";
+    if (!confirm(label)) return;
+    const res = await fetch(`/api/key-dates/${item.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ archived: next }),
+    });
     if (res.ok) onDeleted();
   }
 
@@ -121,6 +136,13 @@ export function KeyDateItem({
               className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-stone-500 hover:bg-stone-100 hover:text-stone-700"
             >
               Edit
+            </button>
+            <button
+              type="button"
+              onClick={handleArchiveToggle}
+              className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-stone-600 hover:bg-stone-100 hover:text-stone-800"
+            >
+              {listArchived ? "Unarchive" : "Archive"}
             </button>
             <button
               type="button"
