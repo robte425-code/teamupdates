@@ -1,4 +1,4 @@
-# Weekly Neon/Postgres backup to Microsoft OneDrive (Microsoft 365) via Microsoft Graph.
+# Daily Neon/Postgres backup to Microsoft OneDrive (Microsoft 365) via Microsoft Graph.
 #
 # Prerequisites (Azure AD / Entra):
 #   1. App registration → Certificates & secrets → new client secret.
@@ -16,13 +16,13 @@
 # Personal @outlook.com OneDrive is not supported with app-only (client credentials).
 # Use a Microsoft 365 work/school account in your tenant.
 #
-# Schedule: Sundays 06:15 UTC (adjust cron as needed).
+# Schedule: every day at 06:15 UTC (adjust cron as needed).
 
 name: Database backup to OneDrive
 
 on:
   schedule:
-    - cron: "15 6 * * 0"
+    - cron: "15 6 * * *"
   workflow_dispatch:
 
 jobs:
