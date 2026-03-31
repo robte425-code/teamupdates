@@ -104,7 +104,7 @@ export function Header() {
                           : "text-stone-600 hover:bg-stone-50 hover:text-stone-900"
                       }`}
                     >
-                      Usage stats
+                      Admin
                     </Link>
                   </>
                 )}
