@@ -5,8 +5,105 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { useSession } from "next-auth/react";
+import { useEffect, useRef, useState } from "react";
 import { useViewMode } from "@/contexts/ViewModeContext";
 import { TickerBar } from "./TickerBar";
+
+const ADMIN_NAV_LINKS: { href: string; label: string; isActive: (path: string) => boolean }[] = [
+  { href: "/", label: "Home", isActive: (p) => p === "/" },
+  {
+    href: "/manage/updates",
+    label: "Updates",
+    isActive: (p) => p.startsWith("/manage/updates"),
+  },
+  {
+    href: "/manage/key-dates",
+    label: "Key dates",
+    isActive: (p) => p.startsWith("/manage/key-dates"),
+  },
+  {
+    href: "/manage/ticker",
+    label: "Ticker",
+    isActive: (p) => p.startsWith("/manage/ticker"),
+  },
+  {
+    href: "/manage/usage-stats",
+    label: "Admin",
+    isActive: (p) => p.startsWith("/manage/usage-stats"),
+  },
+];
+
+function AdminNavDropdown({ pathname }: { pathname: string }) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  const active = ADMIN_NAV_LINKS.find((l) => l.isActive(pathname));
+
+  useEffect(() => {
+    function onPointerDown(e: MouseEvent) {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onPointerDown);
+    return () => document.removeEventListener("mousedown", onPointerDown);
+  }, []);
+
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
+
+  return (
+    <div className="relative shrink-0" ref={rootRef}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-haspopup="menu"
+        className="flex items-center gap-1.5 rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm font-medium text-stone-800 shadow-sm transition-colors hover:bg-stone-50"
+      >
+        <span className="max-w-[10rem] truncate sm:max-w-none">
+          {active ? active.label : "Site pages"}
+        </span>
+        <svg
+          className={`h-4 w-4 shrink-0 text-stone-500 transition-transform ${open ? "rotate-180" : ""}`}
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          aria-hidden
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {open && (
+        <ul
+          role="menu"
+          className="absolute left-0 top-full z-30 mt-1 min-w-[12rem] rounded-lg border border-stone-200 bg-white py-1 shadow-lg"
+        >
+          {ADMIN_NAV_LINKS.map((item) => {
+            const isCurrent = item.isActive(pathname);
+            return (
+              <li key={item.href} role="none">
+                <Link
+                  role="menuitem"
+                  href={item.href}
+                  className={`block px-3 py-2 text-sm font-medium ${
+                    isCurrent
+                      ? "bg-stone-100 text-stone-900"
+                      : "text-stone-600 hover:bg-stone-50 hover:text-stone-900"
+                  }`}
+                  onClick={() => setOpen(false)}
+                >
+                  {item.label}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 function timeGreeting(): string {
   const hour = new Date().getHours();
@@ -53,61 +150,8 @@ export function Header() {
               />
             </Link>
             {session && (
-              <nav className="flex min-w-0 flex-1 flex-wrap items-center gap-0.5 sm:flex-nowrap">
-                {showAdminNav && (
-                  <>
-                    <Link
-                      href="/"
-                      className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                        pathname === "/"
-                          ? "bg-stone-100 text-stone-900"
-                          : "text-stone-600 hover:bg-stone-50 hover:text-stone-900"
-                      }`}
-                    >
-                      Home
-                    </Link>
-                    <Link
-                      href="/manage/updates"
-                      className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                        pathname.startsWith("/manage/updates")
-                          ? "bg-stone-100 text-stone-900"
-                          : "text-stone-600 hover:bg-stone-50 hover:text-stone-900"
-                      }`}
-                    >
-                      Updates
-                    </Link>
-                    <Link
-                      href="/manage/key-dates"
-                      className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                        pathname.startsWith("/manage/key-dates")
-                          ? "bg-stone-100 text-stone-900"
-                          : "text-stone-600 hover:bg-stone-50 hover:text-stone-900"
-                      }`}
-                    >
-                      Key dates
-                    </Link>
-                    <Link
-                      href="/manage/ticker"
-                      className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                        pathname.startsWith("/manage/ticker")
-                          ? "bg-stone-100 text-stone-900"
-                          : "text-stone-600 hover:bg-stone-50 hover:text-stone-900"
-                      }`}
-                    >
-                      Ticker
-                    </Link>
-                    <Link
-                      href="/manage/usage-stats"
-                      className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                        pathname.startsWith("/manage/usage-stats")
-                          ? "bg-stone-100 text-stone-900"
-                          : "text-stone-600 hover:bg-stone-50 hover:text-stone-900"
-                      }`}
-                    >
-                      Admin
-                    </Link>
-                  </>
-                )}
+              <nav className="flex min-w-0 flex-1 flex-wrap items-center gap-2 sm:flex-nowrap">
+                {showAdminNav && <AdminNavDropdown pathname={pathname} />}
                 <Link
                   href="/phone-book"
                   className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
