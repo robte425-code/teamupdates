@@ -7,6 +7,7 @@ export type PhoneBookEntryDTO = {
   id: string;
   sortOrder: number;
   employee: string;
+  isEmployee: boolean;
   workCell: string;
   fax: string;
   extension: string;
@@ -20,6 +21,7 @@ function serialize(
     id: string;
     sortOrder: number;
     employee: string;
+    isEmployee: boolean;
     workCell: string;
     fax: string;
     extension: string;
@@ -32,6 +34,7 @@ function serialize(
     id: row.id,
     sortOrder: row.sortOrder,
     employee: row.employee,
+    isEmployee: row.isEmployee,
     workCell: row.workCell,
     fax: row.fax,
     extension: row.extension,
@@ -56,6 +59,7 @@ export async function GET() {
 type IncomingEntry = {
   id?: string;
   employee?: string;
+  isEmployee?: boolean;
   workCell?: string;
   fax?: string;
   extension?: string;
@@ -91,6 +95,7 @@ export async function PUT(req: Request) {
       const e = entries[i]!;
       const data = {
         employee: (e.employee ?? "").trim(),
+        isEmployee: typeof e.isEmployee === "boolean" ? e.isEmployee : true,
         workCell: (e.workCell ?? "").trim(),
         fax: (e.fax ?? "").trim(),
         extension: (e.extension ?? "").trim(),

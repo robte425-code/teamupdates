@@ -57,6 +57,8 @@ model PhoneBookEntry {
   id              String   @id @default(cuid())
   sortOrder       Int      @default(0)
   employee        String
+  // When true, row appears in the Employees section for users.
+  isEmployee      Boolean  @default(true)
   workCell        String   @default("")
   fax             String   @default("")
   extension       String   @default("") // main line ext (888-569-0801 ext.)

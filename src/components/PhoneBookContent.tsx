@@ -1,17 +1,23 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useViewMode } from "@/contexts/ViewModeContext";
 import type { PhoneBookEntryDTO } from "@/app/api/phone-book/route";
 
-const COLS: {
-  key: keyof Omit<PhoneBookEntryDTO, "id" | "sortOrder">;
+type TextColKey =
+  | "workCell"
+  | "fax"
+  | "extension"
+  | "personalEmail"
+  | "personalPhone"
+  | "remarks";
+
+const TEXT_COLS: {
+  key: TextColKey;
   label: string;
-  /** In read-only view, keep on one line (phone-style fields). */
   nowrapDisplay?: boolean;
 }[] = [
-  { key: "employee", label: "Employee" },
   { key: "workCell", label: "Work cell", nowrapDisplay: true },
   { key: "fax", label: "Fax", nowrapDisplay: true },
   { key: "extension", label: "Ext", nowrapDisplay: true },
@@ -22,11 +28,16 @@ const COLS: {
 
 const NEW_ROW_ID_PREFIX = "new-";
 
+function sortByEmployeeName(a: PhoneBookEntryDTO, b: PhoneBookEntryDTO) {
+  return a.employee.localeCompare(b.employee, undefined, { sensitivity: "base" });
+}
+
 function emptyRow(): PhoneBookEntryDTO {
   return {
     id: `${NEW_ROW_ID_PREFIX}${crypto.randomUUID()}`,
     sortOrder: 0,
     employee: "",
+    isEmployee: true,
     workCell: "",
     fax: "",
     extension: "",
@@ -39,6 +50,7 @@ function emptyRow(): PhoneBookEntryDTO {
 type PutEntry = {
   id?: string;
   employee: string;
+  isEmployee: boolean;
   workCell: string;
   fax: string;
   extension: string;
@@ -48,21 +60,24 @@ type PutEntry = {
 };
 
 function rowsToPutEntries(list: PhoneBookEntryDTO[]): PutEntry[] {
-  return list.map(({ id, employee, workCell, fax, extension, personalEmail, personalPhone, remarks }) => {
-    const payload: PutEntry = {
-      employee,
-      workCell,
-      fax,
-      extension,
-      personalEmail,
-      personalPhone,
-      remarks,
-    };
-    if (!id.startsWith(NEW_ROW_ID_PREFIX)) {
-      payload.id = id;
+  return list.map(
+    ({ id, employee, isEmployee, workCell, fax, extension, personalEmail, personalPhone, remarks }) => {
+      const payload: PutEntry = {
+        employee,
+        isEmployee,
+        workCell,
+        fax,
+        extension,
+        personalEmail,
+        personalPhone,
+        remarks,
+      };
+      if (!id.startsWith(NEW_ROW_ID_PREFIX)) {
+        payload.id = id;
+      }
+      return payload;
     }
-    return payload;
-  });
+  );
 }
 
 async function persistPhoneBookRows(list: PhoneBookEntryDTO[]): Promise<PhoneBookEntryDTO[]> {
@@ -79,6 +94,60 @@ async function persistPhoneBookRows(list: PhoneBookEntryDTO[]): Promise<PhoneBoo
   return Array.isArray(data) ? data : [];
 }
 
+const READONLY_COL_COUNT = 1 + TEXT_COLS.length;
+
+function PhoneBookReadonlyTable({ rows }: { rows: PhoneBookEntryDTO[] }) {
+  return (
+    <div className="overflow-x-auto rounded-xl border border-stone-200 bg-white shadow-sm">
+      <table className="min-w-[56rem] w-full divide-y divide-stone-200 text-left text-sm">
+        <thead className="bg-stone-50">
+          <tr>
+            <th className="whitespace-nowrap px-3 py-2 font-semibold text-stone-700">Name</th>
+            {TEXT_COLS.map((c) => (
+              <th key={c.key} className="whitespace-nowrap px-3 py-2 font-semibold text-stone-700">
+                {c.label}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-stone-100">
+          {rows.length === 0 ? (
+            <tr>
+              <td
+                colSpan={READONLY_COL_COUNT}
+                className="px-3 py-4 text-center text-sm text-stone-500"
+              >
+                No entries in this section.
+              </td>
+            </tr>
+          ) : (
+            rows.map((row) => (
+              <tr key={row.id} className="hover:bg-stone-50/60">
+                <td className="align-top px-3 py-2 text-stone-800">
+                  <span className="block whitespace-pre-wrap break-words">{row.employee || "—"}</span>
+                </td>
+                {TEXT_COLS.map((c) => (
+                  <td key={c.key} className="align-top px-3 py-2 text-stone-800">
+                    <span
+                      className={
+                        c.nowrapDisplay
+                          ? "block whitespace-nowrap"
+                          : "block whitespace-pre-wrap break-words"
+                      }
+                    >
+                      {row[c.key] || "—"}
+                    </span>
+                  </td>
+                ))}
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export function PhoneBookContent() {
   const { data: session } = useSession();
   const { showAdminView } = useViewMode();
@@ -92,6 +161,15 @@ export function PhoneBookContent() {
   const [error, setError] = useState<string | null>(null);
   const [savedMsg, setSavedMsg] = useState<string | null>(null);
 
+  const employeeRowsUser = useMemo(
+    () => rows.filter((r) => r.isEmployee).sort(sortByEmployeeName),
+    [rows]
+  );
+  const nonEmployeeRowsUser = useMemo(
+    () => rows.filter((r) => !r.isEmployee).sort(sortByEmployeeName),
+    [rows]
+  );
+
   const load = useCallback(() => {
     setLoading(true);
     setError(null);
@@ -101,7 +179,13 @@ export function PhoneBookContent() {
         return r.json();
       })
       .then((data: PhoneBookEntryDTO[]) => {
-        setRows(Array.isArray(data) ? data : []);
+        const list = Array.isArray(data) ? data : [];
+        setRows(
+          list.map((r) => ({
+            ...r,
+            isEmployee: typeof r.isEmployee === "boolean" ? r.isEmployee : true,
+          }))
+        );
       })
       .catch(() => setError("Could not load phone book."))
       .finally(() => setLoading(false));
@@ -111,14 +195,19 @@ export function PhoneBookContent() {
     load();
   }, [load]);
 
-  function updateField(
-    index: number,
-    key: keyof Omit<PhoneBookEntryDTO, "id" | "sortOrder">,
-    value: string
-  ) {
+  function updateField(index: number, key: "employee" | TextColKey, value: string) {
     setRows((prev) => {
       const next = [...prev];
       next[index] = { ...next[index]!, [key]: value };
+      return next;
+    });
+    setSavedMsg(null);
+  }
+
+  function updateIsEmployee(index: number, isEmployee: boolean) {
+    setRows((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index]!, isEmployee };
       return next;
     });
     setSavedMsg(null);
@@ -188,55 +277,61 @@ export function PhoneBookContent() {
         {editMode && (
           <p>
             Save changes applies your edits and any new rows. Remove deletes an existing row from the phone
-            book immediately; unsaved new rows are discarded locally.
+            book immediately; unsaved new rows are discarded locally. Use the Employee column to mark who
+            appears under Employees vs other contacts for everyone else.
           </p>
         )}
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
       {savedMsg && <p className="text-sm text-emerald-700">{savedMsg}</p>}
 
-      <div className="overflow-x-auto rounded-xl border border-stone-200 bg-white shadow-sm">
-        <table className="min-w-[56rem] w-full divide-y divide-stone-200 text-left text-sm">
-          <thead className="bg-stone-50">
-            <tr>
-              {COLS.map((c) => (
-                <th key={c.key} className="whitespace-nowrap px-3 py-2 font-semibold text-stone-700">
-                  {c.label}
-                </th>
-              ))}
-              {editMode && (
+      {editMode ? (
+        <div className="overflow-x-auto rounded-xl border border-stone-200 bg-white shadow-sm">
+          <table className="min-w-[56rem] w-full divide-y divide-stone-200 text-left text-sm">
+            <thead className="bg-stone-50">
+              <tr>
+                <th className="whitespace-nowrap px-3 py-2 font-semibold text-stone-700">Name</th>
+                <th className="whitespace-nowrap px-3 py-2 font-semibold text-stone-700">Employee</th>
+                {TEXT_COLS.map((c) => (
+                  <th key={c.key} className="whitespace-nowrap px-3 py-2 font-semibold text-stone-700">
+                    {c.label}
+                  </th>
+                ))}
                 <th className="w-px whitespace-nowrap px-3 py-2 font-semibold text-stone-700">
                   <span className="sr-only">Actions</span>
                 </th>
-              )}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-stone-100">
-            {rows.map((row, rowIndex) => (
-              <tr key={row.id} className="hover:bg-stone-50/60">
-                {COLS.map((c) => (
-                  <td key={c.key} className="align-top px-3 py-2 text-stone-800">
-                    {editMode ? (
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-stone-100">
+              {rows.map((row, rowIndex) => (
+                <tr key={row.id} className="hover:bg-stone-50/60">
+                  <td className="align-top px-3 py-2 text-stone-800">
+                    <input
+                      type="text"
+                      value={row.employee}
+                      onChange={(e) => updateField(rowIndex, "employee", e.target.value)}
+                      className="w-full min-w-[7rem] rounded border border-stone-300 bg-white px-2 py-1 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    />
+                  </td>
+                  <td className="align-top px-3 py-2">
+                    <input
+                      type="checkbox"
+                      checked={row.isEmployee}
+                      onChange={(e) => updateIsEmployee(rowIndex, e.target.checked)}
+                      className="h-4 w-4 rounded border-stone-300 text-emerald-600 focus:ring-emerald-500"
+                      aria-label="Employee"
+                    />
+                  </td>
+                  {TEXT_COLS.map((c) => (
+                    <td key={c.key} className="align-top px-3 py-2 text-stone-800">
                       <input
                         type="text"
                         value={row[c.key]}
                         onChange={(e) => updateField(rowIndex, c.key, e.target.value)}
                         className="w-full min-w-[7rem] rounded border border-stone-300 bg-white px-2 py-1 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                       />
-                    ) : (
-                      <span
-                        className={
-                          c.nowrapDisplay
-                            ? "block whitespace-nowrap"
-                            : "block whitespace-pre-wrap break-words"
-                        }
-                      >
-                        {row[c.key] || "—"}
-                      </span>
-                    )}
-                  </td>
-                ))}
-                {editMode && (
+                    </td>
+                  ))}
                   <td className="align-top px-3 py-2">
                     <button
                       type="button"
@@ -247,12 +342,23 @@ export function PhoneBookContent() {
                       Remove
                     </button>
                   </td>
-                )}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="space-y-8">
+          <section className="space-y-3">
+            <h2 className="text-lg font-semibold text-stone-800">Employees</h2>
+            <PhoneBookReadonlyTable rows={employeeRowsUser} />
+          </section>
+          <section className="space-y-3">
+            <h2 className="text-lg font-semibold text-stone-800">Other contacts</h2>
+            <PhoneBookReadonlyTable rows={nonEmployeeRowsUser} />
+          </section>
+        </div>
+      )}
 
       {editMode && (
         <div className="flex flex-wrap items-center gap-3">
