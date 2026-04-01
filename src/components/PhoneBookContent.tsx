@@ -86,6 +86,12 @@ export function PhoneBookContent() {
     setSavedMsg(null);
   }
 
+  function removeRow(index: number) {
+    if (!confirm("Remove this row from the list?")) return;
+    setRows((prev) => prev.filter((_, i) => i !== index));
+    setSavedMsg(null);
+  }
+
   async function handleSave() {
     if (!editMode) return;
     setSaving(true);
@@ -151,7 +157,7 @@ export function PhoneBookContent() {
         <p>Please do not share any personal email or phone number outside the company.</p>
         {editMode && (
           <p>
-            Edit any fields below, use Add row for a new line, then click Save changes.
+            Edit fields, add or remove rows, then click Save changes to update the phone book.
           </p>
         )}
       </div>
@@ -167,6 +173,11 @@ export function PhoneBookContent() {
                   {c.label}
                 </th>
               ))}
+              {editMode && (
+                <th className="w-px whitespace-nowrap px-3 py-2 font-semibold text-stone-700">
+                  <span className="sr-only">Actions</span>
+                </th>
+              )}
             </tr>
           </thead>
           <tbody className="divide-y divide-stone-100">
@@ -194,6 +205,18 @@ export function PhoneBookContent() {
                     )}
                   </td>
                 ))}
+                {editMode && (
+                  <td className="align-top px-3 py-2">
+                    <button
+                      type="button"
+                      disabled={saving}
+                      onClick={() => removeRow(rowIndex)}
+                      className="whitespace-nowrap rounded border border-red-200 bg-white px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-60"
+                    >
+                      Remove
+                    </button>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
