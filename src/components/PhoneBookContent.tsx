@@ -20,6 +20,22 @@ const COLS: {
   { key: "remarks", label: "Remarks" },
 ];
 
+const NEW_ROW_ID_PREFIX = "new-";
+
+function emptyRow(): PhoneBookEntryDTO {
+  return {
+    id: `${NEW_ROW_ID_PREFIX}${crypto.randomUUID()}`,
+    sortOrder: 0,
+    employee: "",
+    workCell: "",
+    fax: "",
+    extension: "",
+    personalEmail: "",
+    personalPhone: "",
+    remarks: "",
+  };
+}
+
 export function PhoneBookContent() {
   const { data: session } = useSession();
   const { showAdminView } = useViewMode();
@@ -65,6 +81,11 @@ export function PhoneBookContent() {
     setSavedMsg(null);
   }
 
+  function addRow() {
+    setRows((prev) => [...prev, emptyRow()]);
+    setSavedMsg(null);
+  }
+
   async function handleSave() {
     if (!editMode) return;
     setSaving(true);
@@ -75,16 +96,30 @@ export function PhoneBookContent() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          entries: rows.map(({ id, employee, workCell, fax, extension, personalEmail, personalPhone, remarks }) => ({
-            id,
-            employee,
-            workCell,
-            fax,
-            extension,
-            personalEmail,
-            personalPhone,
-            remarks,
-          })),
+          entries: rows.map(({ id, employee, workCell, fax, extension, personalEmail, personalPhone, remarks }) => {
+            const payload: {
+              id?: string;
+              employee: string;
+              workCell: string;
+              fax: string;
+              extension: string;
+              personalEmail: string;
+              personalPhone: string;
+              remarks: string;
+            } = {
+              employee,
+              workCell,
+              fax,
+              extension,
+              personalEmail,
+              personalPhone,
+              remarks,
+            };
+            if (!id.startsWith(NEW_ROW_ID_PREFIX)) {
+              payload.id = id;
+            }
+            return payload;
+          }),
         }),
       });
       if (!res.ok) {
@@ -114,7 +149,11 @@ export function PhoneBookContent() {
       <div className="space-y-2 text-sm text-stone-600">
         <p>Contact information for team members and key numbers.</p>
         <p>Please do not share any personal email or phone number outside the company.</p>
-        {editMode && <p>Edit any fields below, then click Save changes.</p>}
+        {editMode && (
+          <p>
+            Edit any fields below, use Add row for a new line, then click Save changes.
+          </p>
+        )}
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
       {savedMsg && <p className="text-sm text-emerald-700">{savedMsg}</p>}
@@ -162,14 +201,24 @@ export function PhoneBookContent() {
       </div>
 
       {editMode && (
-        <button
-          type="button"
-          disabled={saving}
-          onClick={handleSave}
-          className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
-        >
-          {saving ? "Saving…" : "Save changes"}
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            disabled={saving}
+            onClick={addRow}
+            className="rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-800 hover:bg-stone-50 disabled:opacity-60"
+          >
+            Add row
+          </button>
+          <button
+            type="button"
+            disabled={saving}
+            onClick={handleSave}
+            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
+          >
+            {saving ? "Saving…" : "Save changes"}
+          </button>
+        </div>
       )}
     </div>
   );
