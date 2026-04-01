@@ -36,6 +36,49 @@ function emptyRow(): PhoneBookEntryDTO {
   };
 }
 
+type PutEntry = {
+  id?: string;
+  employee: string;
+  workCell: string;
+  fax: string;
+  extension: string;
+  personalEmail: string;
+  personalPhone: string;
+  remarks: string;
+};
+
+function rowsToPutEntries(list: PhoneBookEntryDTO[]): PutEntry[] {
+  return list.map(({ id, employee, workCell, fax, extension, personalEmail, personalPhone, remarks }) => {
+    const payload: PutEntry = {
+      employee,
+      workCell,
+      fax,
+      extension,
+      personalEmail,
+      personalPhone,
+      remarks,
+    };
+    if (!id.startsWith(NEW_ROW_ID_PREFIX)) {
+      payload.id = id;
+    }
+    return payload;
+  });
+}
+
+async function persistPhoneBookRows(list: PhoneBookEntryDTO[]): Promise<PhoneBookEntryDTO[]> {
+  const res = await fetch("/api/phone-book", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ entries: rowsToPutEntries(list) }),
+  });
+  if (!res.ok) {
+    const t = await res.text();
+    throw new Error(t || "Save failed");
+  }
+  const data = (await res.json()) as PhoneBookEntryDTO[];
+  return Array.isArray(data) ? data : [];
+}
+
 export function PhoneBookContent() {
   const { data: session } = useSession();
   const { showAdminView } = useViewMode();
@@ -86,10 +129,31 @@ export function PhoneBookContent() {
     setSavedMsg(null);
   }
 
-  function removeRow(index: number) {
-    if (!confirm("Remove this row from the list?")) return;
-    setRows((prev) => prev.filter((_, i) => i !== index));
+  async function removeRow(index: number) {
+    if (!editMode) return;
+    const row = rows[index];
+    if (!row) return;
+    if (!confirm("Remove this row from the phone book?")) return;
+
+    if (row.id.startsWith(NEW_ROW_ID_PREFIX)) {
+      setRows((prev) => prev.filter((_, i) => i !== index));
+      setSavedMsg(null);
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
     setSavedMsg(null);
+    try {
+      const next = rows.filter((_, i) => i !== index);
+      const data = await persistPhoneBookRows(next);
+      setRows(data);
+      setSavedMsg("Row removed.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not remove row");
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function handleSave() {
@@ -98,42 +162,8 @@ export function PhoneBookContent() {
     setError(null);
     setSavedMsg(null);
     try {
-      const res = await fetch("/api/phone-book", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          entries: rows.map(({ id, employee, workCell, fax, extension, personalEmail, personalPhone, remarks }) => {
-            const payload: {
-              id?: string;
-              employee: string;
-              workCell: string;
-              fax: string;
-              extension: string;
-              personalEmail: string;
-              personalPhone: string;
-              remarks: string;
-            } = {
-              employee,
-              workCell,
-              fax,
-              extension,
-              personalEmail,
-              personalPhone,
-              remarks,
-            };
-            if (!id.startsWith(NEW_ROW_ID_PREFIX)) {
-              payload.id = id;
-            }
-            return payload;
-          }),
-        }),
-      });
-      if (!res.ok) {
-        const t = await res.text();
-        throw new Error(t || "Save failed");
-      }
-      const data = (await res.json()) as PhoneBookEntryDTO[];
-      setRows(Array.isArray(data) ? data : []);
+      const data = await persistPhoneBookRows(rows);
+      setRows(data);
       setSavedMsg("Saved.");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Save failed");
@@ -157,7 +187,8 @@ export function PhoneBookContent() {
         <p>Please do not share any personal email or phone number outside the company.</p>
         {editMode && (
           <p>
-            Edit fields, add or remove rows, then click Save changes to update the phone book.
+            Save changes applies your edits and any new rows. Remove deletes an existing row from the phone
+            book immediately; unsaved new rows are discarded locally.
           </p>
         )}
       </div>
@@ -210,7 +241,7 @@ export function PhoneBookContent() {
                     <button
                       type="button"
                       disabled={saving}
-                      onClick={() => removeRow(rowIndex)}
+                      onClick={() => void removeRow(rowIndex)}
                       className="whitespace-nowrap rounded border border-red-200 bg-white px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-60"
                     >
                       Remove
