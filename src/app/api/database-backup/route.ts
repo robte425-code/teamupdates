@@ -45,19 +45,20 @@ export async function GET() {
   const authError = await requireAdmin();
   if (authError) return authError;
 
-  const [users, updates, keyDates, tickerItems, pageVisits] = await Promise.all([
+  const [users, updates, keyDates, tickerItems, pageVisits, phoneBookEntries] = await Promise.all([
     prisma.user.findMany({ orderBy: { createdAt: "asc" } }),
     prisma.update.findMany({ orderBy: { createdAt: "asc" } }),
     prisma.keyDate.findMany({ orderBy: { createdAt: "asc" } }),
     prisma.tickerItem.findMany({ orderBy: { createdAt: "asc" } }),
     prisma.pageVisit.findMany({ orderBy: { visitedAt: "asc" } }),
+    prisma.phoneBookEntry.findMany({ orderBy: { sortOrder: "asc" } }),
   ]);
 
   const lines: string[] = [
     BACKUP_HEADER,
     `-- generated_at_utc: ${new Date().toISOString()}`,
     "BEGIN;",
-    'TRUNCATE TABLE public."PageVisit", public."TickerItem", public."KeyDate", public."Update", public."User" RESTART IDENTITY CASCADE;',
+    'TRUNCATE TABLE public."PageVisit", public."PhoneBookEntry", public."TickerItem", public."KeyDate", public."Update", public."User" RESTART IDENTITY CASCADE;',
     ...insertStatement('public."User"', ["id", "email", "name", "password", "role", "createdAt"], users),
     ...insertStatement('public."Update"', ["id", "date", "title", "body", "archived", "createdAt"], updates),
     ...insertStatement(
@@ -70,6 +71,23 @@ export async function GET() {
       'public."PageVisit"',
       ["id", "userId", "userName", "userEmail", "path", "visitedAt"],
       pageVisits
+    ),
+    ...insertStatement(
+      'public."PhoneBookEntry"',
+      [
+        "id",
+        "sortOrder",
+        "employee",
+        "workCell",
+        "fax",
+        "extension",
+        "personalEmail",
+        "personalPhone",
+        "remarks",
+        "createdAt",
+        "updatedAt",
+      ],
+      phoneBookEntries
     ),
     "COMMIT;",
     "",

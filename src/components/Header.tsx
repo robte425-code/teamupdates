@@ -108,6 +108,16 @@ export function Header() {
                     </Link>
                   </>
                 )}
+                <Link
+                  href="/phone-book"
+                  className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                    pathname.startsWith("/phone-book")
+                      ? "bg-stone-100 text-stone-900"
+                      : "text-stone-600 hover:bg-stone-50 hover:text-stone-900"
+                  }`}
+                >
+                  Phone book
+                </Link>
                 <a
                   href="https://team-payroll.vercel.app/my-leave.html"
                   target="_blank"

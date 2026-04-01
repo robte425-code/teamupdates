@@ -14,5 +14,6 @@ export const config = {
     "/manage/updates",
     "/manage/key-dates",
     "/manage/archived-key-dates",
+    "/phone-book",
   ],
 };

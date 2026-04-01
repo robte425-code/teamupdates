@@ -52,3 +52,17 @@ model PageVisit {
   path      String
   visitedAt DateTime @default(now())
 }
+
+model PhoneBookEntry {
+  id              String   @id @default(cuid())
+  sortOrder       Int      @default(0)
+  employee        String
+  workCell        String   @default("")
+  fax             String   @default("")
+  extension       String   @default("") // main line ext (888-569-0801 ext.)
+  personalEmail   String   @default("")
+  personalPhone   String   @default("")
+  remarks         String   @default("")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
