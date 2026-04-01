@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { isTransientPrismaError, withPrismaRetry } from "@/lib/prismaRetry";
 
 export type PhoneBookEntryDTO = {
   id: string;
@@ -50,10 +51,22 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const rows = await prisma.phoneBookEntry.findMany({
-    orderBy: { sortOrder: "asc" },
-  });
-  return NextResponse.json(rows.map(serialize));
+  try {
+    const rows = await withPrismaRetry(() =>
+      prisma.phoneBookEntry.findMany({
+        orderBy: { sortOrder: "asc" },
+      })
+    );
+    return NextResponse.json(rows.map(serialize));
+  } catch (error) {
+    if (isTransientPrismaError(error)) {
+      return NextResponse.json(
+        { error: "Database temporarily unavailable. Please retry." },
+        { status: 503 }
+      );
+    }
+    throw error;
+  }
 }
 
 type IncomingEntry = {
@@ -82,41 +95,55 @@ export async function PUT(req: Request) {
 
   const keepIds = entries.map((e) => e.id).filter((id): id is string => Boolean(id));
 
-  await prisma.$transaction(async (tx) => {
-    if (keepIds.length === 0) {
-      await tx.phoneBookEntry.deleteMany({});
-    } else {
-      await tx.phoneBookEntry.deleteMany({
-        where: { id: { notIn: keepIds } },
-      });
-    }
+  try {
+    await withPrismaRetry(() =>
+      prisma.$transaction(async (tx) => {
+        if (keepIds.length === 0) {
+          await tx.phoneBookEntry.deleteMany({});
+        } else {
+          await tx.phoneBookEntry.deleteMany({
+            where: { id: { notIn: keepIds } },
+          });
+        }
 
-    for (let i = 0; i < entries.length; i++) {
-      const e = entries[i]!;
-      const data = {
-        employee: (e.employee ?? "").trim(),
-        isEmployee: typeof e.isEmployee === "boolean" ? e.isEmployee : true,
-        workCell: (e.workCell ?? "").trim(),
-        fax: (e.fax ?? "").trim(),
-        extension: (e.extension ?? "").trim(),
-        personalEmail: (e.personalEmail ?? "").trim(),
-        personalPhone: (e.personalPhone ?? "").trim(),
-        remarks: (e.remarks ?? "").trim(),
-        sortOrder: i,
-      };
-      if (e.id) {
-        await tx.phoneBookEntry.update({
-          where: { id: e.id },
-          data,
-        });
-      } else {
-        await tx.phoneBookEntry.create({ data });
-      }
-    }
-  });
+        for (let i = 0; i < entries.length; i++) {
+          const e = entries[i]!;
+          const data = {
+            employee: (e.employee ?? "").trim(),
+            isEmployee: typeof e.isEmployee === "boolean" ? e.isEmployee : true,
+            workCell: (e.workCell ?? "").trim(),
+            fax: (e.fax ?? "").trim(),
+            extension: (e.extension ?? "").trim(),
+            personalEmail: (e.personalEmail ?? "").trim(),
+            personalPhone: (e.personalPhone ?? "").trim(),
+            remarks: (e.remarks ?? "").trim(),
+            sortOrder: i,
+          };
+          if (e.id) {
+            await tx.phoneBookEntry.update({
+              where: { id: e.id },
+              data,
+            });
+          } else {
+            await tx.phoneBookEntry.create({ data });
+          }
+        }
+      })
+    );
 
-  const rows = await prisma.phoneBookEntry.findMany({
-    orderBy: { sortOrder: "asc" },
-  });
-  return NextResponse.json(rows.map(serialize));
+    const rows = await withPrismaRetry(() =>
+      prisma.phoneBookEntry.findMany({
+        orderBy: { sortOrder: "asc" },
+      })
+    );
+    return NextResponse.json(rows.map(serialize));
+  } catch (error) {
+    if (isTransientPrismaError(error)) {
+      return NextResponse.json(
+        { error: "Database temporarily unavailable. Please retry." },
+        { status: 503 }
+      );
+    }
+    throw error;
+  }
 }
