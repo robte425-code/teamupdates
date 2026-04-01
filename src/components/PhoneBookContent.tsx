@@ -111,11 +111,11 @@ export function PhoneBookContent() {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-stone-600">
-        {editMode
-          ? "Edit any fields below, then click Save changes."
-          : "Contact information for team members and key numbers."}
-      </p>
+      <div className="space-y-2 text-sm text-stone-600">
+        <p>Contact information for team members and key numbers.</p>
+        <p>Please do not share any personal email or phone number outside the company.</p>
+        {editMode && <p>Edit any fields below, then click Save changes.</p>}
+      </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
       {savedMsg && <p className="text-sm text-emerald-700">{savedMsg}</p>}
 
