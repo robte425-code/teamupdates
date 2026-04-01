@@ -5,13 +5,18 @@ import { useSession } from "next-auth/react";
 import { useViewMode } from "@/contexts/ViewModeContext";
 import type { PhoneBookEntryDTO } from "@/app/api/phone-book/route";
 
-const COLS: { key: keyof Omit<PhoneBookEntryDTO, "id" | "sortOrder">; label: string }[] = [
+const COLS: {
+  key: keyof Omit<PhoneBookEntryDTO, "id" | "sortOrder">;
+  label: string;
+  /** In read-only view, keep on one line (phone-style fields). */
+  nowrapDisplay?: boolean;
+}[] = [
   { key: "employee", label: "Employee" },
-  { key: "workCell", label: "Work cell" },
-  { key: "fax", label: "Fax" },
-  { key: "extension", label: "888-569-0801 ext." },
+  { key: "workCell", label: "Work cell", nowrapDisplay: true },
+  { key: "fax", label: "Fax", nowrapDisplay: true },
+  { key: "extension", label: "Ext", nowrapDisplay: true },
   { key: "personalEmail", label: "Personal email" },
-  { key: "personalPhone", label: "Personal phone" },
+  { key: "personalPhone", label: "Personal phone", nowrapDisplay: true },
   { key: "remarks", label: "Remarks" },
 ];
 
@@ -138,7 +143,15 @@ export function PhoneBookContent() {
                         className="w-full min-w-[7rem] rounded border border-stone-300 bg-white px-2 py-1 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                       />
                     ) : (
-                      <span className="block whitespace-pre-wrap break-words">{row[c.key] || "—"}</span>
+                      <span
+                        className={
+                          c.nowrapDisplay
+                            ? "block whitespace-nowrap"
+                            : "block whitespace-pre-wrap break-words"
+                        }
+                      >
+                        {row[c.key] || "—"}
+                      </span>
                     )}
                   </td>
                 ))}
