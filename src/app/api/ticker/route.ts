@@ -14,11 +14,22 @@ export async function GET(req: Request) {
   if (manage && user?.role !== "admin") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
-  const items = await prisma.tickerItem.findMany({
-    where: manage ? {} : { displayed: true },
-    orderBy: { createdAt: "asc" },
-  });
-  return NextResponse.json(items);
+  try {
+    const items = await prisma.tickerItem.findMany({
+      where: manage ? {} : { displayed: true },
+      orderBy: { createdAt: "asc" },
+    });
+    return NextResponse.json(items);
+  } catch (err) {
+    console.error("ticker GET", err);
+    return NextResponse.json(
+      {
+        error:
+          "Database error loading ticker items. Run migrations (adds TickerItem.displayed), e.g. prisma migrate deploy.",
+      },
+      { status: 500 }
+    );
+  }
 }
 
 export async function POST(req: Request) {
@@ -34,12 +45,22 @@ export async function POST(req: Request) {
       { status: 400 }
     );
   }
-  const item = await prisma.tickerItem.create({
-    data: {
-      text: String(text).trim(),
-      displayed: true,
-    },
-  });
-  return NextResponse.json(item);
+  try {
+    const item = await prisma.tickerItem.create({
+      data: {
+        text: String(text).trim(),
+      },
+    });
+    return NextResponse.json(item);
+  } catch (err) {
+    console.error("ticker POST", err);
+    return NextResponse.json(
+      {
+        error:
+          "Could not save the ticker item. Ensure the database is migrated (TickerItem.displayed column).",
+      },
+      { status: 500 }
+    );
+  }
 }
 

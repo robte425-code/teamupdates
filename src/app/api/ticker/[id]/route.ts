@@ -20,11 +20,22 @@ export async function PATCH(
   if (Object.keys(data).length === 0) {
     return NextResponse.json({ error: "No valid fields to update" }, { status: 400 });
   }
-  const item = await prisma.tickerItem.update({
-    where: { id },
-    data,
-  });
-  return NextResponse.json(item);
+  try {
+    const item = await prisma.tickerItem.update({
+      where: { id },
+      data,
+    });
+    return NextResponse.json(item);
+  } catch (err) {
+    console.error("ticker PATCH", err);
+    return NextResponse.json(
+      {
+        error:
+          "Could not update ticker item. Ensure the database is migrated (TickerItem.displayed column).",
+      },
+      { status: 500 }
+    );
+  }
 }
 
 export async function DELETE(

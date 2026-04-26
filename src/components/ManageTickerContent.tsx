@@ -12,24 +12,50 @@ type TickerItem = {
 export function ManageTickerContent() {
   const [items, setItems] = useState<TickerItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [listError, setListError] = useState<string | null>(null);
+  const [addError, setAddError] = useState<string | null>(null);
   const [newText, setNewText] = useState("");
   const [savingNew, setSavingNew] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState("");
 
   function refetch() {
+    setListError(null);
     return fetch("/api/ticker?manage=1")
-      .then((r) => r.json())
-      .then((data) =>
+      .then(async (r) => {
+        let data: unknown;
+        try {
+          data = await r.json();
+        } catch {
+          data = null;
+        }
+        if (!r.ok) {
+          const msg =
+            typeof data === "object" &&
+            data !== null &&
+            "error" in data &&
+            typeof (data as { error: unknown }).error === "string"
+              ? (data as { error: string }).error
+              : `Request failed (${r.status})`;
+          setListError(msg);
+          setItems([]);
+          return;
+        }
+        if (!Array.isArray(data)) {
+          setItems([]);
+          return;
+        }
         setItems(
-          Array.isArray(data)
-            ? data.map((row: TickerItem) => ({
-                ...row,
-                displayed: row.displayed !== false,
-              }))
-            : []
-        )
-      );
+          data.map((row: TickerItem) => ({
+            ...row,
+            displayed: row.displayed !== false,
+          }))
+        );
+      })
+      .catch(() => {
+        setListError("Network error loading ticker items.");
+        setItems([]);
+      });
   }
 
   useEffect(() => {
@@ -39,6 +65,7 @@ export function ManageTickerContent() {
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
     if (!newText.trim()) return;
+    setAddError(null);
     setSavingNew(true);
     try {
       const res = await fetch("/api/ticker", {
@@ -46,11 +73,22 @@ export function ManageTickerContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: newText }),
       });
-      if (!res.ok) throw new Error(await res.text());
+      const raw = await res.text();
+      let message = raw;
+      try {
+        const parsed = JSON.parse(raw) as { error?: string };
+        if (parsed.error) message = parsed.error;
+      } catch {
+        // use raw body
+      }
+      if (!res.ok) {
+        setAddError(message || `Could not add (${res.status})`);
+        return;
+      }
       setNewText("");
-      refetch();
+      await refetch();
     } catch {
-      // ignore error; simple UI
+      setAddError("Network error while adding ticker item.");
     } finally {
       setSavingNew(false);
     }
@@ -93,14 +131,17 @@ export function ManageTickerContent() {
         </h2>
         <form
           onSubmit={handleAdd}
-          className="flex flex-col gap-3 rounded-xl border border-stone-200 bg-white p-4 shadow-sm sm:flex-row"
+          className="flex flex-col gap-3 rounded-xl border border-stone-200 bg-white p-4 shadow-sm sm:flex-row sm:flex-wrap"
         >
           <input
             type="text"
             value={newText}
-            onChange={(e) => setNewText(e.target.value)}
+            onChange={(e) => {
+              setNewText(e.target.value);
+              setAddError(null);
+            }}
             placeholder="Enter ticker text…"
-            className="flex-1 rounded-lg border border-stone-300 px-3 py-2 text-sm text-stone-900 placeholder:text-stone-400 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
+            className="min-w-0 flex-1 rounded-lg border border-stone-300 px-3 py-2 text-sm text-stone-900 placeholder:text-stone-400 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
           />
           <button
             type="submit"
@@ -109,6 +150,11 @@ export function ManageTickerContent() {
           >
             {savingNew ? "Adding…" : "Add"}
           </button>
+          {addError && (
+            <p className="w-full text-sm text-red-600" role="alert">
+              {addError}
+            </p>
+          )}
         </form>
       </section>
 
@@ -119,6 +165,11 @@ export function ManageTickerContent() {
         <p className="mb-3 text-xs text-stone-500">
           Uncheck Display to hide a line from the header ticker. It remains here for editing.
         </p>
+        {listError && (
+          <p className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">
+            {listError}
+          </p>
+        )}
         {loading ? (
           <p className="text-sm text-stone-500">Loading…</p>
         ) : items.length === 0 ? (

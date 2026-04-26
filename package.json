@@ -10,6 +10,7 @@
     "test": "npm run lint",
     "postinstall": "prisma generate",
     "db:push": "prisma db push",
+    "db:migrate": "prisma migrate deploy",
     "db:seed": "npx tsx prisma/seed.ts",
     "db:seed-phone-book": "npx tsx prisma/seed-phone-book.ts",
     "db:studio": "prisma studio"
