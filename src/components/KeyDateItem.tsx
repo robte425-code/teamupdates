@@ -105,7 +105,7 @@ export function KeyDateItem({
           <BodyWithLinks
             text={item.body}
             preLine
-            className={hasMore && !expanded ? "line-clamp-5" : undefined}
+            className={hasMore && !expanded ? "line-clamp-2" : undefined}
           />
           {hasMore && (
             <button
