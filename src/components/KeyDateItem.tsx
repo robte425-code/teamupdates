@@ -81,6 +81,7 @@ export function KeyDateItem({
   const plainBody = stripRichTextMarkup(item.body);
   const bodyPreview = plainBody.slice(0, 120);
   const hasMore = plainBody.length > 120;
+  const displayBody = !hasMore || expanded ? item.body : bodyPreview;
 
   const publishedAt = item.createdAt ? new Date(item.createdAt).getTime() : new Date(item.eventDate).getTime();
   const windowMs = newBadgeDays * 24 * 60 * 60 * 1000;
@@ -103,7 +104,7 @@ export function KeyDateItem({
           </span>
         </div>
         <div className="mt-2 w-full text-sm leading-relaxed text-stone-600">
-          <BodyWithLinks text={expanded ? item.body : bodyPreview} preLine />
+          <BodyWithLinks text={displayBody} preLine />
           {hasMore && (
             <button
               type="button"

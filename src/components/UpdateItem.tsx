@@ -58,6 +58,7 @@ export function UpdateItem({
   const plainBody = stripRichTextMarkup(item.body);
   const bodyPreview = plainBody.slice(0, 120);
   const hasMore = plainBody.length > 120;
+  const displayBody = !hasMore || expanded ? item.body : bodyPreview;
 
   return (
     <li className="group relative overflow-hidden rounded-xl border border-stone-200/80 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
@@ -71,7 +72,7 @@ export function UpdateItem({
           </span>
         </div>
         <div className="mt-2 w-full text-sm leading-relaxed text-stone-600">
-          <BodyWithLinks text={expanded ? item.body : bodyPreview} preLine />
+          <BodyWithLinks text={displayBody} preLine />
           {hasMore && (
             <button
               type="button"
