@@ -1,33 +1,17 @@
 "use client";
 
-const URL_REGEX = /(https?:\/\/[^\s<>"]+)/g;
+import { parseRichTextToNodes } from "@/lib/richText";
 
-function trimTrailingPunctuation(url: string): string {
-  return url.replace(/[.,;:!)]+$/, "");
-}
-
-export function BodyWithLinks({ text, className }: { text: string; className?: string }) {
-  const parts = text.split(URL_REGEX);
-  const mergedClassName = [className, "whitespace-pre-line"].filter(Boolean).join(" ");
-  return (
-    <span className={mergedClassName}>
-      {parts.map((part, i) => {
-        if (/^https?:\/\//.test(part)) {
-          const href = trimTrailingPunctuation(part);
-          return (
-            <a
-              key={i}
-              href={href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-stone-900 underline break-all"
-            >
-              {part}
-            </a>
-          );
-        }
-        return part;
-      })}
-    </span>
-  );
+export function BodyWithLinks({
+  text,
+  className,
+  preLine = true,
+}: {
+  text: string;
+  className?: string;
+  /** Preserve newlines in body text; use false for single-line titles. */
+  preLine?: boolean;
+}) {
+  const mergedClassName = [className, preLine && "whitespace-pre-line"].filter(Boolean).join(" ");
+  return <span className={mergedClassName || undefined}>{parseRichTextToNodes(text)}</span>;
 }

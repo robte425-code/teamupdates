@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { RICH_TEXT_FORMAT_HINT } from "@/lib/richText";
 import { format } from "date-fns";
 import { dateTimeInPacificToISO, APP_TIMEZONE } from "@/lib/formatKeyDate";
 
@@ -264,6 +265,7 @@ export function KeyDateForm({
             placeholder="Main body text…"
             className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm"
           />
+          <p className="mt-1 text-xs text-stone-500">{RICH_TEXT_FORMAT_HINT}</p>
         </div>
         {error && <p className="text-sm text-red-600">{error}</p>}
         <div className="flex gap-2">

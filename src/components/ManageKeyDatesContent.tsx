@@ -164,7 +164,9 @@ export function ManageKeyDatesContent({
                           ) : null;
                         })()}
                         <div className="flex items-baseline justify-between gap-3">
-                          <h3 className="min-w-0 flex-1 font-medium text-stone-900">{item.title}</h3>
+                          <h3 className="min-w-0 flex-1 font-medium text-stone-900">
+                            <BodyWithLinks text={item.title} preLine={false} />
+                          </h3>
                           <span className="shrink-0 text-xs text-stone-400">
                             Published: {formatDateInPST(item.createdAt ?? item.eventDate)}
                           </span>
@@ -183,7 +185,7 @@ export function ManageKeyDatesContent({
                           </span>
                         </p>
                         <p className="mt-2 w-full text-sm text-stone-600">
-                          <BodyWithLinks text={item.body} />
+                          <BodyWithLinks text={item.body} preLine />
                         </p>
                       </div>
                       <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-stone-200/60 bg-stone-50 px-4 py-3">

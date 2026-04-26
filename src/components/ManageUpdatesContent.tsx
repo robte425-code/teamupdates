@@ -72,13 +72,15 @@ export function ManageUpdatesContent() {
                   <>
                     <div className="mb-12 w-full">
                       <div className="flex items-baseline justify-between gap-3">
-                        <h3 className="min-w-0 flex-1 font-medium text-stone-900">{item.title}</h3>
+                        <h3 className="min-w-0 flex-1 font-medium text-stone-900">
+                          <BodyWithLinks text={item.title} preLine={false} />
+                        </h3>
                         <span className="shrink-0 text-xs text-stone-400">
                           Published: {formatDateInPST(item.date)}
                         </span>
                       </div>
                       <p className="mt-2 w-full text-sm text-stone-600">
-                        <BodyWithLinks text={item.body} />
+                        <BodyWithLinks text={item.body} preLine />
                       </p>
                     </div>
                     <div className="absolute bottom-0 left-0 right-0 flex w-full justify-end border-t border-stone-200/60 bg-stone-50 px-4 py-3">
