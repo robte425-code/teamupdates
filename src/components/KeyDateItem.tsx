@@ -79,9 +79,7 @@ export function KeyDateItem({
   }
 
   const plainBody = stripRichTextMarkup(item.body);
-  const bodyPreview = plainBody.slice(0, 120);
   const hasMore = plainBody.length > 120;
-  const displayBody = !hasMore || expanded ? item.body : bodyPreview;
 
   const publishedAt = item.createdAt ? new Date(item.createdAt).getTime() : new Date(item.eventDate).getTime();
   const windowMs = newBadgeDays * 24 * 60 * 60 * 1000;
@@ -103,15 +101,19 @@ export function KeyDateItem({
             Published: {formatDateInPST(item.createdAt ?? item.eventDate)}
           </span>
         </div>
-        <div className="mt-2 w-full text-sm leading-relaxed text-stone-600">
-          <BodyWithLinks text={displayBody} preLine />
+        <div className="mt-2 w-full min-w-0 text-sm leading-relaxed text-stone-600">
+          <BodyWithLinks
+            text={item.body}
+            preLine
+            className={hasMore && !expanded ? "line-clamp-5" : undefined}
+          />
           {hasMore && (
             <button
               type="button"
               onClick={() => setExpanded(!expanded)}
-              className="ml-1 font-medium text-amber-600 transition-colors hover:text-amber-700 hover:underline"
+              className="mt-1 block font-medium text-amber-600 transition-colors hover:text-amber-700 hover:underline"
             >
-              {expanded ? " Show less" : "… More"}
+              {expanded ? "Show less" : "… More"}
             </button>
           )}
         </div>
