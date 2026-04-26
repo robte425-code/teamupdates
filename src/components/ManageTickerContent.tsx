@@ -2,6 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { requestTickerRefresh } from "@/lib/tickerRefresh";
+import {
+  TICKER_SPEED_DEFAULT_PPS,
+  TICKER_SPEED_MAX_PPS,
+  TICKER_SPEED_MIN_PPS,
+  clampTickerSpeedPxPerSec,
+} from "@/lib/tickerSpeed";
 
 type TickerItem = {
   id: string;
@@ -19,6 +25,12 @@ export function ManageTickerContent() {
   const [savingNew, setSavingNew] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState("");
+  const [scrollSpeed, setScrollSpeed] = useState(TICKER_SPEED_DEFAULT_PPS);
+  const [speedMin, setSpeedMin] = useState(TICKER_SPEED_MIN_PPS);
+  const [speedMax, setSpeedMax] = useState(TICKER_SPEED_MAX_PPS);
+  const [speedLoadError, setSpeedLoadError] = useState<string | null>(null);
+  const [speedSaveError, setSpeedSaveError] = useState<string | null>(null);
+  const [savingSpeed, setSavingSpeed] = useState(false);
 
   function refetch() {
     setListError(null);
@@ -62,6 +74,72 @@ export function ManageTickerContent() {
   useEffect(() => {
     refetch().finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    setSpeedLoadError(null);
+    fetch("/api/ticker/settings", { cache: "no-store" })
+      .then(async (r) => {
+        const data = (await r.json().catch(() => null)) as {
+          scrollSpeedPxPerSec?: number;
+          minPxPerSec?: number;
+          maxPxPerSec?: number;
+          error?: string;
+        } | null;
+        if (cancelled) return;
+        if (!r.ok) {
+          setSpeedLoadError(
+            typeof data?.error === "string" ? data.error : `Could not load speed (${r.status})`
+          );
+          return;
+        }
+        if (data && typeof data.scrollSpeedPxPerSec === "number") {
+          setScrollSpeed(clampTickerSpeedPxPerSec(data.scrollSpeedPxPerSec));
+        }
+        if (data && typeof data.minPxPerSec === "number") setSpeedMin(data.minPxPerSec);
+        if (data && typeof data.maxPxPerSec === "number") setSpeedMax(data.maxPxPerSec);
+      })
+      .catch(() => {
+        if (!cancelled) setSpeedLoadError("Network error loading ticker speed.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function handleSaveSpeed() {
+    setSpeedSaveError(null);
+    setSavingSpeed(true);
+    try {
+      const body = { scrollSpeedPxPerSec: clampTickerSpeedPxPerSec(scrollSpeed) };
+      const res = await fetch("/api/ticker/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        cache: "no-store",
+      });
+      const raw = await res.text();
+      let message = raw;
+      try {
+        const parsed = JSON.parse(raw) as { error?: string; scrollSpeedPxPerSec?: number };
+        if (parsed.error) message = parsed.error;
+        if (res.ok && typeof parsed.scrollSpeedPxPerSec === "number") {
+          setScrollSpeed(clampTickerSpeedPxPerSec(parsed.scrollSpeedPxPerSec));
+        }
+      } catch {
+        // use raw
+      }
+      if (!res.ok) {
+        setSpeedSaveError(message || `Could not save (${res.status})`);
+        return;
+      }
+      requestTickerRefresh();
+    } catch {
+      setSpeedSaveError("Network error while saving speed.");
+    } finally {
+      setSavingSpeed(false);
+    }
+  }
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
@@ -168,6 +246,50 @@ export function ManageTickerContent() {
 
   return (
     <div className="space-y-8">
+      <section className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
+        <h2 className="mb-1 text-lg font-semibold text-stone-800">Ticker scroll speed</h2>
+        <p className="mb-4 text-xs text-stone-500">
+          How fast the header ticker moves for everyone (pixels per second). Lower is slower.
+        </p>
+        {speedLoadError && (
+          <p className="mb-3 text-sm text-red-600" role="alert">
+            {speedLoadError}
+          </p>
+        )}
+        <div className="flex flex-wrap items-center gap-4">
+          <label htmlFor="ticker-speed-range" className="sr-only">
+            Scroll speed ({speedMin}–{speedMax} px/s)
+          </label>
+          <input
+            id="ticker-speed-range"
+            type="range"
+            min={speedMin}
+            max={speedMax}
+            value={scrollSpeed}
+            onChange={(e) =>
+              setScrollSpeed(clampTickerSpeedPxPerSec(Number(e.target.value)))
+            }
+            className="h-2 w-full max-w-xs cursor-pointer accent-amber-600"
+          />
+          <span className="min-w-[5rem] tabular-nums text-sm font-medium text-stone-800">
+            {scrollSpeed} px/s
+          </span>
+          <button
+            type="button"
+            onClick={() => void handleSaveSpeed()}
+            disabled={savingSpeed}
+            className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-60"
+          >
+            {savingSpeed ? "Saving…" : "Save speed"}
+          </button>
+        </div>
+        {speedSaveError && (
+          <p className="mt-3 text-sm text-red-600" role="alert">
+            {speedSaveError}
+          </p>
+        )}
+      </section>
+
       <section>
         <h2 className="mb-3 text-lg font-semibold text-stone-800">
           Add ticker item

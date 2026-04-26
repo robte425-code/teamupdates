@@ -2,6 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { TICKER_REFRESH_EVENT } from "@/lib/tickerRefresh";
+import {
+  TICKER_SPEED_DEFAULT_PPS,
+  clampTickerSpeedPxPerSec,
+} from "@/lib/tickerSpeed";
 
 type TickerItem = {
   id: string;
@@ -10,13 +14,14 @@ type TickerItem = {
 
 export function TickerBar() {
   const [items, setItems] = useState<TickerItem[]>([]);
+  const [speedPps, setSpeedPps] = useState(TICKER_SPEED_DEFAULT_PPS);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const groupRef = useRef<HTMLDivElement | null>(null);
   const trackRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    function load() {
+    function loadItems() {
       fetch("/api/ticker", { cache: "no-store" })
         .then((r) => (r.ok ? r.json() : []))
         .then((data) => {
@@ -28,8 +33,28 @@ export function TickerBar() {
           if (!cancelled) setItems([]);
         });
     }
-    load();
-    const onRefresh = () => load();
+    function loadSettings() {
+      fetch("/api/ticker/settings", { cache: "no-store" })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          if (
+            !cancelled &&
+            data &&
+            typeof data.scrollSpeedPxPerSec === "number"
+          ) {
+            setSpeedPps(clampTickerSpeedPxPerSec(data.scrollSpeedPxPerSec));
+          }
+        })
+        .catch(() => {
+          /* keep default speed */
+        });
+    }
+    function loadAll() {
+      loadItems();
+      loadSettings();
+    }
+    loadAll();
+    const onRefresh = () => loadAll();
     window.addEventListener(TICKER_REFRESH_EVENT, onRefresh);
     return () => {
       cancelled = true;
@@ -51,7 +76,7 @@ export function TickerBar() {
     let offset = 0;
     let last = performance.now();
     let frame: number;
-    const speed = 40; // px per second
+    const speed = speedPps;
 
     const step = (now: number) => {
       const dt = now - last;
@@ -78,7 +103,7 @@ export function TickerBar() {
       cancelAnimationFrame(frame);
       window.removeEventListener("resize", handleResize);
     };
-  }, [items]);
+  }, [items, speedPps]);
 
   if (!items.length) return null;
 
