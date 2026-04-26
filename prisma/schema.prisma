@@ -42,6 +42,8 @@ model KeyDate {
 model TickerItem {
   id        String   @id @default(cuid())
   text      String
+  /// When false, hidden from header ticker (still listed on manage page).
+  displayed Boolean  @default(true)
   createdAt DateTime @default(now())
 }
 

@@ -13,9 +13,13 @@ export async function PATCH(
   }
   const { id } = await params;
   const body = await req.json();
-  const { text } = body as { text?: string };
-  const data: { text?: string } = {};
+  const { text, displayed } = body as { text?: string; displayed?: boolean };
+  const data: { text?: string; displayed?: boolean } = {};
   if (text != null) data.text = String(text).trim();
+  if (typeof displayed === "boolean") data.displayed = displayed;
+  if (Object.keys(data).length === 0) {
+    return NextResponse.json({ error: "No valid fields to update" }, { status: 400 });
+  }
   const item = await prisma.tickerItem.update({
     where: { id },
     data,

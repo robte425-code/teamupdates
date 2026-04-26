@@ -66,7 +66,7 @@ export async function GET() {
       ["id", "dateType", "eventDate", "eventEndDate", "title", "body", "archived", "createdAt"],
       keyDates
     ),
-    ...insertStatement('public."TickerItem"', ["id", "text", "createdAt"], tickerItems),
+    ...insertStatement('public."TickerItem"', ["id", "text", "displayed", "createdAt"], tickerItems),
     ...insertStatement(
       'public."PageVisit"',
       ["id", "userId", "userName", "userEmail", "path", "visitedAt"],
