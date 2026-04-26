@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { TICKER_REFRESH_EVENT } from "@/lib/tickerRefresh";
 
 type TickerItem = {
   id: string;
@@ -15,18 +16,24 @@ export function TickerBar() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/ticker")
-      .then((r) => (r.ok ? r.json() : []))
-      .then((data) => {
-        if (!cancelled && Array.isArray(data)) {
-          setItems(data);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setItems([]);
-      });
+    function load() {
+      fetch("/api/ticker", { cache: "no-store" })
+        .then((r) => (r.ok ? r.json() : []))
+        .then((data) => {
+          if (!cancelled && Array.isArray(data)) {
+            setItems(data);
+          }
+        })
+        .catch(() => {
+          if (!cancelled) setItems([]);
+        });
+    }
+    load();
+    const onRefresh = () => load();
+    window.addEventListener(TICKER_REFRESH_EVENT, onRefresh);
     return () => {
       cancelled = true;
+      window.removeEventListener(TICKER_REFRESH_EVENT, onRefresh);
     };
   }, []);
 

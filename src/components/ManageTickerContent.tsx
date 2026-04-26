@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { requestTickerRefresh } from "@/lib/tickerRefresh";
 
 type TickerItem = {
   id: string;
@@ -21,7 +22,7 @@ export function ManageTickerContent() {
 
   function refetch() {
     setListError(null);
-    return fetch("/api/ticker?manage=1")
+    return fetch("/api/ticker?manage=1", { cache: "no-store" })
       .then(async (r) => {
         let data: unknown;
         try {
@@ -87,6 +88,7 @@ export function ManageTickerContent() {
       }
       setNewText("");
       await refetch();
+      requestTickerRefresh();
     } catch {
       setAddError("Network error while adding ticker item.");
     } finally {
@@ -97,7 +99,10 @@ export function ManageTickerContent() {
   async function handleDelete(id: string) {
     if (!confirm("Delete this ticker item?")) return;
     const res = await fetch(`/api/ticker/${id}`, { method: "DELETE" });
-    if (res.ok) refetch();
+    if (res.ok) {
+      await refetch();
+      requestTickerRefresh();
+    }
   }
 
   async function handleSaveEdit(id: string) {
@@ -110,17 +115,55 @@ export function ManageTickerContent() {
     if (res.ok) {
       setEditingId(null);
       setEditingText("");
-      refetch();
+      await refetch();
+      requestTickerRefresh();
     }
   }
 
   async function handleSetDisplayed(id: string, displayed: boolean) {
-    const res = await fetch(`/api/ticker/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ displayed }),
-    });
-    if (res.ok) refetch();
+    const prev = items.find((i) => i.id === id);
+    setItems((current) =>
+      current.map((row) => (row.id === id ? { ...row, displayed } : row))
+    );
+    try {
+      const res = await fetch(`/api/ticker/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ displayed }),
+        cache: "no-store",
+      });
+      if (!res.ok) {
+        if (prev) {
+          setItems((current) =>
+            current.map((row) =>
+              row.id === id ? { ...row, displayed: prev.displayed } : row
+            )
+          );
+        }
+        return;
+      }
+      const updated = (await res.json()) as TickerItem;
+      setItems((current) =>
+        current.map((row) =>
+          row.id === id
+            ? {
+                ...row,
+                ...updated,
+                displayed: updated.displayed !== false,
+              }
+            : row
+        )
+      );
+      requestTickerRefresh();
+    } catch {
+      if (prev) {
+        setItems((current) =>
+          current.map((row) =>
+            row.id === id ? { ...row, displayed: prev.displayed } : row
+          )
+        );
+      }
+    }
   }
 
   return (
