@@ -16,6 +16,13 @@ type TickerItem = {
   createdAt?: string;
 };
 
+type BirthdayEntry = {
+  id: string;
+  name: string;
+  month: number;
+  day: number;
+};
+
 export function ManageTickerContent() {
   const [items, setItems] = useState<TickerItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,6 +38,16 @@ export function ManageTickerContent() {
   const [speedLoadError, setSpeedLoadError] = useState<string | null>(null);
   const [speedSaveError, setSpeedSaveError] = useState<string | null>(null);
   const [savingSpeed, setSavingSpeed] = useState(false);
+  const [birthdays, setBirthdays] = useState<BirthdayEntry[]>([]);
+  const [birthdaysLoading, setBirthdaysLoading] = useState(true);
+  const [birthdaysError, setBirthdaysError] = useState<string | null>(null);
+  const [newBirthdayName, setNewBirthdayName] = useState("");
+  const [newBirthdayMonth, setNewBirthdayMonth] = useState(1);
+  const [newBirthdayDay, setNewBirthdayDay] = useState(1);
+  const [editingBirthdayId, setEditingBirthdayId] = useState<string | null>(null);
+  const [editingBirthdayName, setEditingBirthdayName] = useState("");
+  const [editingBirthdayMonth, setEditingBirthdayMonth] = useState(1);
+  const [editingBirthdayDay, setEditingBirthdayDay] = useState(1);
 
   function refetch() {
     setListError(null);
@@ -105,6 +122,35 @@ export function ManageTickerContent() {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  function refetchBirthdays() {
+    setBirthdaysError(null);
+    return fetch("/api/birthdays", { cache: "no-store" })
+      .then(async (r) => {
+        const data = (await r.json().catch(() => null)) as
+          | { error?: string }
+          | BirthdayEntry[]
+          | null;
+        if (!r.ok) {
+          setBirthdays([]);
+          setBirthdaysError(
+            data && "error" in data && typeof data.error === "string"
+              ? data.error
+              : `Could not load birthdays (${r.status})`
+          );
+          return;
+        }
+        setBirthdays(Array.isArray(data) ? data : []);
+      })
+      .catch(() => {
+        setBirthdays([]);
+        setBirthdaysError("Network error loading birthdays.");
+      });
+  }
+
+  useEffect(() => {
+    refetchBirthdays().finally(() => setBirthdaysLoading(false));
   }, []);
 
   async function handleSaveSpeed() {
@@ -244,6 +290,53 @@ export function ManageTickerContent() {
     }
   }
 
+  async function handleAddBirthday(e: React.FormEvent) {
+    e.preventDefault();
+    const name = newBirthdayName.trim();
+    if (!name) return;
+    const res = await fetch("/api/birthdays", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name,
+        month: Number(newBirthdayMonth),
+        day: Number(newBirthdayDay),
+      }),
+    });
+    if (!res.ok) return;
+    setNewBirthdayName("");
+    setNewBirthdayMonth(1);
+    setNewBirthdayDay(1);
+    await refetchBirthdays();
+    requestTickerRefresh();
+  }
+
+  async function handleSaveBirthday(id: string) {
+    const name = editingBirthdayName.trim();
+    if (!name) return;
+    const res = await fetch(`/api/birthdays/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name,
+        month: Number(editingBirthdayMonth),
+        day: Number(editingBirthdayDay),
+      }),
+    });
+    if (!res.ok) return;
+    setEditingBirthdayId(null);
+    await refetchBirthdays();
+    requestTickerRefresh();
+  }
+
+  async function handleDeleteBirthday(id: string) {
+    if (!confirm("Delete this birthday entry?")) return;
+    const res = await fetch(`/api/birthdays/${id}`, { method: "DELETE" });
+    if (!res.ok) return;
+    await refetchBirthdays();
+    requestTickerRefresh();
+  }
+
   return (
     <div className="space-y-8">
       <section className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
@@ -287,6 +380,141 @@ export function ManageTickerContent() {
           <p className="mt-3 text-sm text-red-600" role="alert">
             {speedSaveError}
           </p>
+        )}
+      </section>
+
+      <section>
+        <h2 className="mb-3 text-lg font-semibold text-stone-800">Birthdays</h2>
+        <p className="mb-3 text-xs text-stone-500">
+          Add employee birthdays (month/day only). On each birthday, the ticker adds:
+          {" "}
+          <span className="font-medium text-stone-700">🎉 Happy birthday {"<first name>"}!</span>
+        </p>
+        <form
+          onSubmit={handleAddBirthday}
+          className="mb-3 flex flex-wrap items-end gap-2 rounded-xl border border-stone-200 bg-white p-4 shadow-sm"
+        >
+          <div className="min-w-0 flex-1">
+            <label className="mb-1 block text-xs font-medium text-stone-500">Employee name</label>
+            <input
+              type="text"
+              value={newBirthdayName}
+              onChange={(e) => setNewBirthdayName(e.target.value)}
+              placeholder="Employee name"
+              className="w-full rounded-lg border border-stone-300 px-3 py-2 text-sm text-stone-900"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-stone-500">Month</label>
+            <input
+              type="number"
+              min={1}
+              max={12}
+              value={newBirthdayMonth}
+              onChange={(e) => setNewBirthdayMonth(Number(e.target.value) || 1)}
+              className="w-20 rounded-lg border border-stone-300 px-3 py-2 text-sm text-stone-900"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-medium text-stone-500">Day</label>
+            <input
+              type="number"
+              min={1}
+              max={31}
+              value={newBirthdayDay}
+              onChange={(e) => setNewBirthdayDay(Number(e.target.value) || 1)}
+              className="w-20 rounded-lg border border-stone-300 px-3 py-2 text-sm text-stone-900"
+            />
+          </div>
+          <button
+            type="submit"
+            className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700"
+          >
+            Add birthday
+          </button>
+        </form>
+        {birthdaysError && (
+          <p className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
+            {birthdaysError}
+          </p>
+        )}
+        {birthdaysLoading ? (
+          <p className="text-sm text-stone-500">Loading birthdays…</p>
+        ) : (
+          <ul className="space-y-2">
+            {birthdays.map((entry) => (
+              <li
+                key={entry.id}
+                className="flex flex-wrap items-center gap-2 rounded-xl border border-stone-200 bg-white p-3 shadow-sm"
+              >
+                {editingBirthdayId === entry.id ? (
+                  <>
+                    <input
+                      type="text"
+                      value={editingBirthdayName}
+                      onChange={(e) => setEditingBirthdayName(e.target.value)}
+                      className="min-w-0 flex-1 rounded-lg border border-stone-300 px-3 py-2 text-sm text-stone-900"
+                    />
+                    <input
+                      type="number"
+                      min={1}
+                      max={12}
+                      value={editingBirthdayMonth}
+                      onChange={(e) => setEditingBirthdayMonth(Number(e.target.value) || 1)}
+                      className="w-20 rounded-lg border border-stone-300 px-3 py-2 text-sm text-stone-900"
+                    />
+                    <input
+                      type="number"
+                      min={1}
+                      max={31}
+                      value={editingBirthdayDay}
+                      onChange={(e) => setEditingBirthdayDay(Number(e.target.value) || 1)}
+                      className="w-20 rounded-lg border border-stone-300 px-3 py-2 text-sm text-stone-900"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleSaveBirthday(entry.id)}
+                      className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700"
+                    >
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditingBirthdayId(null)}
+                      className="rounded-lg border border-stone-300 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50"
+                    >
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <span className="min-w-0 flex-1 text-sm text-stone-700">
+                      {entry.name} - {String(entry.month).padStart(2, "0")}/{String(entry.day).padStart(2, "0")}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingBirthdayId(entry.id);
+                        setEditingBirthdayName(entry.name);
+                        setEditingBirthdayMonth(entry.month);
+                        setEditingBirthdayDay(entry.day);
+                      }}
+                      className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-stone-500 hover:bg-stone-100 hover:text-stone-700"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteBirthday(entry.id)}
+                      className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 hover:text-red-700"
+                    >
+                      Delete
+                    </button>
+                  </>
+                )}
+              </li>
+            ))}
+          </ul>
         )}
       </section>
 

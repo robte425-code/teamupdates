@@ -12,6 +12,11 @@ type TickerItem = {
   text: string;
 };
 
+type BirthdayTickerItem = {
+  id: string;
+  message: string;
+};
+
 export function TickerBar() {
   const [items, setItems] = useState<TickerItem[]>([]);
   const [speedPps, setSpeedPps] = useState(TICKER_SPEED_DEFAULT_PPS);
@@ -22,12 +27,22 @@ export function TickerBar() {
   useEffect(() => {
     let cancelled = false;
     function loadItems() {
-      fetch("/api/ticker", { cache: "no-store" })
-        .then((r) => (r.ok ? r.json() : []))
-        .then((data) => {
-          if (!cancelled && Array.isArray(data)) {
-            setItems(data);
-          }
+      Promise.all([
+        fetch("/api/ticker", { cache: "no-store" }).then((r) => (r.ok ? r.json() : [])),
+        fetch("/api/birthdays?today=1", { cache: "no-store" }).then((r) =>
+          r.ok ? r.json() : []
+        ),
+      ])
+        .then(([tickerData, birthdayData]) => {
+          if (cancelled) return;
+          const base = Array.isArray(tickerData) ? (tickerData as TickerItem[]) : [];
+          const birthdayItems = Array.isArray(birthdayData)
+            ? (birthdayData as BirthdayTickerItem[]).map((row) => ({
+                id: `birthday-${row.id}`,
+                text: row.message,
+              }))
+            : [];
+          setItems([...base, ...birthdayItems]);
         })
         .catch(() => {
           if (!cancelled) setItems([]);

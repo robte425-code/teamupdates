@@ -45,13 +45,23 @@ export async function GET() {
   const authError = await requireAdmin();
   if (authError) return authError;
 
-  const [users, updates, keyDates, tickerSettings, tickerItems, pageVisits, phoneBookEntries] =
+  const [
+    users,
+    updates,
+    keyDates,
+    tickerSettings,
+    tickerItems,
+    birthdayEntries,
+    pageVisits,
+    phoneBookEntries,
+  ] =
     await Promise.all([
       prisma.user.findMany({ orderBy: { createdAt: "asc" } }),
       prisma.update.findMany({ orderBy: { createdAt: "asc" } }),
       prisma.keyDate.findMany({ orderBy: { createdAt: "asc" } }),
       prisma.tickerSettings.findMany(),
       prisma.tickerItem.findMany({ orderBy: { createdAt: "asc" } }),
+      prisma.birthdayEntry.findMany({ orderBy: [{ month: "asc" }, { day: "asc" }, { name: "asc" }] }),
       prisma.pageVisit.findMany({ orderBy: { visitedAt: "asc" } }),
       prisma.phoneBookEntry.findMany({ orderBy: { sortOrder: "asc" } }),
     ]);
@@ -60,7 +70,7 @@ export async function GET() {
     BACKUP_HEADER,
     `-- generated_at_utc: ${new Date().toISOString()}`,
     "BEGIN;",
-    'TRUNCATE TABLE public."PageVisit", public."PhoneBookEntry", public."TickerItem", public."TickerSettings", public."KeyDate", public."Update", public."User" RESTART IDENTITY CASCADE;',
+    'TRUNCATE TABLE public."PageVisit", public."PhoneBookEntry", public."BirthdayEntry", public."TickerItem", public."TickerSettings", public."KeyDate", public."Update", public."User" RESTART IDENTITY CASCADE;',
     ...insertStatement('public."User"', ["id", "email", "name", "password", "role", "createdAt"], users),
     ...insertStatement('public."Update"', ["id", "date", "title", "body", "archived", "createdAt"], updates),
     ...insertStatement(
@@ -76,6 +86,11 @@ export async function GET() {
         : [{ id: "default", scrollSpeedPxPerSec: 40 }]
     ),
     ...insertStatement('public."TickerItem"', ["id", "text", "displayed", "createdAt"], tickerItems),
+    ...insertStatement(
+      'public."BirthdayEntry"',
+      ["id", "name", "month", "day", "createdAt", "updatedAt"],
+      birthdayEntries
+    ),
     ...insertStatement(
       'public."PageVisit"',
       ["id", "userId", "userName", "userEmail", "path", "visitedAt"],
