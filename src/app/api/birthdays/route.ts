@@ -28,7 +28,7 @@ export async function GET(req: Request) {
       items.map((row) => ({
         ...row,
         firstName: firstName(row.name),
-        message: `🎉 Happy birthday ${firstName(row.name)}!`,
+        message: `🎉 Happy birthday, ${firstName(row.name)}!`,
       }))
     );
   }

@@ -388,7 +388,7 @@ export function ManageTickerContent() {
         <p className="mb-3 text-xs text-stone-500">
           Add employee birthdays (month/day only). On each birthday, the ticker adds:
           {" "}
-          <span className="font-medium text-stone-700">🎉 Happy birthday {"<first name>"}!</span>
+          <span className="font-medium text-stone-700">🎉 Happy birthday, {"<first name>"}!</span>
         </p>
         <form
           onSubmit={handleAddBirthday}
