@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { createdByFromSession } from "@/lib/createdBy";
 
 function keyDateExpiry(item: {
   dateType: string;
@@ -84,6 +85,7 @@ export async function POST(req: Request) {
       { status: 400 }
     );
   }
+  const { createdByName, createdByEmail } = createdByFromSession(session);
   const item = await prisma.keyDate.create({
     data: {
       dateType: keyDateType,
@@ -91,6 +93,8 @@ export async function POST(req: Request) {
       eventEndDate: keyDateType === "event" ? new Date(eventEndDate) : null,
       title: String(title).trim(),
       body: String(text).trim(),
+      createdByName,
+      createdByEmail,
     },
   });
   return NextResponse.json(item);

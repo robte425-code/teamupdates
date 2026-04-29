@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { createdByFromSession } from "@/lib/createdBy";
 
 export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
@@ -30,11 +31,14 @@ export async function POST(req: Request) {
       { status: 400 }
     );
   }
+  const { createdByName, createdByEmail } = createdByFromSession(session);
   const item = await prisma.update.create({
     data: {
       date: new Date(),
       title: String(title).trim(),
       body: String(text).trim(),
+      createdByName,
+      createdByEmail,
     },
   });
   return NextResponse.json(item);

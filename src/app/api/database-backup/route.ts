@@ -74,10 +74,25 @@ export async function GET() {
     "BEGIN;",
     'TRUNCATE TABLE public."PageVisit", public."PhoneBookEntry", public."BirthdayEntry", public."TickerItem", public."TickerSettings", public."KeyDateBadgeSettings", public."KeyDate", public."Update", public."User" RESTART IDENTITY CASCADE;',
     ...insertStatement('public."User"', ["id", "email", "name", "password", "role", "createdAt"], users),
-    ...insertStatement('public."Update"', ["id", "date", "title", "body", "archived", "createdAt"], updates),
+    ...insertStatement(
+      'public."Update"',
+      ["id", "date", "title", "body", "archived", "createdAt", "createdByName", "createdByEmail"],
+      updates
+    ),
     ...insertStatement(
       'public."KeyDate"',
-      ["id", "dateType", "eventDate", "eventEndDate", "title", "body", "archived", "createdAt"],
+      [
+        "id",
+        "dateType",
+        "eventDate",
+        "eventEndDate",
+        "title",
+        "body",
+        "archived",
+        "createdAt",
+        "createdByName",
+        "createdByEmail",
+      ],
       keyDates
     ),
     ...insertStatement(

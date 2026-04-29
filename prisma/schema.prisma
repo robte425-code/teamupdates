@@ -20,23 +20,27 @@ model User {
 }
 
 model Update {
-  id        String   @id @default(cuid())
-  date      DateTime // when the item was posted
-  title     String
-  body      String
-  archived  Boolean  @default(false)
-  createdAt DateTime @default(now())
+  id              String   @id @default(cuid())
+  date            DateTime // when the item was posted
+  title           String
+  body            String
+  archived        Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  createdByName   String?
+  createdByEmail  String?
 }
 
 model KeyDate {
-  id           String    @id @default(cuid())
-  dateType     String    @default("due") // "due" = single due date; "event" = start/end
-  eventDate    DateTime  // due date, or event start
-  eventEndDate DateTime? // event end (only when dateType === "event")
-  title        String
-  body         String
-  archived     Boolean   @default(false)
-  createdAt    DateTime  @default(now())
+  id              String    @id @default(cuid())
+  dateType        String    @default("due") // "due" = single due date; "event" = start/end
+  eventDate       DateTime  // due date, or event start
+  eventEndDate    DateTime? // event end (only when dateType === "event")
+  title           String
+  body            String
+  archived        Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  createdByName   String?
+  createdByEmail  String?
 }
 
 /// Singleton row id `"default"` — NEW / SOON badge windows (days).

@@ -4,12 +4,15 @@ import { useEffect, useState } from "react";
 import { UpdateForm } from "./UpdateForm";
 import { BodyWithLinks } from "./BodyWithLinks";
 import { formatDateInPST } from "@/lib/formatKeyDate";
+import { CreatedByAdminNote } from "./CreatedByAdminNote";
 
 type Update = {
   id: string;
   date: string;
   title: string;
   body: string;
+  createdByName?: string | null;
+  createdByEmail?: string | null;
 };
 
 export function ManageUpdatesContent() {
@@ -79,6 +82,7 @@ export function ManageUpdatesContent() {
                           Published: {formatDateInPST(item.date)}
                         </span>
                       </div>
+                      <CreatedByAdminNote name={item.createdByName} email={item.createdByEmail} />
                       <p className="mt-2 w-full text-sm text-stone-600">
                         <BodyWithLinks text={item.body} preLine />
                       </p>

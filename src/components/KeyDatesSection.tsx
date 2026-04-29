@@ -16,6 +16,8 @@ export type KeyDate = {
   body: string;
   archived?: boolean;
   createdAt?: string;
+  createdByName?: string | null;
+  createdByEmail?: string | null;
 };
 
 export function KeyDatesSection({ showAddForm = true }: { showAddForm?: boolean }) {

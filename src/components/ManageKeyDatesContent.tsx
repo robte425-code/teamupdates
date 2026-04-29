@@ -12,6 +12,7 @@ import {
 } from "@/lib/formatKeyDate";
 import { useKeyDateBadgeSettings } from "@/hooks/useKeyDateBadgeSettings";
 import { isKeyDateDueWithinSoonWindow } from "@/lib/formatKeyDate";
+import { CreatedByAdminNote } from "./CreatedByAdminNote";
 
 type KeyDate = {
   id: string;
@@ -22,6 +23,8 @@ type KeyDate = {
   body: string;
   archived?: boolean;
   createdAt?: string;
+  createdByName?: string | null;
+  createdByEmail?: string | null;
 };
 
 export function ManageKeyDatesContent({
@@ -200,6 +203,7 @@ export function ManageKeyDatesContent({
                             Published: {formatDateInPST(item.createdAt ?? item.eventDate)}
                           </span>
                         </div>
+                        <CreatedByAdminNote name={item.createdByName} email={item.createdByEmail} />
                         <p className="mt-1.5 flex flex-wrap items-center gap-2 text-[10px] sm:text-[11px]">
                           <span
                             className={`rounded-full px-2 py-0.5 font-semibold ${

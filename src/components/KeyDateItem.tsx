@@ -14,6 +14,7 @@ import { KeyDateForm } from "./KeyDateForm";
 import { BodyWithLinks } from "./BodyWithLinks";
 import { stripRichTextMarkup } from "@/lib/richText";
 import { KeyDateCountdown } from "./KeyDateCountdown";
+import { CreatedByAdminNote } from "./CreatedByAdminNote";
 
 export function KeyDateItem({
   item,
@@ -112,6 +113,9 @@ export function KeyDateItem({
             Published: {formatDateInPST(item.createdAt ?? item.eventDate)}
           </span>
         </div>
+        {isAdmin && (
+          <CreatedByAdminNote name={item.createdByName} email={item.createdByEmail} />
+        )}
         <div className="mt-2 w-full min-w-0 text-sm leading-relaxed text-stone-600">
           <BodyWithLinks
             text={item.body}

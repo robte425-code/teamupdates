@@ -5,6 +5,7 @@ import type { Update } from "./UpdatesSection";
 import { UpdateForm } from "./UpdateForm";
 import { BodyWithLinks } from "./BodyWithLinks";
 import { formatDateInPST } from "@/lib/formatKeyDate";
+import { CreatedByAdminNote } from "./CreatedByAdminNote";
 import { stripRichTextMarkup } from "@/lib/richText";
 
 export function UpdateItem({
@@ -69,6 +70,9 @@ export function UpdateItem({
             Published: {formatDateInPST(item.date)}
           </span>
         </div>
+        {isAdmin && (
+          <CreatedByAdminNote name={item.createdByName} email={item.createdByEmail} />
+        )}
         <div className="mt-2 w-full min-w-0 text-sm leading-relaxed text-stone-600">
           <BodyWithLinks
             text={item.body}
