@@ -10,8 +10,7 @@ import {
   formatKeyDateRange,
   formatTimeLeft,
 } from "@/lib/formatKeyDate";
-import { useNewBadgeDays } from "@/hooks/useNewBadgeDays";
-import { useSoonBadgeDays } from "@/hooks/useSoonBadgeDays";
+import { useKeyDateBadgeSettings } from "@/hooks/useKeyDateBadgeSettings";
 import { isKeyDateDueWithinSoonWindow } from "@/lib/formatKeyDate";
 
 type KeyDate = {
@@ -35,8 +34,8 @@ export function ManageKeyDatesContent({
   const [items, setItems] = useState<KeyDate[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [newBadgeDays, setNewBadgeDays] = useNewBadgeDays();
-  const [soonBadgeDays, setSoonBadgeDays] = useSoonBadgeDays();
+  const { newBadgeDays, soonBadgeDays, setNewBadgeDays, setSoonBadgeDays, loaded: badgeSettingsLoaded } =
+    useKeyDateBadgeSettings({ persistChanges: true });
 
   const refetch = useCallback(() => {
     return fetch(listUrl)
@@ -88,8 +87,9 @@ export function ManageKeyDatesContent({
                 min={0}
                 max={365}
                 value={newBadgeDays}
+                disabled={!badgeSettingsLoaded}
                 onChange={(e) => setNewBadgeDays(Number(e.target.value) || 0)}
-                className="w-14 rounded-md border border-stone-300 bg-white px-1.5 py-1 text-xs text-stone-800 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                className="w-14 rounded-md border border-stone-300 bg-white px-1.5 py-1 text-xs text-stone-800 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-50"
               />
               <span>days after publish</span>
             </label>
@@ -100,8 +100,9 @@ export function ManageKeyDatesContent({
                 min={0}
                 max={365}
                 value={soonBadgeDays}
+                disabled={!badgeSettingsLoaded}
                 onChange={(e) => setSoonBadgeDays(Number(e.target.value) || 0)}
-                className="w-14 rounded-md border border-stone-300 bg-white px-1.5 py-1 text-xs text-stone-800 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                className="w-14 rounded-md border border-stone-300 bg-white px-1.5 py-1 text-xs text-stone-800 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-50"
               />
               <span>days</span>
             </label>

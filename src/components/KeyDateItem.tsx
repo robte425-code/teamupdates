@@ -8,8 +8,7 @@ import {
   formatKeyDateRange,
   formatTimeLeft,
 } from "@/lib/formatKeyDate";
-import { useNewBadgeDays } from "@/hooks/useNewBadgeDays";
-import { useSoonBadgeDays } from "@/hooks/useSoonBadgeDays";
+import { useKeyDateBadgeSettings } from "@/hooks/useKeyDateBadgeSettings";
 import { isKeyDateDueWithinSoonWindow } from "@/lib/formatKeyDate";
 import { KeyDateForm } from "./KeyDateForm";
 import { BodyWithLinks } from "./BodyWithLinks";
@@ -40,8 +39,7 @@ export function KeyDateItem({
     : formatKeyDateDisplay(item.eventDate);
   const [editing, setEditing] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const [newBadgeDays] = useNewBadgeDays();
-  const [soonBadgeDays] = useSoonBadgeDays();
+  const { newBadgeDays, soonBadgeDays } = useKeyDateBadgeSettings();
 
   async function handleDelete() {
     if (!confirm("Delete this key date?")) return;

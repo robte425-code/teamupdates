@@ -49,6 +49,7 @@ export async function GET() {
     users,
     updates,
     keyDates,
+    keyDateBadgeSettings,
     tickerSettings,
     tickerItems,
     birthdayEntries,
@@ -59,6 +60,7 @@ export async function GET() {
       prisma.user.findMany({ orderBy: { createdAt: "asc" } }),
       prisma.update.findMany({ orderBy: { createdAt: "asc" } }),
       prisma.keyDate.findMany({ orderBy: { createdAt: "asc" } }),
+      prisma.keyDateBadgeSettings.findMany(),
       prisma.tickerSettings.findMany(),
       prisma.tickerItem.findMany({ orderBy: { createdAt: "asc" } }),
       prisma.birthdayEntry.findMany({ orderBy: [{ month: "asc" }, { day: "asc" }, { name: "asc" }] }),
@@ -70,13 +72,20 @@ export async function GET() {
     BACKUP_HEADER,
     `-- generated_at_utc: ${new Date().toISOString()}`,
     "BEGIN;",
-    'TRUNCATE TABLE public."PageVisit", public."PhoneBookEntry", public."BirthdayEntry", public."TickerItem", public."TickerSettings", public."KeyDate", public."Update", public."User" RESTART IDENTITY CASCADE;',
+    'TRUNCATE TABLE public."PageVisit", public."PhoneBookEntry", public."BirthdayEntry", public."TickerItem", public."TickerSettings", public."KeyDateBadgeSettings", public."KeyDate", public."Update", public."User" RESTART IDENTITY CASCADE;',
     ...insertStatement('public."User"', ["id", "email", "name", "password", "role", "createdAt"], users),
     ...insertStatement('public."Update"', ["id", "date", "title", "body", "archived", "createdAt"], updates),
     ...insertStatement(
       'public."KeyDate"',
       ["id", "dateType", "eventDate", "eventEndDate", "title", "body", "archived", "createdAt"],
       keyDates
+    ),
+    ...insertStatement(
+      'public."KeyDateBadgeSettings"',
+      ["id", "newBadgeDays", "soonBadgeDays"],
+      keyDateBadgeSettings.length
+        ? keyDateBadgeSettings
+        : [{ id: "default", newBadgeDays: 3, soonBadgeDays: 7 }]
     ),
     ...insertStatement(
       'public."TickerSettings"',

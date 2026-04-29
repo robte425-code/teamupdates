@@ -39,6 +39,13 @@ model KeyDate {
   createdAt    DateTime  @default(now())
 }
 
+/// Singleton row id `"default"` — NEW / SOON badge windows (days).
+model KeyDateBadgeSettings {
+  id            String @id @default("default")
+  newBadgeDays  Int    @default(3)
+  soonBadgeDays Int    @default(7)
+}
+
 model TickerItem {
   id        String   @id @default(cuid())
   text      String
