@@ -107,10 +107,6 @@ export type TimeLeftResult = {
 };
 
 /**
- * Get human-readable "time left" or "time ago" for a key date.
- * When less than 1 day left, returns hours and minutes.
- */
-/**
  * Format a date in PST (date only, for updates "posted on").
  */
 export function formatDateInPST(date: Date | string): string {
@@ -124,6 +120,22 @@ export function formatDateInPST(date: Date | string): string {
   }).format(d as Date);
 }
 
+/**
+ * True when the key date start (eventDate) is in the future and within `days`
+ * full 24-hour periods from now (same window style as the NEW badge).
+ */
+export function isKeyDateDueWithinSoonWindow(eventDate: string, days: number): boolean {
+  if (!Number.isFinite(days) || days <= 0) return false;
+  const t = new Date(eventDate).getTime();
+  if (Number.isNaN(t)) return false;
+  const diff = t - Date.now();
+  return diff >= 0 && diff <= days * ONE_DAY_MS;
+}
+
+/**
+ * Get human-readable "time left" or "time ago" for a key date.
+ * When less than 1 day left, returns hours and minutes.
+ */
 export function formatTimeLeft(eventDate: string): TimeLeftResult {
   const d = new Date(eventDate);
   const now = Date.now();

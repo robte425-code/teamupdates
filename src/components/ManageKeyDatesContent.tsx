@@ -11,6 +11,8 @@ import {
   formatTimeLeft,
 } from "@/lib/formatKeyDate";
 import { useNewBadgeDays } from "@/hooks/useNewBadgeDays";
+import { useSoonBadgeDays } from "@/hooks/useSoonBadgeDays";
+import { isKeyDateDueWithinSoonWindow } from "@/lib/formatKeyDate";
 
 type KeyDate = {
   id: string;
@@ -34,6 +36,7 @@ export function ManageKeyDatesContent({
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [newBadgeDays, setNewBadgeDays] = useNewBadgeDays();
+  const [soonBadgeDays, setSoonBadgeDays] = useSoonBadgeDays();
 
   const refetch = useCallback(() => {
     return fetch(listUrl)
@@ -75,20 +78,34 @@ export function ManageKeyDatesContent({
     <div className="space-y-8">
       {!isArchived && (
       <section>
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
           <h2 className="text-lg font-semibold text-stone-800">Key date settings</h2>
-          <label className="flex items-center gap-2 text-xs text-stone-600">
-            <span>Show NEW badge for</span>
-            <input
-              type="number"
-              min={0}
-              max={365}
-              value={newBadgeDays}
-              onChange={(e) => setNewBadgeDays(Number(e.target.value) || 0)}
-              className="w-14 rounded-md border border-stone-300 bg-white px-1.5 py-1 text-xs text-stone-800 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-            />
-            <span>days after publish</span>
-          </label>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+            <label className="flex items-center gap-2 text-xs text-stone-600">
+              <span>Show NEW badge for</span>
+              <input
+                type="number"
+                min={0}
+                max={365}
+                value={newBadgeDays}
+                onChange={(e) => setNewBadgeDays(Number(e.target.value) || 0)}
+                className="w-14 rounded-md border border-stone-300 bg-white px-1.5 py-1 text-xs text-stone-800 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              />
+              <span>days after publish</span>
+            </label>
+            <label className="flex items-center gap-2 text-xs text-stone-600">
+              <span>Show SOON badge when due within</span>
+              <input
+                type="number"
+                min={0}
+                max={365}
+                value={soonBadgeDays}
+                onChange={(e) => setSoonBadgeDays(Number(e.target.value) || 0)}
+                className="w-14 rounded-md border border-stone-300 bg-white px-1.5 py-1 text-xs text-stone-800 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              />
+              <span>days</span>
+            </label>
+          </div>
         </div>
         <h2 className="mb-3 text-lg font-semibold text-stone-800">Add new</h2>
         <KeyDateForm onSaved={refetch} />
@@ -157,11 +174,22 @@ export function ManageKeyDatesContent({
                           const publishedAt = item.createdAt ? new Date(item.createdAt).getTime() : new Date(item.eventDate).getTime();
                           const windowMs = newBadgeDays * 24 * 60 * 60 * 1000;
                           const isNew = newBadgeDays > 0 && publishedAt >= Date.now() - windowMs;
-                          return isNew ? (
-                            <span className="mb-2 inline-block rounded-full bg-red-500 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white sm:text-xs">
-                              NEW
-                            </span>
-                          ) : null;
+                          const isSoon = isKeyDateDueWithinSoonWindow(item.eventDate, soonBadgeDays);
+                          if (!isNew && !isSoon) return null;
+                          return (
+                            <div className="mb-2 flex flex-wrap gap-2">
+                              {isNew && (
+                                <span className="inline-block rounded-full bg-red-500 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white sm:text-xs">
+                                  NEW
+                                </span>
+                              )}
+                              {isSoon && (
+                                <span className="inline-block rounded-full bg-amber-500 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white sm:text-xs">
+                                  SOON
+                                </span>
+                              )}
+                            </div>
+                          );
                         })()}
                         <div className="flex items-baseline justify-between gap-3">
                           <h3 className="min-w-0 flex-1 font-medium text-stone-900">

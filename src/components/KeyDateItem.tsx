@@ -9,6 +9,8 @@ import {
   formatTimeLeft,
 } from "@/lib/formatKeyDate";
 import { useNewBadgeDays } from "@/hooks/useNewBadgeDays";
+import { useSoonBadgeDays } from "@/hooks/useSoonBadgeDays";
+import { isKeyDateDueWithinSoonWindow } from "@/lib/formatKeyDate";
 import { KeyDateForm } from "./KeyDateForm";
 import { BodyWithLinks } from "./BodyWithLinks";
 import { stripRichTextMarkup } from "@/lib/richText";
@@ -39,6 +41,7 @@ export function KeyDateItem({
   const [editing, setEditing] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [newBadgeDays] = useNewBadgeDays();
+  const [soonBadgeDays] = useSoonBadgeDays();
 
   async function handleDelete() {
     if (!confirm("Delete this key date?")) return;
@@ -84,14 +87,24 @@ export function KeyDateItem({
   const publishedAt = item.createdAt ? new Date(item.createdAt).getTime() : new Date(item.eventDate).getTime();
   const windowMs = newBadgeDays * 24 * 60 * 60 * 1000;
   const isNew = newBadgeDays > 0 && publishedAt >= Date.now() - windowMs;
+  const isSoon = isKeyDateDueWithinSoonWindow(item.eventDate, soonBadgeDays);
 
   return (
     <li className="group rounded-xl border border-stone-200/80 bg-white shadow-sm transition-shadow hover:shadow-md">
       <div className="w-full p-4 pb-0">
-        {isNew && (
-          <span className="mb-2 inline-block rounded-full bg-red-500 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white sm:text-xs">
-            NEW
-          </span>
+        {(isNew || isSoon) && (
+          <div className="mb-2 flex flex-wrap gap-2">
+            {isNew && (
+              <span className="inline-block rounded-full bg-red-500 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white sm:text-xs">
+                NEW
+              </span>
+            )}
+            {isSoon && (
+              <span className="inline-block rounded-full bg-amber-500 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white sm:text-xs">
+                SOON
+              </span>
+            )}
+          </div>
         )}
         <div className="flex items-baseline justify-between gap-3">
           <h3 className="min-w-0 flex-1 font-semibold text-stone-900">
