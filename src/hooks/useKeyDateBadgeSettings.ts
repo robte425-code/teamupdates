@@ -8,6 +8,11 @@ import {
 } from "@/lib/keyDateBadgeSettings";
 
 const PERSIST_DEBOUNCE_MS = 450;
+const FOCUS_REFETCH_DEBOUNCE_MS = 400;
+
+function badgeSettingsUrl() {
+  return `/api/key-dates/badge-settings?ts=${Date.now()}`;
+}
 
 export function useKeyDateBadgeSettings(options?: { persistChanges?: boolean }) {
   const persistChanges = options?.persistChanges ?? false;
@@ -15,40 +20,77 @@ export function useKeyDateBadgeSettings(options?: { persistChanges?: boolean }) 
   const [soonBadgeDays, setSoonBadgeDaysState] = useState<number>(KEY_DATE_BADGE_SOON_DEFAULT);
   const [loaded, setLoaded] = useState(false);
   const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const focusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const newRef = useRef(newBadgeDays);
   const soonRef = useRef(soonBadgeDays);
   newRef.current = newBadgeDays;
   soonRef.current = soonBadgeDays;
 
+  const applyFromResponse = useCallback((r: Response, data: unknown) => {
+    if (!r.ok || !data || typeof data !== "object") return false;
+    const row = data as { newBadgeDays?: unknown; soonBadgeDays?: unknown };
+    if (typeof row.newBadgeDays !== "number" || typeof row.soonBadgeDays !== "number") {
+      return false;
+    }
+    setNewBadgeDaysState(clampKeyDateBadgeDays(row.newBadgeDays, KEY_DATE_BADGE_NEW_DEFAULT));
+    setSoonBadgeDaysState(clampKeyDateBadgeDays(row.soonBadgeDays, KEY_DATE_BADGE_SOON_DEFAULT));
+    return true;
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/key-dates/badge-settings", { cache: "no-store" })
-      .then(async (r) => {
-        const data = (await r.json().catch(() => null)) as {
-          newBadgeDays?: unknown;
-          soonBadgeDays?: unknown;
-        } | null;
-        if (cancelled || !data) return;
-        setNewBadgeDaysState(clampKeyDateBadgeDays(data.newBadgeDays, KEY_DATE_BADGE_NEW_DEFAULT));
-        setSoonBadgeDaysState(clampKeyDateBadgeDays(data.soonBadgeDays, KEY_DATE_BADGE_SOON_DEFAULT));
-      })
-      .catch(() => {
-        /* keep defaults */
-      })
-      .finally(() => {
+
+    async function load() {
+      try {
+        const r = await fetch(badgeSettingsUrl(), {
+          cache: "no-store",
+          credentials: "same-origin",
+        });
+        const data = await r.json().catch(() => null);
+        if (cancelled) return;
+        applyFromResponse(r, data);
+      } catch {
+        /* network / abort */
+      } finally {
         if (!cancelled) setLoaded(true);
-      });
+      }
+    }
+
+    load();
+
+    function scheduleFocusRefetch() {
+      if (focusTimerRef.current) clearTimeout(focusTimerRef.current);
+      focusTimerRef.current = setTimeout(() => {
+        focusTimerRef.current = null;
+        if (!cancelled) void load();
+      }, FOCUS_REFETCH_DEBOUNCE_MS);
+    }
+
+    function onPageShow(e: PageTransitionEvent) {
+      if (e.persisted && !cancelled) void load();
+    }
+
+    function onFocus() {
+      if (!cancelled) scheduleFocusRefetch();
+    }
+
+    window.addEventListener("pageshow", onPageShow);
+    window.addEventListener("focus", onFocus);
+
     return () => {
       cancelled = true;
+      if (focusTimerRef.current) clearTimeout(focusTimerRef.current);
+      window.removeEventListener("pageshow", onPageShow);
+      window.removeEventListener("focus", onFocus);
     };
-  }, []);
+  }, [applyFromResponse]);
 
   const schedulePersist = useCallback(() => {
     if (!persistChanges) return;
     if (persistTimerRef.current) clearTimeout(persistTimerRef.current);
     persistTimerRef.current = setTimeout(() => {
       persistTimerRef.current = null;
-      fetch("/api/key-dates/badge-settings", {
+      fetch(badgeSettingsUrl(), {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -56,22 +98,18 @@ export function useKeyDateBadgeSettings(options?: { persistChanges?: boolean }) 
           soonBadgeDays: soonRef.current,
         }),
         cache: "no-store",
+        credentials: "same-origin",
       })
         .then(async (r) => {
-          if (!r.ok) return;
-          const data = (await r.json().catch(() => null)) as {
-            newBadgeDays?: unknown;
-            soonBadgeDays?: unknown;
-          } | null;
-          if (!data) return;
-          setNewBadgeDaysState(clampKeyDateBadgeDays(data.newBadgeDays, KEY_DATE_BADGE_NEW_DEFAULT));
-          setSoonBadgeDaysState(clampKeyDateBadgeDays(data.soonBadgeDays, KEY_DATE_BADGE_SOON_DEFAULT));
+          const data = await r.json().catch(() => null);
+          if (!r.ok || !data) return;
+          applyFromResponse(r, data);
         })
         .catch(() => {
           /* ignore */
         });
     }, PERSIST_DEBOUNCE_MS);
-  }, [persistChanges]);
+  }, [persistChanges, applyFromResponse]);
 
   useEffect(() => {
     return () => {
@@ -79,7 +117,7 @@ export function useKeyDateBadgeSettings(options?: { persistChanges?: boolean }) 
       clearTimeout(persistTimerRef.current);
       persistTimerRef.current = null;
       if (!persistChanges) return;
-      void fetch("/api/key-dates/badge-settings", {
+      void fetch(badgeSettingsUrl(), {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -87,6 +125,7 @@ export function useKeyDateBadgeSettings(options?: { persistChanges?: boolean }) 
           soonBadgeDays: soonRef.current,
         }),
         cache: "no-store",
+        credentials: "same-origin",
       });
     };
   }, [persistChanges]);

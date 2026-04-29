@@ -10,16 +10,31 @@ import {
   clampKeyDateBadgeDays,
 } from "@/lib/keyDateBadgeSettings";
 
+/** Never cache: values must match DB across devices and after admin edits. */
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+const NO_STORE_HEADERS = {
+  "Cache-Control": "private, no-store, max-age=0, must-revalidate",
+  Pragma: "no-cache",
+  Expires: "0",
+  Vary: "Cookie",
+} as const;
+
+function jsonNoStore(body: unknown, status = 200) {
+  return NextResponse.json(body, { status, headers: NO_STORE_HEADERS });
+}
+
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return jsonNoStore({ error: "Unauthorized" }, 401);
   }
   try {
     const row = await prisma.keyDateBadgeSettings.findUnique({
       where: { id: KEY_DATE_BADGE_SETTINGS_ID },
     });
-    return NextResponse.json({
+    return jsonNoStore({
       newBadgeDays: clampKeyDateBadgeDays(
         row?.newBadgeDays ?? KEY_DATE_BADGE_NEW_DEFAULT,
         KEY_DATE_BADGE_NEW_DEFAULT
@@ -32,13 +47,9 @@ export async function GET() {
     });
   } catch (err) {
     console.error("key date badge settings GET", err);
-    return NextResponse.json(
-      {
-        newBadgeDays: KEY_DATE_BADGE_NEW_DEFAULT,
-        soonBadgeDays: KEY_DATE_BADGE_SOON_DEFAULT,
-        maxDays: KEY_DATE_BADGE_MAX_DAYS,
-      },
-      { status: 200 }
+    return jsonNoStore(
+      { error: "Could not load badge settings from the database." },
+      500
     );
   }
 }
@@ -46,17 +57,14 @@ export async function GET() {
 export async function PATCH(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session || (session.user as { role?: string }).role !== "admin") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return jsonNoStore({ error: "Forbidden" }, 403);
   }
   const body = (await req.json()) as {
     newBadgeDays?: unknown;
     soonBadgeDays?: unknown;
   };
   if (body.newBadgeDays === undefined && body.soonBadgeDays === undefined) {
-    return NextResponse.json(
-      { error: "Provide newBadgeDays and/or soonBadgeDays" },
-      { status: 400 }
-    );
+    return jsonNoStore({ error: "Provide newBadgeDays and/or soonBadgeDays" }, 400);
   }
 
   let existing: { newBadgeDays: number; soonBadgeDays: number } | null = null;
@@ -95,7 +103,7 @@ export async function PATCH(req: Request) {
     const row = await prisma.keyDateBadgeSettings.findUnique({
       where: { id: KEY_DATE_BADGE_SETTINGS_ID },
     });
-    return NextResponse.json({
+    return jsonNoStore({
       newBadgeDays: clampKeyDateBadgeDays(
         row?.newBadgeDays ?? nextNew,
         KEY_DATE_BADGE_NEW_DEFAULT
@@ -108,9 +116,9 @@ export async function PATCH(req: Request) {
     });
   } catch (err) {
     console.error("key date badge settings PATCH", err);
-    return NextResponse.json(
+    return jsonNoStore(
       { error: "Could not save settings. Ensure the database migration has been applied." },
-      { status: 500 }
+      500
     );
   }
 }
