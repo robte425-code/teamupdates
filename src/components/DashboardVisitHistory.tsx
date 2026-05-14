@@ -36,7 +36,7 @@ function getVisitUserLabel(v: Visit): string {
   return "—";
 }
 
-export function UsageStatsContent() {
+export function DashboardVisitHistory() {
   const [visits, setVisits] = useState<Visit[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -53,7 +53,7 @@ export function UsageStatsContent() {
         setVisits(Array.isArray(data) ? data : []);
         setError(null);
       })
-      .catch(() => setError("Failed to load usage stats."))
+      .catch(() => setError("Failed to load visit history."))
       .finally(() => setLoading(false));
   }, []);
 
@@ -78,7 +78,8 @@ export function UsageStatsContent() {
   return (
     <div className="space-y-4">
       <p className="text-sm text-stone-600">
-        History of user dashboard visits for the last 60 days.
+        History of user dashboard visits (path <code className="rounded bg-stone-100 px-1">/</code>) for
+        the last 60 days.
       </p>
       {loading ? (
         <p className="text-sm text-stone-500">Loading…</p>
@@ -89,11 +90,11 @@ export function UsageStatsContent() {
       ) : (
         <>
           <div className="flex flex-wrap items-center gap-2">
-            <label htmlFor="usage-filter-user" className="text-sm font-medium text-stone-700">
+            <label htmlFor="visit-history-filter-user" className="text-sm font-medium text-stone-700">
               Filter by user:
             </label>
             <select
-              id="usage-filter-user"
+              id="visit-history-filter-user"
               value={selectedUserKey}
               onChange={(e) => setSelectedUserKey(e.target.value)}
               className="rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm text-stone-800 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
@@ -115,31 +116,28 @@ export function UsageStatsContent() {
             <table className="min-w-full divide-y divide-stone-200 text-left text-sm">
               <thead className="bg-stone-50">
                 <tr>
-                <th className="px-4 py-2 font-semibold text-stone-700">When</th>
-                <th className="px-4 py-2 font-semibold text-stone-700">User</th>
-                <th className="px-4 py-2 font-semibold text-stone-700">Email</th>
-              </tr>
+                  <th className="px-4 py-2 font-semibold text-stone-700">When</th>
+                  <th className="px-4 py-2 font-semibold text-stone-700">User</th>
+                  <th className="px-4 py-2 font-semibold text-stone-700">Email</th>
+                  <th className="px-4 py-2 font-semibold text-stone-700">Path</th>
+                </tr>
               </thead>
               <tbody className="divide-y divide-stone-100">
                 {filteredVisits.map((v) => (
-                <tr key={v.id} className="hover:bg-stone-50/60">
-                  <td className="whitespace-nowrap px-4 py-2 text-stone-800">
-                    {formatDateTime(v.visitedAt)}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-2 text-stone-800">
-                    {v.userName || "—"}
-                  </td>
-                  <td className="whitespace-nowrap px-4 py-2 text-stone-600">
-                    {v.userEmail || "—"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  <tr key={v.id} className="hover:bg-stone-50/60">
+                    <td className="whitespace-nowrap px-4 py-2 text-stone-800">
+                      {formatDateTime(v.visitedAt)}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-2 text-stone-800">{v.userName || "—"}</td>
+                    <td className="whitespace-nowrap px-4 py-2 text-stone-600">{v.userEmail || "—"}</td>
+                    <td className="whitespace-nowrap px-4 py-2 text-stone-500">{v.path}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </>
       )}
     </div>
   );
 }
-

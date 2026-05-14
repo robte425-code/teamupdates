@@ -27,6 +27,11 @@ const ADMIN_NAV_LINKS: { href: string; label: string; isActive: (path: string) =
     isActive: (p) => p.startsWith("/manage/ticker"),
   },
   {
+    href: "/manage/reminders",
+    label: "Reminders",
+    isActive: (p) => p.startsWith("/manage/reminders"),
+  },
+  {
     href: "/manage/usage-stats",
     label: "Admin",
     isActive: (p) => p.startsWith("/manage/usage-stats"),

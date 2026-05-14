@@ -73,6 +73,26 @@ model BirthdayEntry {
   updatedAt DateTime @updatedAt
 }
 
+/// Singleton id `"default"` — inactive-user reminder emails (dashboard `/` visits).
+model ReminderSettings {
+  id                     String @id @default("default")
+  /// No `/` visit for this many days ⇒ eligible for a reminder (Pacific calendar sense via app logic).
+  inactiveDaysThreshold Int    @default(7)
+  emailSubject          String @default("Reminder: TEAM dashboard")
+  /// Placeholders: {{firstName}}, {{name}}, {{email}}, {{inactiveDays}}, {{dashboardUrl}}
+  emailBody             String @default("Hi {{firstName}},\n\nWe have not seen you on the TEAM dashboard for {{inactiveDays}} days.\n\nPlease visit: {{dashboardUrl}}\n\nThank you.")
+}
+
+model ReminderRecipient {
+  id                 String    @id @default(cuid())
+  email              String    @unique
+  name               String?
+  enabled            Boolean   @default(true)
+  lastReminderSentAt DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model PageVisit {
   id        String   @id @default(cuid())
   userId    String?

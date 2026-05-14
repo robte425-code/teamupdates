@@ -53,6 +53,8 @@ export async function GET() {
     tickerSettings,
     tickerItems,
     birthdayEntries,
+    reminderSettings,
+    reminderRecipients,
     pageVisits,
     phoneBookEntries,
   ] =
@@ -64,6 +66,8 @@ export async function GET() {
       prisma.tickerSettings.findMany(),
       prisma.tickerItem.findMany({ orderBy: { createdAt: "asc" } }),
       prisma.birthdayEntry.findMany({ orderBy: [{ month: "asc" }, { day: "asc" }, { name: "asc" }] }),
+      prisma.reminderSettings.findMany(),
+      prisma.reminderRecipient.findMany({ orderBy: { email: "asc" } }),
       prisma.pageVisit.findMany({ orderBy: { visitedAt: "asc" } }),
       prisma.phoneBookEntry.findMany({ orderBy: { sortOrder: "asc" } }),
     ]);
@@ -72,7 +76,7 @@ export async function GET() {
     BACKUP_HEADER,
     `-- generated_at_utc: ${new Date().toISOString()}`,
     "BEGIN;",
-    'TRUNCATE TABLE public."PageVisit", public."PhoneBookEntry", public."BirthdayEntry", public."TickerItem", public."TickerSettings", public."KeyDateBadgeSettings", public."KeyDate", public."Update", public."User" RESTART IDENTITY CASCADE;',
+    'TRUNCATE TABLE public."PageVisit", public."PhoneBookEntry", public."BirthdayEntry", public."ReminderRecipient", public."ReminderSettings", public."TickerItem", public."TickerSettings", public."KeyDateBadgeSettings", public."KeyDate", public."Update", public."User" RESTART IDENTITY CASCADE;',
     ...insertStatement('public."User"', ["id", "email", "name", "password", "role", "createdAt"], users),
     ...insertStatement(
       'public."Update"',
@@ -114,6 +118,26 @@ export async function GET() {
       'public."BirthdayEntry"',
       ["id", "name", "month", "day", "createdAt", "updatedAt"],
       birthdayEntries
+    ),
+    ...insertStatement(
+      'public."ReminderSettings"',
+      ["id", "inactiveDaysThreshold", "emailSubject", "emailBody"],
+      reminderSettings.length
+        ? reminderSettings
+        : [
+            {
+              id: "default",
+              inactiveDaysThreshold: 7,
+              emailSubject: "Reminder: TEAM dashboard",
+              emailBody:
+                "Hi {{firstName}},\n\nWe have not seen you on the TEAM dashboard for {{inactiveDays}} days.\n\nPlease visit: {{dashboardUrl}}\n\nThank you.",
+            },
+          ]
+    ),
+    ...insertStatement(
+      'public."ReminderRecipient"',
+      ["id", "email", "name", "enabled", "lastReminderSentAt", "createdAt", "updatedAt"],
+      reminderRecipients
     ),
     ...insertStatement(
       'public."PageVisit"',
