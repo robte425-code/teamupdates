@@ -21,8 +21,14 @@ function resendFailureHint(error: string | undefined): string {
   if (e.includes("rate_limit") || e.includes("Too many requests")) {
     return "Resend rate limit (5 req/s). Cron spaces sends; retry later or contact Resend to raise limits.";
   }
+  if (e.includes("domain is not verified") || /\bis not verified\b/i.test(e)) {
+    return "The domain on EMAIL_FROM is not Verified in this Resend account: open resend.com/domains, add that exact domain (or parent if using a subdomain), publish SPF+DKIM DNS, wait for Verified status. FROM must match a verified domain on the same Resend API key.";
+  }
+  if (e.includes("only send testing emails") || e.includes("your own email address")) {
+    return "Resend sandbox From: verify a domain and set EMAIL_FROM to an address on it (onboarding sender only allows mail to your Resend login email).";
+  }
   if (e.includes("verify a domain") || e.includes("validation_error")) {
-    return "Verify a domain at resend.com/domains and set EMAIL_FROM to an address on that domain (onboarding sender only allows mail to your own test address).";
+    return "Resend validation: ensure Domains in Resend match the domain in EMAIL_FROM, DNS has propagated, and RESEND_API_KEY belongs to the same Resend team that verified the domain.";
   }
   return "Check Resend dashboard, EMAIL_FROM, domain DNS, and recipient policy.";
 }
