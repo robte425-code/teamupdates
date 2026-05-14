@@ -18,7 +18,7 @@ Follow the prompts (browser or token).
 
 ```bash
 cd "/Users/ghim/Projects/teamvoc updates"
-gh repo create teamvoc-updates --private --source=. --remote=origin --push
+gh repo create teamupdates --private --source=. --remote=origin --push
 ```
 
 (Use `--public` if you want a public repo.)
@@ -26,14 +26,14 @@ gh repo create teamvoc-updates --private --source=. --remote=origin --push
 **Option B – Create repo on GitHub, then push:**
 
 1. Go to [github.com/new](https://github.com/new).
-2. Repository name: `teamvoc-updates` (or any name).
+2. Repository name: **`teamupdates`** (must match this project’s remote path).
 3. Choose **Private** (or Public). Do **not** add a README, .gitignore, or license.
 4. Click **Create repository**.
-5. Run (replace `YOUR_USERNAME` and `REPO_NAME` with your repo):
+5. Run (this project uses **`robte425-code`** / **`teamupdates`**):
 
 ```bash
 cd "/Users/ghim/Projects/teamvoc updates"
-git remote add origin https://github.com/YOUR_USERNAME/REPO_NAME.git
+git remote add origin https://github.com/robte425-code/teamupdates.git
 git push -u origin main
 ```
 
@@ -45,7 +45,7 @@ If your branch is still `master`, run: `git branch -M main` then `git push -u or
 
 1. Go to [vercel.com](https://vercel.com) and sign in (use GitHub if possible).
 2. Click **Add New…** → **Project**.
-3. **Import** your `teamvoc-updates` repo (or the repo you created).
+3. **Import** **`robte425-code/teamupdates`** (this repo).
 4. **Configure:**
    - Framework: **Next.js** (auto-detected).
    - Root Directory: leave default.
@@ -80,3 +80,15 @@ Vercel does not run your migrations or seed. Do this once from your machine usin
 ## 5. Later: push = redeploy
 
 After the first deploy, every push to `main` (e.g. `git push`) will trigger a new Vercel deployment automatically.
+
+---
+
+## 6. Vercel ↔ GitHub (`robte425-code/teamupdates`)
+
+If **Vercel → Connect Git** fails with “Failed to connect robte425-code/teamupdates”, it is almost always **permissions**, not a typo in the name.
+
+1. On **GitHub**, open **Settings → Applications → Installed GitHub Apps → Vercel → Configure** (use the account/org that owns **`robte425-code`**).
+2. Under **Repository access**, allow **`robte425-code/teamupdates`** (or “All repositories” for that org, if you accept that).
+3. Confirm the Vercel team you use (e.g. **EcoFizz**) is the same one where the project lives, then retry **Connect** in the Vercel project **Git** tab (or `vercel git connect https://github.com/robte425-code/teamupdates.git` from a linked checkout).
+
+The repo is **`https://github.com/robte425-code/teamupdates`**.

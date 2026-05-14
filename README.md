@@ -2,6 +2,8 @@
 
 A simple website for your team to view **Updates & Reminders** and **Key dates**. Sign-in is via **Microsoft 365** (Azure AD); anyone in your organization can sign in. **Site owners** (configured by email) have admin access to manage content; **members** can only view the home page.
 
+**Source repo:** [github.com/robte425-code/teamupdates](https://github.com/robte425-code/teamupdates) (GitHub user/org `robte425-code`).
+
 ## Features
 
 - **Updates & Reminders** – Date posted, title, and body. Sorted by date (newest first).
