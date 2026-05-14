@@ -5,7 +5,6 @@ import {
   canSendEmail,
   sendReminderEmail,
 } from "@/lib/email";
-import { pageVisitWhereNotRobert } from "@/lib/pageVisitRobertExclusions";
 import { pacificCalendarDaysBetween } from "@/lib/reminderPacificDays";
 
 export const dynamic = "force-dynamic";
@@ -70,14 +69,11 @@ async function runCron(): Promise<NextResponse> {
     detail?: string;
   }[] = [];
 
-  const visitWhereBase = pageVisitWhereNotRobert();
-
   for (const r of recipients) {
     const lastVisit = await prisma.pageVisit.findFirst({
       where: {
         path: "/",
         userEmail: { equals: r.email, mode: "insensitive" },
-        ...visitWhereBase,
       },
       orderBy: { visitedAt: "desc" },
       select: { visitedAt: true },
