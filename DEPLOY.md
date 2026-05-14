@@ -89,6 +89,6 @@ If **Vercel → Connect Git** fails with “Failed to connect robte425-code/team
 
 1. On **GitHub**, open **Settings → Applications → Installed GitHub Apps → Vercel → Configure** (use the account/org that owns **`robte425-code`**).
 2. Under **Repository access**, allow **`robte425-code/teamupdates`** (or “All repositories” for that org, if you accept that).
-3. Confirm the Vercel team you use (e.g. **EcoFizz**) is the same one where the project lives, then retry **Connect** in the Vercel project **Git** tab (or `vercel git connect https://github.com/robte425-code/teamupdates.git` from a linked checkout).
+3. Confirm you’re in the **correct Vercel team** (the one that should own this project), then retry **Connect** in the Vercel project **Git** tab (or `vercel git connect https://github.com/robte425-code/teamupdates.git` from a checkout linked to that project).
 
 The repo is **`https://github.com/robte425-code/teamupdates`**.
