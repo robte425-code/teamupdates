@@ -7,6 +7,29 @@ import {
 } from "@/lib/email";
 import { pacificCalendarDaysBetween } from "@/lib/reminderPacificDays";
 
+const LOG_TAG = "reminders-cron";
+
+function cronDebug(message: string, data?: Record<string, unknown>): void {
+  const line = JSON.stringify({
+    tag: LOG_TAG,
+    message,
+    at: new Date().toISOString(),
+    ...data,
+  });
+  console.log(line);
+}
+
+function cronWarn(message: string, data?: Record<string, unknown>): void {
+  const line = JSON.stringify({
+    tag: LOG_TAG,
+    level: "warn",
+    message,
+    at: new Date().toISOString(),
+    ...data,
+  });
+  console.warn(line);
+}
+
 export const dynamic = "force-dynamic";
 
 const SETTINGS_ID = "default";
@@ -41,6 +64,9 @@ function firstNameFrom(name: string | null, email: string): string {
 
 async function runCron(): Promise<NextResponse> {
   if (!canSendEmail()) {
+    cronWarn("abort_no_resend", {
+      reason: "RESEND_API_KEY missing or empty; cannot send email",
+    });
     return NextResponse.json(
       { ok: false, error: "RESEND_API_KEY not configured; no emails sent." },
       { status: 200 }
@@ -51,6 +77,7 @@ async function runCron(): Promise<NextResponse> {
     where: { id: SETTINGS_ID },
   });
   if (!settings) {
+    cronWarn("abort_no_settings", { settingsId: SETTINGS_ID });
     return NextResponse.json(
       { ok: false, error: "ReminderSettings row missing" },
       { status: 500 }
@@ -61,6 +88,14 @@ async function runCron(): Promise<NextResponse> {
   const now = new Date();
   const recipients = await prisma.reminderRecipient.findMany({
     where: { enabled: true },
+  });
+
+  cronDebug("run_start", {
+    threshold,
+    enabledRecipientCount: recipients.length,
+    dashboardBaseUrl: dashboardBaseUrl(),
+    hasDatabaseUrl: Boolean(process.env.DATABASE_URL),
+    emailFromSet: Boolean(process.env.EMAIL_FROM),
   });
 
   type CronResultRow = {
@@ -80,6 +115,13 @@ async function runCron(): Promise<NextResponse> {
   const results: CronResultRow[] = [];
 
   for (const r of recipients) {
+    cronDebug("recipient_start", {
+      recipientId: r.id,
+      email: r.email,
+      name: r.name,
+      lastReminderSentAt: r.lastReminderSentAt?.toISOString() ?? null,
+    });
+
     const lastVisit = await prisma.pageVisit.findFirst({
       where: {
         path: "/",
@@ -90,6 +132,12 @@ async function runCron(): Promise<NextResponse> {
     });
 
     if (!lastVisit) {
+      cronDebug("recipient_skip", {
+        email: r.email,
+        detail: "no_home_visit_recorded",
+        threshold,
+        hint: "No PageVisit row for this email with path=/ in this deployment's database",
+      });
       results.push({
         email: r.email,
         status: "skipped",
@@ -102,6 +150,14 @@ async function runCron(): Promise<NextResponse> {
     const inactiveDays = pacificCalendarDaysBetween(lastVisit.visitedAt, now);
     const lastVisitAt = lastVisit.visitedAt.toISOString();
     if (inactiveDays < threshold) {
+      cronDebug("recipient_skip", {
+        email: r.email,
+        detail: "active_within_threshold",
+        lastVisitAt,
+        inactiveDays,
+        threshold,
+        hint: "Last / visit is too recent for inactive-day threshold",
+      });
       results.push({
         email: r.email,
         status: "skipped",
@@ -116,6 +172,16 @@ async function runCron(): Promise<NextResponse> {
     if (r.lastReminderSentAt) {
       const sinceLast = pacificCalendarDaysBetween(r.lastReminderSentAt, now);
       if (sinceLast < threshold) {
+        cronDebug("recipient_skip", {
+          email: r.email,
+          detail: "repeat_interval",
+          lastVisitAt,
+          inactiveDays,
+          threshold,
+          sinceLastReminderDays: sinceLast,
+          lastReminderSentAt: r.lastReminderSentAt.toISOString(),
+          hint: "Reminder already sent within repeat window (same span as threshold)",
+        });
         results.push({
           email: r.email,
           status: "skipped",
@@ -143,8 +209,23 @@ async function runCron(): Promise<NextResponse> {
     const subject = applyReminderTemplate(settings.emailSubject, vars);
     const textBody = applyReminderTemplate(settings.emailBody, vars);
 
+    cronDebug("recipient_send_attempt", {
+      email: r.email,
+      inactiveDays,
+      subjectLength: subject.length,
+      bodyLength: textBody.length,
+    });
+
     const send = await sendReminderEmail(r.email, subject, textBody);
     if (!send.ok) {
+      cronWarn("recipient_send_failed", {
+        email: r.email,
+        error: send.error,
+        lastVisitAt,
+        inactiveDays,
+        threshold,
+        hint: "Check Resend dashboard, EMAIL_FROM domain verification, and recipient policy",
+      });
       results.push({
         email: r.email,
         status: "error",
@@ -160,6 +241,11 @@ async function runCron(): Promise<NextResponse> {
       where: { id: r.id },
       data: { lastReminderSentAt: now },
     });
+    cronDebug("recipient_sent", {
+      email: r.email,
+      inactiveDays,
+      lastVisitAt,
+    });
     results.push({
       email: r.email,
       status: "sent",
@@ -172,6 +258,14 @@ async function runCron(): Promise<NextResponse> {
   const sent = results.filter((x) => x.status === "sent").length;
   const skipped = results.filter((x) => x.status === "skipped").length;
   const errors = results.filter((x) => x.status === "error").length;
+
+  cronDebug("run_complete", {
+    threshold,
+    sent,
+    skipped,
+    errors,
+    ranAt: now.toISOString(),
+  });
 
   return NextResponse.json({
     ok: true,
@@ -187,6 +281,10 @@ async function runCron(): Promise<NextResponse> {
 
 export async function GET(req: Request) {
   if (!cronAuthorized(req)) {
+    cronWarn("auth_failed", {
+      hasCronSecretEnv: Boolean(process.env.CRON_SECRET),
+      hasAuthHeader: Boolean(req.headers.get("authorization")),
+    });
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   return runCron();
@@ -194,6 +292,10 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   if (!cronAuthorized(req)) {
+    cronWarn("auth_failed", {
+      hasCronSecretEnv: Boolean(process.env.CRON_SECRET),
+      hasAuthHeader: Boolean(req.headers.get("authorization")),
+    });
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   return runCron();
