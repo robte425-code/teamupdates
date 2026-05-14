@@ -9,6 +9,24 @@ import { pacificCalendarDaysBetween } from "@/lib/reminderPacificDays";
 
 const LOG_TAG = "reminders-cron";
 
+/** Resend limits free/sandbox tiers to ~5 requests/sec; space each send. */
+const RESEND_SPACING_MS = 260;
+
+function sleepMs(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function resendFailureHint(error: string | undefined): string {
+  const e = error ?? "";
+  if (e.includes("rate_limit") || e.includes("Too many requests")) {
+    return "Resend rate limit (5 req/s). Cron spaces sends; retry later or contact Resend to raise limits.";
+  }
+  if (e.includes("verify a domain") || e.includes("validation_error")) {
+    return "Verify a domain at resend.com/domains and set EMAIL_FROM to an address on that domain (onboarding sender only allows mail to your own test address).";
+  }
+  return "Check Resend dashboard, EMAIL_FROM, domain DNS, and recipient policy.";
+}
+
 function cronDebug(message: string, data?: Record<string, unknown>): void {
   const line = JSON.stringify({
     tag: LOG_TAG,
@@ -97,6 +115,11 @@ async function runCron(): Promise<NextResponse> {
     hasDatabaseUrl: Boolean(process.env.DATABASE_URL),
     emailFromSet: Boolean(process.env.EMAIL_FROM),
   });
+  if (!process.env.EMAIL_FROM) {
+    cronWarn("config_email_from_missing", {
+      hint: "Default Resend onboarding From address only allows sending to your Resend account email until you verify a domain and set EMAIL_FROM.",
+    });
+  }
 
   type CronResultRow = {
     email: string;
@@ -217,14 +240,17 @@ async function runCron(): Promise<NextResponse> {
     });
 
     const send = await sendReminderEmail(r.email, subject, textBody);
+    await sleepMs(RESEND_SPACING_MS);
+
     if (!send.ok) {
+      const failHint = resendFailureHint(send.error);
       cronWarn("recipient_send_failed", {
         email: r.email,
         error: send.error,
         lastVisitAt,
         inactiveDays,
         threshold,
-        hint: "Check Resend dashboard, EMAIL_FROM domain verification, and recipient policy",
+        hint: failHint,
       });
       results.push({
         email: r.email,
