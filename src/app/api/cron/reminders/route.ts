@@ -12,6 +12,9 @@ const LOG_TAG = "reminders-cron";
 /** Resend limits free/sandbox tiers to ~5 requests/sec; space each send. */
 const RESEND_SPACING_MS = 260;
 
+/** While still inactive, send at most once per Pacific calendar day (cron runs ~daily). */
+const MIN_PACIFIC_DAYS_BETWEEN_REMINDERS = 1;
+
 function sleepMs(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -135,7 +138,7 @@ async function runCron(): Promise<NextResponse> {
     lastVisitAt?: string;
     /** Pacific calendar days since lastVisitAt until now. */
     inactiveDays?: number;
-    /** ReminderSettings.inactiveDaysThreshold (also repeat spacing). */
+    /** ReminderSettings.inactiveDaysThreshold (min days since last / before eligible). */
     threshold?: number;
     /** Days since last reminder email (Pacific calendar), if any. */
     sinceLastReminderDays?: number;
@@ -200,21 +203,21 @@ async function runCron(): Promise<NextResponse> {
 
     if (r.lastReminderSentAt) {
       const sinceLast = pacificCalendarDaysBetween(r.lastReminderSentAt, now);
-      if (sinceLast < threshold) {
+      if (sinceLast < MIN_PACIFIC_DAYS_BETWEEN_REMINDERS) {
         cronDebug("recipient_skip", {
           email: r.email,
-          detail: "repeat_interval",
+          detail: "already_reminded_today",
           lastVisitAt,
           inactiveDays,
           threshold,
           sinceLastReminderDays: sinceLast,
           lastReminderSentAt: r.lastReminderSentAt.toISOString(),
-          hint: "Reminder already sent within repeat window (same span as threshold)",
+          hint: "At most one reminder per Pacific calendar day; try again tomorrow or after manual cron",
         });
         results.push({
           email: r.email,
           status: "skipped",
-          detail: "repeat_interval",
+          detail: "already_reminded_today",
           lastVisitAt,
           inactiveDays,
           threshold,

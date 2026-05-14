@@ -237,10 +237,10 @@ export function RemindersContent() {
         <h2 className="text-lg font-semibold text-stone-900">How reminders work</h2>
         <p className="mt-2 text-sm text-stone-600">
           Inactivity is based only on visits to the home dashboard (<code className="rounded bg-stone-100 px-1">/</code>
-          ). When someone has not loaded that page for at least the threshold below, they may receive an email.
-          While they stay inactive, the same reminder can repeat every{" "}
-          <strong className="font-medium text-stone-800">that many days</strong> (same number as the threshold).
-          Visiting <code className="rounded bg-stone-100 px-1">/</code> resets the clock. Cron must be configured on
+          ). When someone has not loaded that page for at least the threshold below (Pacific calendar days), they may
+          receive an email on the next cron run. While they stay that inactive, they can get another reminder on each
+          later day the cron runs (at most <strong className="font-medium text-stone-800">one per Pacific calendar day</strong>
+          ). Visiting <code className="rounded bg-stone-100 px-1">/</code> resets the clock. Cron must be configured on
           the host (see <code className="rounded bg-stone-100 px-1">CRON_SECRET</code> in environment variables).
         </p>
       </section>
@@ -254,7 +254,7 @@ export function RemindersContent() {
             {settingsError && <p className="text-sm text-red-600">{settingsError}</p>}
             <div>
               <label htmlFor="rem-inactive-days" className="block text-sm font-medium text-stone-700">
-                Inactive days (and repeat interval)
+                Inactive days before first reminder
               </label>
               <input
                 id="rem-inactive-days"
