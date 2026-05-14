@@ -63,11 +63,21 @@ async function runCron(): Promise<NextResponse> {
     where: { enabled: true },
   });
 
-  const results: {
+  type CronResultRow = {
     email: string;
     status: "sent" | "skipped" | "error";
     detail?: string;
-  }[] = [];
+    /** Latest `/` visit used for inactivity (ISO). */
+    lastVisitAt?: string;
+    /** Pacific calendar days since lastVisitAt until now. */
+    inactiveDays?: number;
+    /** ReminderSettings.inactiveDaysThreshold (also repeat spacing). */
+    threshold?: number;
+    /** Days since last reminder email (Pacific calendar), if any. */
+    sinceLastReminderDays?: number;
+  };
+
+  const results: CronResultRow[] = [];
 
   for (const r of recipients) {
     const lastVisit = await prisma.pageVisit.findFirst({
@@ -84,16 +94,21 @@ async function runCron(): Promise<NextResponse> {
         email: r.email,
         status: "skipped",
         detail: "no_home_visit_recorded",
+        threshold,
       });
       continue;
     }
 
     const inactiveDays = pacificCalendarDaysBetween(lastVisit.visitedAt, now);
+    const lastVisitAt = lastVisit.visitedAt.toISOString();
     if (inactiveDays < threshold) {
       results.push({
         email: r.email,
         status: "skipped",
         detail: "active_within_threshold",
+        lastVisitAt,
+        inactiveDays,
+        threshold,
       });
       continue;
     }
@@ -105,6 +120,10 @@ async function runCron(): Promise<NextResponse> {
           email: r.email,
           status: "skipped",
           detail: "repeat_interval",
+          lastVisitAt,
+          inactiveDays,
+          threshold,
+          sinceLastReminderDays: sinceLast,
         });
         continue;
       }
@@ -130,6 +149,9 @@ async function runCron(): Promise<NextResponse> {
         email: r.email,
         status: "error",
         detail: send.error,
+        lastVisitAt,
+        inactiveDays,
+        threshold,
       });
       continue;
     }
@@ -138,7 +160,13 @@ async function runCron(): Promise<NextResponse> {
       where: { id: r.id },
       data: { lastReminderSentAt: now },
     });
-    results.push({ email: r.email, status: "sent" });
+    results.push({
+      email: r.email,
+      status: "sent",
+      lastVisitAt,
+      inactiveDays,
+      threshold,
+    });
   }
 
   const sent = results.filter((x) => x.status === "sent").length;
@@ -151,6 +179,8 @@ async function runCron(): Promise<NextResponse> {
     sent,
     skipped,
     errors,
+    /** Use this to confirm cron and seed share the same DB as this deployment. */
+    ranAt: now.toISOString(),
     results,
   });
 }

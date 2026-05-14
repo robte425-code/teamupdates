@@ -78,5 +78,10 @@ export async function sendReminderEmail(
     html,
     text: textBody,
   });
-  return error ? { ok: false, error: error.message } : { ok: true };
+  if (error) {
+    const name = "name" in error && typeof (error as { name?: string }).name === "string" ? (error as { name: string }).name : "";
+    const suffix = name ? ` (${name})` : "";
+    return { ok: false, error: `${error.message}${suffix}` };
+  }
+  return { ok: true };
 }
