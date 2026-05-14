@@ -13,6 +13,7 @@
     "db:migrate": "prisma migrate deploy",
     "db:seed": "npx tsx prisma/seed.ts",
     "db:seed-phone-book": "npx tsx prisma/seed-phone-book.ts",
+    "db:seed-robert-test-visit": "npx tsx prisma/seed-robert-test-visit.ts",
     "db:studio": "prisma studio"
   },
   "prisma": {
