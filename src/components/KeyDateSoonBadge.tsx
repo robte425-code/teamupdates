@@ -29,8 +29,14 @@ export function KeyDateSoonBadge({
 
   if (!isSoon) return null;
 
+  const isToday = label === "TODAY";
+
   return (
-    <span className="inline-block rounded-full bg-amber-500 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white sm:text-xs">
+    <span
+      className={`inline-block rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white sm:text-xs ${
+        isToday ? "bg-emerald-600" : "bg-amber-500"
+      }`}
+    >
       {label}
     </span>
   );
