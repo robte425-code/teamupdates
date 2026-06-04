@@ -148,6 +148,46 @@ function localDayBounds(now: Date): { start: Date; end: Date } {
   };
 }
 
+/** YYYY-MM-DD in Pacific (matches key date display / storage). */
+function pacificCalendarDateKey(date: Date): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: APP_TIMEZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+function isSamePacificCalendarDay(a: Date, b: Date): boolean {
+  return pacificCalendarDateKey(a) === pacificCalendarDateKey(b);
+}
+
+function isPacificDayInRange(today: Date, start: Date, end: Date): boolean {
+  const todayKey = pacificCalendarDateKey(today);
+  const startKey = pacificCalendarDateKey(start);
+  const endKey = pacificCalendarDateKey(end);
+  const lo = startKey <= endKey ? startKey : endKey;
+  const hi = startKey <= endKey ? endKey : startKey;
+  return todayKey >= lo && todayKey <= hi;
+}
+
+/**
+ * True when the key date is on today's Pacific calendar day (same TZ as display/storage).
+ */
+export function isKeyDateHappeningTodayPacific(
+  eventDate: string,
+  eventEndDate?: string | null
+): boolean {
+  const start = new Date(eventDate);
+  if (Number.isNaN(start.getTime())) return false;
+  const now = new Date();
+  if (isSamePacificCalendarDay(start, now)) return true;
+  if (!eventEndDate) return false;
+  const end = new Date(eventEndDate);
+  if (Number.isNaN(end.getTime())) return false;
+  return isPacificDayInRange(now, start, end);
+}
+
 /**
  * True when the key date is on today's calendar day in the user's local timezone.
  * For ranged events, true when today falls on or between start and end (inclusive).
@@ -167,12 +207,29 @@ export function isKeyDateHappeningTodayLocal(
   return start <= dayEnd && end >= dayStart;
 }
 
-/** SOON badge copy: TODAY when the event is on today's local calendar day. */
+/**
+ * True when the SOON badge should read TODAY (local calendar day and/or Pacific display day).
+ */
+export function isKeyDateSoonBadgeToday(
+  eventDate: string,
+  eventEndDate?: string | null
+): boolean {
+  if (isKeyDateHappeningTodayLocal(eventDate, eventEndDate)) return true;
+  if (isKeyDateHappeningTodayPacific(eventDate, eventEndDate)) return true;
+  const { isDueWithin24h, isPast } = formatTimeLeft(eventDate);
+  if (isPast || !isDueWithin24h) return false;
+  const start = new Date(eventDate);
+  if (Number.isNaN(start.getTime())) return false;
+  const now = new Date();
+  return isSameLocalCalendarDay(start, now) || isSamePacificCalendarDay(start, now);
+}
+
+/** SOON badge copy: TODAY when the event is today (local and/or Pacific calendar). */
 export function getKeyDateSoonBadgeLabel(
   eventDate: string,
   eventEndDate?: string | null
 ): "TODAY" | "SOON" {
-  return isKeyDateHappeningTodayLocal(eventDate, eventEndDate) ? "TODAY" : "SOON";
+  return isKeyDateSoonBadgeToday(eventDate, eventEndDate) ? "TODAY" : "SOON";
 }
 
 /**
