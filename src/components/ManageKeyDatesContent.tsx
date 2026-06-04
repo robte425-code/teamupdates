@@ -11,7 +11,8 @@ import {
   formatTimeLeft,
 } from "@/lib/formatKeyDate";
 import { useKeyDateBadgeSettings } from "@/hooks/useKeyDateBadgeSettings";
-import { isKeyDateDueWithinSoonWindow, isKeyDateHappeningTodayLocal } from "@/lib/formatKeyDate";
+import { isKeyDateDueWithinSoonWindow } from "@/lib/formatKeyDate";
+import { KeyDateSoonBadge } from "./KeyDateSoonBadge";
 import { CreatedByAdminNote } from "./CreatedByAdminNote";
 
 type KeyDate = {
@@ -179,14 +180,6 @@ export function ManageKeyDatesContent({
                           const windowMs = newBadgeDays * 24 * 60 * 60 * 1000;
                           const isNew = newBadgeDays > 0 && publishedAt >= Date.now() - windowMs;
                           const isSoon = isKeyDateDueWithinSoonWindow(item.eventDate, soonBadgeDays);
-                          const soonBadgeLabel =
-                            isSoon &&
-                            isKeyDateHappeningTodayLocal(
-                              item.eventDate,
-                              item.dateType === "event" ? item.eventEndDate : undefined
-                            )
-                              ? "TODAY"
-                              : "SOON";
                           if (!isNew && !isSoon) return null;
                           return (
                             <div className="mb-2 flex flex-wrap gap-2">
@@ -196,9 +189,13 @@ export function ManageKeyDatesContent({
                                 </span>
                               )}
                               {isSoon && (
-                                <span className="inline-block rounded-full bg-amber-500 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white sm:text-xs">
-                                  {soonBadgeLabel}
-                                </span>
+                                <KeyDateSoonBadge
+                                  eventDate={item.eventDate}
+                                  eventEndDate={
+                                    item.dateType === "event" ? item.eventEndDate : undefined
+                                  }
+                                  soonBadgeDays={soonBadgeDays}
+                                />
                               )}
                             </div>
                           );

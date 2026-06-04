@@ -132,9 +132,20 @@ export function isKeyDateDueWithinSoonWindow(eventDate: string, days: number): b
   return diff >= 0 && diff <= days * ONE_DAY_MS;
 }
 
-/** Calendar date YYYY-MM-DD in the runtime local timezone (browser on client). */
-function localCalendarDateKey(date: Date): string {
-  return date.toLocaleDateString("en-CA");
+/** Calendar date comparison in the runtime local timezone (browser on client). */
+function isSameLocalCalendarDay(a: Date, b: Date): boolean {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
+function localDayBounds(now: Date): { start: Date; end: Date } {
+  return {
+    start: new Date(now.getFullYear(), now.getMonth(), now.getDate()),
+    end: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999),
+  };
 }
 
 /**
@@ -147,16 +158,21 @@ export function isKeyDateHappeningTodayLocal(
 ): boolean {
   const start = new Date(eventDate);
   if (Number.isNaN(start.getTime())) return false;
-  const today = localCalendarDateKey(new Date());
-  const startKey = localCalendarDateKey(start);
-  if (startKey === today) return true;
+  const now = new Date();
+  if (isSameLocalCalendarDay(start, now)) return true;
   if (!eventEndDate) return false;
   const end = new Date(eventEndDate);
   if (Number.isNaN(end.getTime())) return false;
-  const endKey = localCalendarDateKey(end);
-  const rangeStart = startKey <= endKey ? startKey : endKey;
-  const rangeEnd = startKey <= endKey ? endKey : startKey;
-  return today >= rangeStart && today <= rangeEnd;
+  const { start: dayStart, end: dayEnd } = localDayBounds(now);
+  return start <= dayEnd && end >= dayStart;
+}
+
+/** SOON badge copy: TODAY when the event is on today's local calendar day. */
+export function getKeyDateSoonBadgeLabel(
+  eventDate: string,
+  eventEndDate?: string | null
+): "TODAY" | "SOON" {
+  return isKeyDateHappeningTodayLocal(eventDate, eventEndDate) ? "TODAY" : "SOON";
 }
 
 /**

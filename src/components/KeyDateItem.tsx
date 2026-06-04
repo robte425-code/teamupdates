@@ -9,7 +9,8 @@ import {
   formatTimeLeft,
 } from "@/lib/formatKeyDate";
 import { useKeyDateBadgeSettings } from "@/hooks/useKeyDateBadgeSettings";
-import { isKeyDateDueWithinSoonWindow, isKeyDateHappeningTodayLocal } from "@/lib/formatKeyDate";
+import { isKeyDateDueWithinSoonWindow } from "@/lib/formatKeyDate";
+import { KeyDateSoonBadge } from "./KeyDateSoonBadge";
 import { KeyDateForm } from "./KeyDateForm";
 import { BodyWithLinks } from "./BodyWithLinks";
 import { stripRichTextMarkup } from "@/lib/richText";
@@ -87,14 +88,6 @@ export function KeyDateItem({
   const windowMs = newBadgeDays * 24 * 60 * 60 * 1000;
   const isNew = newBadgeDays > 0 && publishedAt >= Date.now() - windowMs;
   const isSoon = isKeyDateDueWithinSoonWindow(item.eventDate, soonBadgeDays);
-  const soonBadgeLabel =
-    isSoon &&
-    isKeyDateHappeningTodayLocal(
-      item.eventDate,
-      isEvent ? item.eventEndDate : undefined
-    )
-      ? "TODAY"
-      : "SOON";
 
   return (
     <li className="group rounded-xl border border-stone-200/80 bg-white shadow-sm transition-shadow hover:shadow-md">
@@ -107,9 +100,11 @@ export function KeyDateItem({
               </span>
             )}
             {isSoon && (
-              <span className="inline-block rounded-full bg-amber-500 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white sm:text-xs">
-                {soonBadgeLabel}
-              </span>
+              <KeyDateSoonBadge
+                eventDate={item.eventDate}
+                eventEndDate={isEvent ? item.eventEndDate : undefined}
+                soonBadgeDays={soonBadgeDays}
+              />
             )}
           </div>
         )}
