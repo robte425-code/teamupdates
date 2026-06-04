@@ -132,6 +132,33 @@ export function isKeyDateDueWithinSoonWindow(eventDate: string, days: number): b
   return diff >= 0 && diff <= days * ONE_DAY_MS;
 }
 
+/** Calendar date YYYY-MM-DD in the runtime local timezone (browser on client). */
+function localCalendarDateKey(date: Date): string {
+  return date.toLocaleDateString("en-CA");
+}
+
+/**
+ * True when the key date is on today's calendar day in the user's local timezone.
+ * For ranged events, true when today falls on or between start and end (inclusive).
+ */
+export function isKeyDateHappeningTodayLocal(
+  eventDate: string,
+  eventEndDate?: string | null
+): boolean {
+  const start = new Date(eventDate);
+  if (Number.isNaN(start.getTime())) return false;
+  const today = localCalendarDateKey(new Date());
+  const startKey = localCalendarDateKey(start);
+  if (startKey === today) return true;
+  if (!eventEndDate) return false;
+  const end = new Date(eventEndDate);
+  if (Number.isNaN(end.getTime())) return false;
+  const endKey = localCalendarDateKey(end);
+  const rangeStart = startKey <= endKey ? startKey : endKey;
+  const rangeEnd = startKey <= endKey ? endKey : startKey;
+  return today >= rangeStart && today <= rangeEnd;
+}
+
 /**
  * Get human-readable "time left" or "time ago" for a key date.
  * When less than 1 day left, returns hours and minutes.
