@@ -175,16 +175,12 @@ export function Header() {
                 >
                   My balances
                 </a>
-                {/* In development: VOC Hotline is admin-only. Remove the `isAdmin &&`
-                    guard to open it to all signed-in users later. */}
-                {isAdmin && (
-                  <a
-                    href={process.env.NEXT_PUBLIC_VOC_HOTLINE_URL || "https://voc-hotline-nine.vercel.app"}
-                    className="rounded-lg px-3 py-2 text-sm font-medium text-stone-600 transition-colors hover:bg-stone-50 hover:text-stone-900"
-                  >
-                    VOC Hotline
-                  </a>
-                )}
+                <a
+                  href={process.env.NEXT_PUBLIC_VOC_HOTLINE_URL || "https://voc-hotline-nine.vercel.app"}
+                  className="rounded-lg px-3 py-2 text-sm font-medium text-stone-600 transition-colors hover:bg-stone-50 hover:text-stone-900"
+                >
+                  VOC Hotline
+                </a>
               </nav>
             )}
           </div>
