@@ -51,13 +51,6 @@ export function Header() {
               </Link>
               {session && (
                 <nav className="flex min-w-0 flex-1 flex-wrap items-center gap-2 sm:flex-nowrap">
-                  {showAdminNav && (
-                    <AdminNavDropdown
-                      sections={adminSections}
-                      pathname={pathname}
-                      LinkComponent={NextLink}
-                    />
-                  )}
                   <UserNav links={userNav} pathname={pathname} LinkComponent={NextLink} />
                 </nav>
               )}
@@ -69,6 +62,13 @@ export function Header() {
                   realName={real.name}
                   currentEmail={effective.email}
                   isImpersonating={impersonating}
+                />
+              )}
+              {showAdminNav && (
+                <AdminNavDropdown
+                  sections={adminSections}
+                  pathname={pathname}
+                  LinkComponent={NextLink}
                 />
               )}
               <button

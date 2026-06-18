@@ -62,7 +62,7 @@ export function AdminNavDropdown({
         <ul
           role="menu"
           aria-label="Admin"
-          className="absolute left-0 top-full z-30 mt-1 min-w-[12rem] rounded-lg border border-stone-200 bg-white py-1 shadow-lg"
+          className="absolute right-0 top-full z-30 mt-1 min-w-[12rem] rounded-lg border border-stone-200 bg-white py-1 shadow-lg"
         >
           {sections.map((section, si) => (
             <li key={section.label} role="presentation">
