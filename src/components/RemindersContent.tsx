@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { DashboardVisitHistory } from "@/components/DashboardVisitHistory";
 
 type ReminderSettings = {
   inactiveDaysThreshold: number;
@@ -317,7 +316,7 @@ export function RemindersContent() {
         <h2 className="text-lg font-semibold text-stone-900">Recipients</h2>
         <p className="mt-2 text-sm text-stone-600">
           Only listed, enabled recipients are considered. Seed adds distinct emails from dashboard visits in the last
-          60 days (same exclusions as visit history below).
+          60 days (same exclusions as visit history on Usage stats).
         </p>
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <button
@@ -402,11 +401,6 @@ export function RemindersContent() {
             )}
           </>
         )}
-      </section>
-
-      <section>
-        <h2 className="mb-4 text-lg font-semibold text-stone-900">Visit history</h2>
-        <DashboardVisitHistory />
       </section>
     </div>
   );

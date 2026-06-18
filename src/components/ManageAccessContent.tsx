@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { AccessRow } from "@/lib/team-access-hub";
+import { DatabaseBackupSection } from "@/components/DatabaseBackupSection";
 
 function Toggle({
   checked,
@@ -145,7 +146,7 @@ export function ManageAccessContent() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-stone-900">Access &amp; admins</h1>
+        <h1 className="text-2xl font-semibold text-stone-900">Access &amp; Backups</h1>
         <p className="mt-2 max-w-3xl text-sm text-stone-600">
           Manage who can sign in and who has admin/agent access across TEAM apps. Addresses in{" "}
           <code className="rounded bg-stone-100 px-1">ADMIN_EMAILS</code> (Vercel) are always
@@ -313,6 +314,10 @@ export function ManageAccessContent() {
         >
           Reload
         </button>
+      </div>
+
+      <div className="border-t border-stone-200 pt-8">
+        <DatabaseBackupSection />
       </div>
     </div>
   );

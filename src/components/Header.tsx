@@ -8,8 +8,6 @@ import {
   AdminNavDropdown,
   ImpersonationBanner,
   UserNav,
-  firstDisplayName,
-  timeGreeting,
   updatesAdminSections,
   updatesUserNav,
   ViewAsDropdown,
@@ -26,8 +24,6 @@ export function Header() {
   const isRealAdmin = (session?.user as { role?: string } | undefined)?.role === "admin";
   const showAdminNav = isRealAdmin && !impersonating;
 
-  const greeting = timeGreeting();
-  const displayName = firstDisplayName(effective.name, effective.email);
   const userNav = updatesUserNav(pathname);
   const adminSections = updatesAdminSections(pathname);
 
@@ -67,12 +63,6 @@ export function Header() {
               )}
             </div>
             <div className="flex items-center gap-3 self-end sm:self-center">
-              {displayName && (
-                <span className="text-sm font-medium text-stone-600">
-                  {greeting}&nbsp;
-                  {displayName}
-                </span>
-              )}
               {canImpersonate && (
                 <ViewAsDropdown
                   realEmail={real.email}
