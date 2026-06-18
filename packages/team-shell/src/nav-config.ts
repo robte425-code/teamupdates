@@ -49,7 +49,7 @@ export function dashboardNavLink(
   };
 }
 
-/** Canonical user nav order: Dashboard → Requests → Phone book → Voc hotline → PTO → HR */
+/** Canonical user nav order: Dashboard → Requests → Phone book → Voc hotline → Payroll → HR */
 export function updatesUserNav(pathname: string, env?: NodeJS.ProcessEnv): UserNavLink[] {
   const urls = teamUrls(env);
   return [
@@ -62,7 +62,7 @@ export function updatesUserNav(pathname: string, env?: NodeJS.ProcessEnv): UserN
       isActive: (p) => p.startsWith("/phone-book"),
     },
     { kind: "external", href: urls.vocHotline, label: "Voc hotline" },
-    { kind: "external", href: urls.payroll, label: "PTO" },
+    { kind: "external", href: urls.payroll, label: "Payroll" },
     { kind: "external", href: urls.hr, label: "HR" },
   ];
 }
@@ -85,7 +85,7 @@ export function requestsUserNav(isAgent: boolean, pathname: string, env?: NodeJS
     },
     { kind: "external", href: `${urls.updates}/phone-book`, label: "Phone book" },
     { kind: "external", href: urls.vocHotline, label: "Voc hotline" },
-    { kind: "external", href: urls.payroll, label: "PTO" },
+    { kind: "external", href: urls.payroll, label: "Payroll" },
     { kind: "external", href: urls.hr, label: "HR" },
   ];
 }
@@ -102,7 +102,7 @@ export function vocHotlineUserNav(pathname: string, env?: NodeJS.ProcessEnv): Us
       label: "Voc hotline",
       isActive: (p) => p === "/" || p.startsWith("/chat"),
     },
-    { kind: "external", href: urls.payroll, label: "PTO" },
+    { kind: "external", href: urls.payroll, label: "Payroll" },
     { kind: "external", href: urls.hr, label: "HR" },
   ];
 }
