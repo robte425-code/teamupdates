@@ -1,0 +1,21 @@
+{
+  "name": "@team/shell",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Shared TEAM header, navigation, and view-as UI for internal apps",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./nav-config": "./src/nav-config.ts",
+    "./greeting": "./src/greeting.ts",
+    "./impersonation": "./src/impersonation/constants.ts",
+    "./impersonate-client": "./src/impersonate-client.ts",
+    "./styles/team-shell.css": "./styles/team-shell.css"
+  },
+  "peerDependencies": {
+    "next": ">=14",
+    "react": ">=18",
+    "react-dom": ">=18"
+  }
+}

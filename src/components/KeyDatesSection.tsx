@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { useViewMode } from "@/contexts/ViewModeContext";
+import { useShowAdminUI } from "@/hooks/useShowAdminUI";
 import { KeyDateItem } from "./KeyDateItem";
 import { KeyDateForm } from "./KeyDateForm";
 
@@ -25,9 +25,7 @@ export function KeyDatesSection({ showAddForm = true }: { showAddForm?: boolean 
   const [items, setItems] = useState<KeyDate[]>([]);
   const [loading, setLoading] = useState(true);
   const user = session?.user as { role?: string } | undefined;
-  const { showAdminView } = useViewMode();
-  const isAdmin = user?.role === "admin";
-  const showAdminUI = isAdmin && showAdminView;
+  const showAdminUI = useShowAdminUI();
 
   useEffect(() => {
     fetch("/api/key-dates?list=homepage")

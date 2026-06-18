@@ -67,12 +67,14 @@ export const authOptions: NextAuthOptions = {
       }
       return true;
     },
-    async jwt({ token, user, account }) {
+    async jwt({ token, user }) {
       if (user) {
         token.id = user.id ?? token.sub;
         token.email = user.email ?? token.email;
         token.name = user.name ?? token.name;
-        token.role = isAdmin(user.email) ? "admin" : "member";
+      }
+      if (token.email) {
+        token.role = isAdmin(token.email as string) ? "admin" : "member";
       }
       return token;
     },

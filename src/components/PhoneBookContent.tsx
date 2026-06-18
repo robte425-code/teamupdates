@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
-import { useViewMode } from "@/contexts/ViewModeContext";
+import { useShowAdminUI } from "@/hooks/useShowAdminUI";
 import type { PhoneBookEntryDTO } from "@/app/api/phone-book/route";
 
 type TextColKey =
@@ -150,10 +150,8 @@ function PhoneBookReadonlyTable({ rows }: { rows: PhoneBookEntryDTO[] }) {
 
 export function PhoneBookContent() {
   const { data: session } = useSession();
-  const { showAdminView } = useViewMode();
-  const user = session?.user as { role?: string } | undefined;
-  const isAdmin = user?.role === "admin";
-  const editMode = isAdmin && showAdminView;
+  const showAdminUI = useShowAdminUI();
+  const editMode = showAdminUI;
 
   const [rows, setRows] = useState<PhoneBookEntryDTO[]>([]);
   const [loading, setLoading] = useState(true);

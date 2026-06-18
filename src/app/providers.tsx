@@ -1,12 +1,12 @@
 "use client";
 
 import { SessionProvider } from "next-auth/react";
-import { ViewModeProvider } from "@/contexts/ViewModeContext";
+import { ImpersonationProvider } from "@/contexts/ImpersonationContext";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <SessionProvider>
-      <ViewModeProvider>{children}</ViewModeProvider>
+      <ImpersonationProvider>{children}</ImpersonationProvider>
     </SessionProvider>
   );
 }

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { readImpersonateEmail } from "@/lib/impersonation";
 import { Header } from "@/components/Header";
 
 export default async function ManageLayout({
@@ -10,6 +11,7 @@ export default async function ManageLayout({
 }) {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
+  if (readImpersonateEmail()) redirect("/");
   const isAdmin = (session.user as { role?: string }).role === "admin";
   if (!isAdmin) redirect("/");
 

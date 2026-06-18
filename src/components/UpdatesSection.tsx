@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { useViewMode } from "@/contexts/ViewModeContext";
+import { useShowAdminUI } from "@/hooks/useShowAdminUI";
 import { UpdateItem } from "./UpdateItem";
 import { UpdateForm } from "./UpdateForm";
 
@@ -37,9 +37,7 @@ export function UpdatesSection({
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const user = session?.user as { role?: string } | undefined;
-  const { showAdminView } = useViewMode();
-  const isAdmin = user?.role === "admin";
-  const showAdminUI = isAdmin && showAdminView;
+  const showAdminUI = useShowAdminUI();
   const isArchivedPage = variant === "archived";
   const listUrl = isArchivedPage ? "/api/updates?archived=true" : "/api/updates";
 

@@ -20,6 +20,7 @@
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@team/shell": "file:./packages/team-shell",
     "@prisma/client": "^5.22.0",
     "bcryptjs": "^2.4.3",
     "date-fns": "^4.1.0",
