@@ -33,16 +33,48 @@ const ADMIN_NAV_LINKS: { href: string; label: string; isActive: (path: string) =
   },
   {
     href: "/manage/usage-stats",
-    label: "Admin",
+    label: "Usage stats",
     isActive: (p) => p.startsWith("/manage/usage-stats"),
+  },
+];
+
+type UserNavLink =
+  | { kind: "internal"; href: string; label: string; isActive: (path: string) => boolean }
+  | { kind: "external"; href: string; label: string; openInNewTab?: boolean };
+
+const USER_NAV_LINKS: UserNavLink[] = [
+  {
+    kind: "external",
+    href: process.env.NEXT_PUBLIC_REQUESTS_URL || "https://team-requests.vercel.app",
+    label: "Requests",
+  },
+  {
+    kind: "internal",
+    href: "/phone-book",
+    label: "Phone book",
+    isActive: (p) => p.startsWith("/phone-book"),
+  },
+  {
+    kind: "external",
+    href: process.env.NEXT_PUBLIC_VOC_HOTLINE_URL || "https://voc-hotline-nine.vercel.app",
+    label: "Voc hotline",
+  },
+  {
+    kind: "external",
+    href: "https://team-payroll.vercel.app/my-leave.html",
+    label: "Payroll",
+    openInNewTab: true,
+  },
+  {
+    kind: "external",
+    href: process.env.NEXT_PUBLIC_HR_URL || "https://team-hr.vercel.app",
+    label: "HR",
   },
 ];
 
 function AdminNavDropdown({ pathname }: { pathname: string }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
-
-  const active = ADMIN_NAV_LINKS.find((l) => l.isActive(pathname));
 
   useEffect(() => {
     function onPointerDown(e: MouseEvent) {
@@ -67,9 +99,7 @@ function AdminNavDropdown({ pathname }: { pathname: string }) {
         aria-haspopup="menu"
         className="flex items-center gap-1.5 rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm font-medium text-stone-800 shadow-sm transition-colors hover:bg-stone-50"
       >
-        <span className="max-w-[10rem] truncate sm:max-w-none">
-          {active ? active.label : "Site pages"}
-        </span>
+        <span className="max-w-[10rem] truncate sm:max-w-none">Admin</span>
         <svg
           className={`h-4 w-4 shrink-0 text-stone-500 transition-transform ${open ? "rotate-180" : ""}`}
           fill="none"
@@ -83,8 +113,12 @@ function AdminNavDropdown({ pathname }: { pathname: string }) {
       {open && (
         <ul
           role="menu"
+          aria-label="Admin"
           className="absolute left-0 top-full z-30 mt-1 min-w-[12rem] rounded-lg border border-stone-200 bg-white py-1 shadow-lg"
         >
+          <li role="presentation" className="border-b border-stone-100 px-3 py-2">
+            <span className="text-xs font-semibold uppercase tracking-wide text-stone-500">Admin</span>
+          </li>
           {ADMIN_NAV_LINKS.map((item) => {
             const isCurrent = item.isActive(pathname);
             return (
@@ -157,30 +191,35 @@ export function Header() {
             {session && (
               <nav className="flex min-w-0 flex-1 flex-wrap items-center gap-2 sm:flex-nowrap">
                 {showAdminNav && <AdminNavDropdown pathname={pathname} />}
-                <Link
-                  href="/phone-book"
-                  className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                    pathname.startsWith("/phone-book")
-                      ? "bg-stone-100 text-stone-900"
-                      : "text-stone-600 hover:bg-stone-50 hover:text-stone-900"
-                  }`}
-                >
-                  Phone book
-                </Link>
-                <a
-                  href="https://team-payroll.vercel.app/my-leave.html"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="rounded-lg px-3 py-2 text-sm font-medium text-stone-600 transition-colors hover:bg-stone-50 hover:text-stone-900"
-                >
-                  My balances
-                </a>
-                <a
-                  href={process.env.NEXT_PUBLIC_VOC_HOTLINE_URL || "https://voc-hotline-nine.vercel.app"}
-                  className="rounded-lg px-3 py-2 text-sm font-medium text-stone-600 transition-colors hover:bg-stone-50 hover:text-stone-900"
-                >
-                  Voc hotline
-                </a>
+                {USER_NAV_LINKS.map((item) => {
+                  const linkClass =
+                    "rounded-lg px-3 py-2 text-sm font-medium transition-colors text-stone-600 hover:bg-stone-50 hover:text-stone-900";
+                  if (item.kind === "internal") {
+                    const active = item.isActive(pathname);
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={`${linkClass} ${
+                          active ? "bg-stone-100 text-stone-900" : ""
+                        }`}
+                      >
+                        {item.label}
+                      </Link>
+                    );
+                  }
+                  return (
+                    <a
+                      key={item.href}
+                      href={item.href}
+                      target={item.openInNewTab ? "_blank" : undefined}
+                      rel={item.openInNewTab ? "noopener noreferrer" : undefined}
+                      className={linkClass}
+                    >
+                      {item.label}
+                    </a>
+                  );
+                })}
               </nav>
             )}
           </div>
