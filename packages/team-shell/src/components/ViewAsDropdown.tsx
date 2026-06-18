@@ -109,9 +109,17 @@ export function ViewAsDropdown({
         <ul
           role="menu"
           aria-label="View as"
-          className={`absolute ${alignClass} top-full z-30 mt-1 max-h-80 w-72 overflow-y-auto rounded-lg border border-stone-200 bg-white py-1 shadow-lg`}
+          className={`absolute ${alignClass} top-full z-30 mt-1 w-72 rounded-lg border border-stone-200 bg-white py-1 shadow-lg`}
+          style={{
+            maxHeight: "min(20rem, calc(100dvh - 5rem))",
+            overflowY: "auto",
+            WebkitOverflowScrolling: "touch",
+          }}
         >
-          <li role="presentation" className="border-b border-stone-100 px-3 py-2">
+          <li
+            role="presentation"
+            className="sticky top-0 z-[1] border-b border-stone-100 bg-white px-3 py-2"
+          >
             <span className="text-xs font-semibold uppercase tracking-wide text-stone-500">
               View as…
             </span>

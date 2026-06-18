@@ -93,6 +93,7 @@ export function updatesAdminSections(pathname: string): AdminNavSection[] {
         { href: "/manage/key-dates", label: "Key dates", isActive: (p) => p.startsWith("/manage/key-dates") },
         { href: "/manage/ticker", label: "Ticker", isActive: (p) => p.startsWith("/manage/ticker") },
         { href: "/manage/reminders", label: "Reminders", isActive: (p) => p.startsWith("/manage/reminders") },
+        { href: "/manage/access", label: "Access & admins", isActive: (p) => p.startsWith("/manage/access") },
         { href: "/manage/usage-stats", label: "Usage stats", isActive: (p) => p.startsWith("/manage/usage-stats") },
       ],
     },
@@ -110,6 +111,7 @@ export function requestsAdminSections(pathname: string, env?: NodeJS.ProcessEnv)
         { href: `${urls.updates}/manage/key-dates`, label: "Key dates", external: true },
         { href: `${urls.updates}/manage/ticker`, label: "Ticker", external: true },
         { href: `${urls.updates}/manage/reminders`, label: "Reminders", external: true },
+        { href: `${urls.updates}/manage/access`, label: "Access & admins", external: true },
         { href: `${urls.updates}/manage/usage-stats`, label: "Usage stats", external: true },
       ],
     },
@@ -129,6 +131,7 @@ export function payrollAdminSections(): AdminNavSection[] {
       label: "Admin",
       items: [
         { href: `${urls.updates}/`, label: "Home", external: true },
+        { href: `${urls.updates}/manage/access`, label: "Access & admins", external: true },
         { href: `${urls.updates}/manage/usage-stats`, label: "Usage stats", external: true },
       ],
     },
@@ -155,7 +158,7 @@ export function vocHotlineAdminSections(pathname: string): AdminNavSection[] {
         { href: "/admin/notes", label: "Best practices", isActive: (p) => p.startsWith("/admin/notes") },
         { href: "/admin/terminology", label: "Terminology", isActive: (p) => p.startsWith("/admin/terminology") },
         { href: "/admin/pages", label: "Page ingestion", isActive: (p) => p.startsWith("/admin/pages") },
-        { href: "/admin/admins", label: "Admins", isActive: (p) => p.startsWith("/admin/admins") },
+        { href: "/admin/admins", label: "Admin settings", isActive: (p) => p.startsWith("/admin/admins") },
       ],
     },
   ];
