@@ -6,18 +6,15 @@ import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import {
   AdminNavDropdown,
-  AdminViewToggle,
   ImpersonationBanner,
   UserNav,
   firstDisplayName,
-  readAdminViewPreference,
   timeGreeting,
   updatesAdminSections,
   updatesUserNav,
-  writeAdminViewPreference,
   ViewAsDropdown,
 } from "@team/shell";
-import { useEffect, useState, type ElementType } from "react";
+import { type ElementType } from "react";
 import { useImpersonation } from "@/contexts/ImpersonationContext";
 import { TickerBar } from "./TickerBar";
 
@@ -25,20 +22,9 @@ export function Header() {
   const pathname = usePathname() ?? "";
   const { data: session } = useSession();
   const { canImpersonate, impersonating, real, effective, target } = useImpersonation();
-  const [showAdminView, setShowAdminViewState] = useState(true);
-
-  useEffect(() => {
-    setShowAdminViewState(readAdminViewPreference());
-  }, []);
 
   const isRealAdmin = (session?.user as { role?: string } | undefined)?.role === "admin";
-  const showAdminNav = isRealAdmin && showAdminView && !impersonating;
-
-  function toggleViewMode() {
-    const next = !showAdminView;
-    setShowAdminViewState(next);
-    writeAdminViewPreference(next);
-  }
+  const showAdminNav = isRealAdmin && !impersonating;
 
   const greeting = timeGreeting();
   const displayName = firstDisplayName(effective.name, effective.email);
@@ -86,9 +72,6 @@ export function Header() {
                   {greeting}&nbsp;
                   {displayName}
                 </span>
-              )}
-              {isRealAdmin && !impersonating && (
-                <AdminViewToggle showAdminView={showAdminView} onToggle={toggleViewMode} />
               )}
               {canImpersonate && (
                 <ViewAsDropdown
