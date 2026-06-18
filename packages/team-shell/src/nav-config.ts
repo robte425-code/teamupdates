@@ -28,10 +28,32 @@ export function teamUrls(env: NodeJS.ProcessEnv = process.env) {
   };
 }
 
-/** Canonical user nav order: Requests → Phone book → Voc hotline → PTO/Sick → HR */
+/** First nav item — TEAM Updates home. Internal on the Updates app, external elsewhere. */
+export function dashboardNavLink(
+  env?: NodeJS.ProcessEnv,
+  onUpdatesApp = false
+): UserNavLink {
+  const urls = teamUrls(env);
+  if (onUpdatesApp) {
+    return {
+      kind: "internal",
+      href: "/",
+      label: "Dashboard",
+      isActive: (p) => p === "/",
+    };
+  }
+  return {
+    kind: "external",
+    href: urls.updates,
+    label: "Dashboard",
+  };
+}
+
+/** Canonical user nav order: Dashboard → Requests → Phone book → Voc hotline → PTO/Sick → HR */
 export function updatesUserNav(pathname: string, env?: NodeJS.ProcessEnv): UserNavLink[] {
   const urls = teamUrls(env);
   return [
+    dashboardNavLink(env, true),
     { kind: "external", href: urls.requests, label: "Requests" },
     {
       kind: "internal",
@@ -48,6 +70,7 @@ export function updatesUserNav(pathname: string, env?: NodeJS.ProcessEnv): UserN
 export function requestsUserNav(isAgent: boolean, pathname: string, env?: NodeJS.ProcessEnv): UserNavLink[] {
   const urls = teamUrls(env);
   return [
+    dashboardNavLink(env, false),
     {
       kind: "internal",
       href: isAgent ? "/dashboard" : "/my-tickets",
@@ -70,6 +93,7 @@ export function requestsUserNav(isAgent: boolean, pathname: string, env?: NodeJS
 export function vocHotlineUserNav(pathname: string, env?: NodeJS.ProcessEnv): UserNavLink[] {
   const urls = teamUrls(env);
   return [
+    dashboardNavLink(env, false),
     { kind: "external", href: urls.requests, label: "Requests" },
     { kind: "external", href: `${urls.updates}/phone-book`, label: "Phone book" },
     {
