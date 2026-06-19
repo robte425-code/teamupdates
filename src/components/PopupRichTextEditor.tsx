@@ -38,6 +38,25 @@ function readEditorHtml(el: HTMLDivElement): string {
   return isEditorEmpty(html) ? "" : html;
 }
 
+function stripFontSizeFromFragment(fragment: DocumentFragment) {
+  const unwrapElement = (el: Element) => {
+    const parent = el.parentNode;
+    if (!parent) return;
+    while (el.firstChild) {
+      parent.insertBefore(el.firstChild, el);
+    }
+    parent.removeChild(el);
+  };
+
+  fragment.querySelectorAll("span[style]").forEach((el) => {
+    const htmlEl = el as HTMLElement;
+    htmlEl.style.fontSize = "";
+    if (!htmlEl.getAttribute("style")?.trim()) {
+      unwrapElement(el);
+    }
+  });
+}
+
 function preventToolbarBlur(e: React.MouseEvent) {
   e.preventDefault();
 }
@@ -52,10 +71,11 @@ export function PopupRichTextEditor({
   placeholder?: string;
 }) {
   const editorRef = useRef<HTMLDivElement>(null);
+  const toolbarRef = useRef<HTMLDivElement>(null);
   const savedSelectionRef = useRef<Range | null>(null);
   const skipExternalSync = useRef(false);
   const lastValueRef = useRef(value);
-  const [fontSize, setFontSize] = useState<string>("1rem");
+  const [fontSize, setFontSize] = useState("");
   const [isEmpty, setIsEmpty] = useState(!value || isEditorEmpty(value));
 
   const updateEmptyState = useCallback((html: string) => {
@@ -95,6 +115,7 @@ export function PopupRichTextEditor({
     if (!sel || sel.rangeCount === 0) return;
     const range = sel.getRangeAt(0);
     if (!editorRef.current?.contains(range.commonAncestorContainer)) return;
+    if (range.collapsed) return;
     savedSelectionRef.current = range.cloneRange();
   }, []);
 
@@ -156,7 +177,6 @@ export function PopupRichTextEditor({
   }
 
   function applyFontSize(size: string) {
-    setFontSize(size);
     const el = editorRef.current;
     if (!el) return;
     el.focus();
@@ -167,30 +187,51 @@ export function PopupRichTextEditor({
     const range = sel.getRangeAt(0);
 
     if (range.collapsed) {
+      if (size === "1rem") {
+        setFontSize("");
+        return;
+      }
       document.execCommand(
         "insertHTML",
         false,
         `<span style="font-size: ${size}">\u200B</span>`
       );
       syncFromEditor();
+      setFontSize("");
       return;
     }
 
-    const span = document.createElement("span");
-    span.style.fontSize = size;
-    try {
-      range.surroundContents(span);
-    } catch {
+    if (size === "1rem") {
       const fragment = range.extractContents();
-      span.appendChild(fragment);
-      range.insertNode(span);
+      stripFontSizeFromFragment(fragment);
+      range.insertNode(fragment);
       sel.removeAllRanges();
-      const next = document.createRange();
-      next.selectNodeContents(span);
-      next.collapse(false);
-      sel.addRange(next);
+      sel.addRange(range);
+    } else {
+      const span = document.createElement("span");
+      span.style.fontSize = size;
+      try {
+        range.surroundContents(span);
+      } catch {
+        const fragment = range.extractContents();
+        span.appendChild(fragment);
+        range.insertNode(span);
+        sel.removeAllRanges();
+        const next = document.createRange();
+        next.selectNodeContents(span);
+        next.collapse(false);
+        sel.addRange(next);
+      }
     }
+
     syncFromEditor();
+    setFontSize("");
+  }
+
+  function handleEditorBlur(e: React.FocusEvent<HTMLDivElement>) {
+    const next = e.relatedTarget as Node | null;
+    if (next && toolbarRef.current?.contains(next)) return;
+    syncSanitizedFromEditor();
   }
 
   function handlePaste(e: React.ClipboardEvent<HTMLDivElement>) {
@@ -202,7 +243,10 @@ export function PopupRichTextEditor({
 
   return (
     <div className="space-y-2">
-      <div className="flex flex-wrap items-center gap-1 rounded-lg border border-stone-300 bg-stone-50 p-2">
+      <div
+        ref={toolbarRef}
+        className="flex flex-wrap items-center gap-1 rounded-lg border border-stone-300 bg-stone-50 p-2"
+      >
         <button
           type="button"
           className={toolbarBtn()}
@@ -252,10 +296,14 @@ export function PopupRichTextEditor({
           Size
           <select
             value={fontSize}
-            onMouseDown={saveSelection}
-            onChange={(e) => applyFontSize(e.target.value)}
+            onChange={(e) => {
+              const size = e.target.value;
+              if (!size) return;
+              applyFontSize(size);
+            }}
             className="rounded border border-stone-300 bg-white px-1.5 py-1 text-xs text-stone-800"
           >
+            <option value="">Size</option>
             {FONT_SIZES.map((s) => (
               <option key={s.value} value={s.value}>
                 {s.label}
@@ -275,9 +323,10 @@ export function PopupRichTextEditor({
         data-placeholder={placeholder}
         data-empty={isEmpty ? "true" : "false"}
         onInput={syncFromEditor}
-        onBlur={syncSanitizedFromEditor}
+        onBlur={handleEditorBlur}
         onMouseUp={saveSelection}
         onKeyUp={saveSelection}
+        onSelect={saveSelection}
         onPaste={handlePaste}
         className="popup-rich-editor min-h-[10rem] max-h-[20rem] overflow-y-auto rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm leading-relaxed text-stone-800 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
       />
