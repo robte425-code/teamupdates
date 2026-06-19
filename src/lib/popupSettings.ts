@@ -25,3 +25,46 @@ export async function getActivePopupMessage() {
     where: { id: settings.activePopupId },
   });
 }
+
+export async function hasUserDismissedPopup(
+  userEmail: string,
+  popupMessageId: string,
+  popupUpdatedAt: Date
+): Promise<boolean> {
+  const normalizedEmail = userEmail.trim().toLowerCase();
+  const dismissal = await prisma.popupDismissal.findUnique({
+    where: {
+      userEmail_popupMessageId: {
+        userEmail: normalizedEmail,
+        popupMessageId,
+      },
+    },
+  });
+  if (!dismissal) return false;
+  return dismissal.popupUpdatedAt.getTime() === popupUpdatedAt.getTime();
+}
+
+export async function recordPopupDismissal(
+  userEmail: string,
+  popupMessageId: string,
+  popupUpdatedAt: Date
+) {
+  const normalizedEmail = userEmail.trim().toLowerCase();
+  return prisma.popupDismissal.upsert({
+    where: {
+      userEmail_popupMessageId: {
+        userEmail: normalizedEmail,
+        popupMessageId,
+      },
+    },
+    create: {
+      userEmail: normalizedEmail,
+      popupMessageId,
+      popupUpdatedAt,
+    },
+    update: {
+      popupUpdatedAt,
+      dismissedAt: new Date(),
+    },
+  });
+}

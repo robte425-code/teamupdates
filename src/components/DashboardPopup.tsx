@@ -14,6 +14,8 @@ export function DashboardPopup() {
   const [popup, setPopup] = useState<ActivePopup | null>(null);
   const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [doNotShowAgain, setDoNotShowAgain] = useState(false);
+  const [dismissing, setDismissing] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -48,6 +50,20 @@ export function DashboardPopup() {
 
   if (loading || !visible || !popup) return null;
 
+  async function handleOk() {
+    if (doNotShowAgain) {
+      setDismissing(true);
+      try {
+        await fetch("/api/popup/dismiss", { method: "POST" });
+      } catch {
+        // Still close the popup even if the request fails.
+      } finally {
+        setDismissing(false);
+      }
+    }
+    setVisible(false);
+  }
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/50 p-4"
@@ -65,10 +81,20 @@ export function DashboardPopup() {
           <PopupMessageBody html={popup.body} />
         </div>
         <div className="border-t border-stone-100 bg-stone-50 px-5 py-4">
+          <label className="mb-3 flex cursor-pointer items-start gap-2.5 text-sm text-stone-700">
+            <input
+              type="checkbox"
+              checked={doNotShowAgain}
+              onChange={(e) => setDoNotShowAgain(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 rounded border-stone-300 text-stone-800 focus:ring-stone-500"
+            />
+            <span>Do not display this message again.</span>
+          </label>
           <button
             type="button"
-            onClick={() => setVisible(false)}
-            className="w-full rounded-lg bg-stone-800 px-4 py-2.5 text-sm font-medium text-white hover:bg-stone-700"
+            onClick={handleOk}
+            disabled={dismissing}
+            className="w-full rounded-lg bg-stone-800 px-4 py-2.5 text-sm font-medium text-white hover:bg-stone-700 disabled:opacity-60"
           >
             Ok
           </button>

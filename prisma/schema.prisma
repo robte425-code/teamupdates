@@ -121,17 +121,30 @@ model PhoneBookEntry {
 
 /// Dashboard popup messages (HTML body); one may be active at a time.
 model PopupMessage {
-  id             String   @id @default(cuid())
+  id             String           @id @default(cuid())
   title          String
   body           String
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
   createdByName  String?
   createdByEmail String?
+  dismissals     PopupDismissal[]
 }
 
 /// Singleton id `"default"` — which popup message is shown on the dashboard.
 model PopupSettings {
   id              String  @id @default("default")
   activePopupId   String?
+}
+
+/// User opted out of seeing a popup message ("Do not display again").
+model PopupDismissal {
+  id             String       @id @default(cuid())
+  userEmail      String
+  popupMessageId String
+  popupUpdatedAt DateTime
+  dismissedAt    DateTime     @default(now())
+  popupMessage   PopupMessage @relation(fields: [popupMessageId], references: [id], onDelete: Cascade)
+
+  @@unique([userEmail, popupMessageId])
 }
