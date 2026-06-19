@@ -52,6 +52,7 @@ export function PopupRichTextEditor({
   placeholder?: string;
 }) {
   const editorRef = useRef<HTMLDivElement>(null);
+  const savedSelectionRef = useRef<Range | null>(null);
   const skipExternalSync = useRef(false);
   const lastValueRef = useRef(value);
   const [fontSize, setFontSize] = useState<string>("1rem");
@@ -88,6 +89,22 @@ export function PopupRichTextEditor({
     updateEmptyState(clean || EMPTY_HTML);
     emitChange(clean);
   }, [emitChange, updateEmptyState]);
+
+  const saveSelection = useCallback(() => {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    const range = sel.getRangeAt(0);
+    if (!editorRef.current?.contains(range.commonAncestorContainer)) return;
+    savedSelectionRef.current = range.cloneRange();
+  }, []);
+
+  const restoreSelection = useCallback(() => {
+    const range = savedSelectionRef.current;
+    const sel = window.getSelection();
+    if (!range || !sel) return;
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }, []);
 
   useEffect(() => {
     const el = editorRef.current;
@@ -143,6 +160,7 @@ export function PopupRichTextEditor({
     const el = editorRef.current;
     if (!el) return;
     el.focus();
+    restoreSelection();
 
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0) return;
@@ -234,7 +252,7 @@ export function PopupRichTextEditor({
           Size
           <select
             value={fontSize}
-            onMouseDown={preventToolbarBlur}
+            onMouseDown={saveSelection}
             onChange={(e) => applyFontSize(e.target.value)}
             className="rounded border border-stone-300 bg-white px-1.5 py-1 text-xs text-stone-800"
           >
@@ -258,6 +276,8 @@ export function PopupRichTextEditor({
         data-empty={isEmpty ? "true" : "false"}
         onInput={syncFromEditor}
         onBlur={syncSanitizedFromEditor}
+        onMouseUp={saveSelection}
+        onKeyUp={saveSelection}
         onPaste={handlePaste}
         className="popup-rich-editor min-h-[10rem] max-h-[20rem] overflow-y-auto rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm leading-relaxed text-stone-800 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500"
       />
