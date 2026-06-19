@@ -125,22 +125,8 @@ export function updatesAdminSections(pathname: string): AdminNavSection[] {
   ];
 }
 
-export function requestsAdminSections(pathname: string, env?: NodeJS.ProcessEnv): AdminNavSection[] {
-  const urls = teamUrls(env);
+export function requestsAdminSections(pathname: string, _env?: NodeJS.ProcessEnv): AdminNavSection[] {
   return [
-    {
-      label: "Admin",
-      items: [
-        { href: `${urls.updates}/`, label: "Home", external: true },
-        { href: `${urls.updates}/manage/updates`, label: "Updates", external: true },
-        { href: `${urls.updates}/manage/key-dates`, label: "Key dates", external: true },
-        { href: `${urls.updates}/manage/ticker`, label: "Ticker", external: true },
-        { href: `${urls.updates}/manage/reminders`, label: "Reminders", external: true },
-        { href: `${urls.updates}/manage/popup`, label: "Popup window", external: true },
-        { href: `${urls.updates}/manage/access`, label: "Access & Backups", external: true },
-        { href: `${urls.updates}/manage/usage-stats`, label: "Usage stats", external: true },
-      ],
-    },
     {
       label: "Requests",
       items: [
@@ -151,16 +137,7 @@ export function requestsAdminSections(pathname: string, env?: NodeJS.ProcessEnv)
 }
 
 export function payrollAdminSections(): AdminNavSection[] {
-  const urls = teamUrls();
   return [
-    {
-      label: "Admin",
-      items: [
-        { href: `${urls.updates}/`, label: "Home", external: true },
-        { href: `${urls.updates}/manage/access`, label: "Access & Backups", external: true },
-        { href: `${urls.updates}/manage/usage-stats`, label: "Usage stats", external: true },
-      ],
-    },
     {
       label: "Payroll",
       items: [
