@@ -17,10 +17,32 @@
   will-change: transform;
 }
 
-.popup-rich-editor:empty::before {
+.popup-rich-editor[data-empty="true"]::before {
   content: attr(data-placeholder);
   color: #a8a29e;
   pointer-events: none;
+}
+
+.popup-rich-editor p {
+  margin: 0 0 0.5em;
+}
+
+.popup-rich-editor p:last-child {
+  margin-bottom: 0;
+}
+
+.popup-rich-editor ul,
+.popup-rich-editor ol {
+  margin: 0.5em 0;
+  padding-left: 1.25rem;
+}
+
+.popup-rich-editor ul {
+  list-style: disc;
+}
+
+.popup-rich-editor ol {
+  list-style: decimal;
 }
 
 .popup-message-body a {
