@@ -68,33 +68,23 @@ export function ManagePopupContent() {
 
       <section className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
         <h2 className="mb-3 text-lg font-semibold text-stone-800">Displayed on dashboard</h2>
-        <div className="flex flex-wrap items-center gap-3">
-          <label className="flex cursor-pointer items-center gap-2 text-sm text-stone-700">
-            <input
-              type="radio"
-              name="active-popup"
-              checked={activePopupId === null}
-              disabled={savingActive}
-              onChange={() => setActive(null)}
-            />
-            None (no popup)
-          </label>
+        <label htmlFor="active-popup-select" className="sr-only">
+          Displayed on dashboard
+        </label>
+        <select
+          id="active-popup-select"
+          value={activePopupId ?? ""}
+          disabled={savingActive || loading}
+          onChange={(e) => setActive(e.target.value || null)}
+          className="w-full max-w-md rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-800 focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 disabled:opacity-60"
+        >
+          <option value="">None (no popup)</option>
           {items.map((item) => (
-            <label
-              key={item.id}
-              className="flex cursor-pointer items-center gap-2 text-sm text-stone-700"
-            >
-              <input
-                type="radio"
-                name="active-popup"
-                checked={activePopupId === item.id}
-                disabled={savingActive}
-                onChange={() => setActive(item.id)}
-              />
+            <option key={item.id} value={item.id}>
               {item.title}
-            </label>
+            </option>
           ))}
-        </div>
+        </select>
       </section>
 
       <section>
