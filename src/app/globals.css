@@ -45,6 +45,13 @@
   list-style: decimal;
 }
 
+.popup-rich-editor a {
+  color: #1d4ed8;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  word-break: break-word;
+}
+
 .popup-message-body a {
   color: #1c1917;
   text-decoration: underline;
