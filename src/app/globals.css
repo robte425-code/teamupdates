@@ -16,3 +16,49 @@
   animation: ticker-marquee 30s linear infinite;
   will-change: transform;
 }
+
+.popup-rich-editor:empty::before {
+  content: attr(data-placeholder);
+  color: #a8a29e;
+  pointer-events: none;
+}
+
+.popup-message-body a {
+  color: #1c1917;
+  text-decoration: underline;
+  word-break: break-word;
+}
+
+.popup-message-body ul {
+  list-style: disc;
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
+}
+
+.popup-message-body ol {
+  list-style: decimal;
+  padding-left: 1.25rem;
+  margin: 0.5rem 0;
+}
+
+.popup-message-body p,
+.popup-message-body div {
+  margin: 0.5rem 0;
+}
+
+.popup-message-body p:first-child,
+.popup-message-body div:first-child {
+  margin-top: 0;
+}
+
+.popup-message-body h2 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0.75rem 0 0.5rem;
+}
+
+.popup-message-body h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0.5rem 0 0.25rem;
+}

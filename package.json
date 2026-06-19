@@ -20,8 +20,8 @@
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
-    "@team/shell": "file:./packages/team-shell",
     "@prisma/client": "^5.22.0",
+    "@team/shell": "file:./packages/team-shell",
     "bcryptjs": "^2.4.3",
     "date-fns": "^4.1.0",
     "next": "14.2.18",
@@ -29,7 +29,8 @@
     "pg": "^8.20.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "resend": "^4.0.1"
+    "resend": "^4.0.1",
+    "sanitize-html": "^2.17.5"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -37,6 +38,7 @@
     "@types/pg": "^8.20.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
+    "@types/sanitize-html": "^2.16.1",
     "autoprefixer": "^10.5.0",
     "eslint": "^8.57.1",
     "eslint-config-next": "^14.2.18",

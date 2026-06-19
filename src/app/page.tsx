@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { UpdatesSection } from "@/components/UpdatesSection";
 import { KeyDatesSection } from "@/components/KeyDatesSection";
 import { Header } from "@/components/Header";
+import { DashboardPopup } from "@/components/DashboardPopup";
 
 export default async function HomePage() {
   const session = await getServerSession(authOptions);
@@ -61,6 +62,7 @@ export default async function HomePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50/90 via-stone-50 to-slate-100/90">
       <Header />
+      <DashboardPopup />
       <main className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
         <div className="mb-10">
           <h1 className="text-2xl font-semibold tracking-tight text-stone-900 sm:text-3xl">

@@ -118,3 +118,20 @@ model PhoneBookEntry {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
+
+/// Dashboard popup messages (HTML body); one may be active at a time.
+model PopupMessage {
+  id             String   @id @default(cuid())
+  title          String
+  body           String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  createdByName  String?
+  createdByEmail String?
+}
+
+/// Singleton id `"default"` — which popup message is shown on the dashboard.
+model PopupSettings {
+  id              String  @id @default("default")
+  activePopupId   String?
+}
