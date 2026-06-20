@@ -89,7 +89,7 @@ export async function getImpersonationContext() {
       : null;
 
   return {
-    canImpersonate: true,
+    canImpersonate: !impersonating,
     impersonating,
     real: { email: real.email, name: real.name },
     effective: {

@@ -19,10 +19,10 @@ import { TickerBar } from "./TickerBar";
 export function Header() {
   const pathname = usePathname() ?? "";
   const { data: session } = useSession();
-  const { canImpersonate, impersonating, real, effective, target } = useImpersonation();
+  const { impersonating, real, effective, target } = useImpersonation();
 
   const isRealAdmin = (session?.user as { role?: string } | undefined)?.role === "admin";
-  const showAdminNav = isRealAdmin && !impersonating;
+  const showAdminControls = isRealAdmin && !impersonating;
 
   const userNav = updatesUserNav(pathname);
   const adminSections = updatesAdminSections(pathname);
@@ -56,7 +56,7 @@ export function Header() {
               )}
             </div>
             <div className="flex items-center gap-3 self-end sm:self-center">
-              {canImpersonate && (
+              {showAdminControls && (
                 <ViewAsDropdown
                   realEmail={real.email}
                   realName={real.name}
@@ -64,7 +64,7 @@ export function Header() {
                   isImpersonating={impersonating}
                 />
               )}
-              {showAdminNav && (
+              {showAdminControls && (
                 <AdminNavDropdown
                   sections={adminSections}
                   pathname={pathname}
