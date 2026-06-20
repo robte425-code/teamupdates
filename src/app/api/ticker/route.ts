@@ -1,17 +1,15 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { requireAuth, requireRealAdmin } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(req: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session) {
+  const user = await requireAuth();
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const { searchParams } = new URL(req.url);
   const manage = searchParams.get("manage") === "1";
-  const user = session.user as { role?: string } | undefined;
-  if (manage && user?.role !== "admin") {
+  if (manage && user.role !== "admin") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   try {
@@ -33,8 +31,8 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session || (session.user as { role?: string }).role !== "admin") {
+  const admin = await requireRealAdmin();
+  if (!admin) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   const body = await req.json();

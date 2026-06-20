@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 import { Client } from "pg";
-import { authOptions } from "@/lib/auth";
+import { requireRealAdmin } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 
 const BACKUP_HEADER = "-- TEAMVOC_DB_BACKUP_V1";
@@ -30,12 +29,8 @@ function insertStatement(table: string, columns: string[], rows: Record<string, 
 }
 
 async function requireAdmin() {
-  const session = await getServerSession(authOptions);
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  const user = session.user as { role?: string } | undefined;
-  if (user?.role !== "admin") {
+  const admin = await requireRealAdmin();
+  if (!admin) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   return null;

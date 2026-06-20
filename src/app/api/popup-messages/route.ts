@@ -1,14 +1,13 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { requireRealAdmin } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
-import { createdByFromSession } from "@/lib/createdBy";
+import { createdByFromUser } from "@/lib/createdBy";
 import { sanitizePopupHtml } from "@/lib/sanitizePopupHtml";
 import { getPopupSettings } from "@/lib/popupSettings";
 
 export async function GET() {
-  const session = await getServerSession(authOptions);
-  if (!session || (session.user as { role?: string }).role !== "admin") {
+  const admin = await requireRealAdmin();
+  if (!admin) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   const [messages, settings] = await Promise.all([
@@ -22,8 +21,8 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session || (session.user as { role?: string }).role !== "admin") {
+  const admin = await requireRealAdmin();
+  if (!admin) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   const body = await req.json();
@@ -33,7 +32,7 @@ export async function POST(req: Request) {
   if (!title || !cleanBody) {
     return NextResponse.json({ error: "title and body are required" }, { status: 400 });
   }
-  const { createdByName, createdByEmail } = createdByFromSession(session);
+  const { createdByName, createdByEmail } = createdByFromUser(admin);
   const item = await prisma.popupMessage.create({
     data: {
       title,

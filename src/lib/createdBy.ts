@@ -5,6 +5,16 @@ export function createdByFromSession(session: Session | null): {
   createdByEmail: string | null;
 } {
   const user = session?.user as { name?: string | null; email?: string | null } | undefined;
+  return createdByFromUser(user);
+}
+
+export function createdByFromUser(user: {
+  name?: string | null;
+  email?: string | null;
+} | null | undefined): {
+  createdByName: string | null;
+  createdByEmail: string | null;
+} {
   const name = user?.name?.trim() || null;
   const email = user?.email?.trim() || null;
   return { createdByName: name, createdByEmail: email };

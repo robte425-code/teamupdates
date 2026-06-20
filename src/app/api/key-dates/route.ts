@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { requireAuth, requireRealAdmin } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
-import { createdByFromSession } from "@/lib/createdBy";
+import { createdByFromUser } from "@/lib/createdBy";
 
 function keyDateExpiry(item: {
   dateType: string;
@@ -13,15 +12,14 @@ function keyDateExpiry(item: {
 }
 
 export async function GET(req: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session) {
+  const user = await requireAuth();
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const { searchParams } = new URL(req.url);
   const list = searchParams.get("list");
   const archivedOnly = searchParams.get("archived") === "true";
-  const user = session.user as { role?: string } | undefined;
-  if (archivedOnly && user?.role !== "admin") {
+  if (archivedOnly && user.role !== "admin") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -66,8 +64,8 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session || (session.user as { role?: string }).role !== "admin") {
+  const admin = await requireRealAdmin();
+  if (!admin) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   const body = await req.json();
@@ -85,7 +83,7 @@ export async function POST(req: Request) {
       { status: 400 }
     );
   }
-  const { createdByName, createdByEmail } = createdByFromSession(session);
+  const { createdByName, createdByEmail } = createdByFromUser(admin);
   const item = await prisma.keyDate.create({
     data: {
       dateType: keyDateType,

@@ -53,6 +53,20 @@ export function isAdmin(user: SessionUser | null): boolean {
   return user?.role === "admin";
 }
 
+/** Admin who is not currently viewing as another user (for mutating admin APIs). */
+export async function requireRealAdmin(): Promise<SessionUser | null> {
+  const real = await getRealSessionUser();
+  if (!real || real.role !== "admin") return null;
+  const target = readImpersonateEmail();
+  if (target && target !== real.email.toLowerCase()) return null;
+  return real;
+}
+
+/** Signed-in user for read APIs; admins viewing-as get member role. */
+export async function requireAuth(): Promise<SessionUser | null> {
+  return getEffectiveSessionUser();
+}
+
 export async function getImpersonationContext() {
   const real = await getRealSessionUser();
   if (!real || real.role !== "admin") {

@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { requireAuth, requireRealAdmin } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import {
   KEY_DATE_BADGE_MAX_DAYS,
@@ -26,8 +25,8 @@ function jsonNoStore(body: unknown, status = 200) {
 }
 
 export async function GET() {
-  const session = await getServerSession(authOptions);
-  if (!session) {
+  const user = await requireAuth();
+  if (!user) {
     return jsonNoStore({ error: "Unauthorized" }, 401);
   }
   try {
@@ -55,8 +54,8 @@ export async function GET() {
 }
 
 export async function PATCH(req: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session || (session.user as { role?: string }).role !== "admin") {
+  const admin = await requireRealAdmin();
+  if (!admin) {
     return jsonNoStore({ error: "Forbidden" }, 403);
   }
   const body = (await req.json()) as {

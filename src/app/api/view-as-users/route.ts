@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getRealSessionUser } from "@/lib/session";
+import { requireRealAdmin } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const real = await getRealSessionUser();
-  if (!real || real.role !== "admin") {
+  const real = await requireRealAdmin();
+  if (!real) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { requireAuth, requireRealAdmin } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { isTransientPrismaError, withPrismaRetry } from "@/lib/prismaRetry";
 
@@ -17,20 +16,18 @@ export type PhoneBookEntryDTO = {
   remarks: string;
 };
 
-function serialize(
-  row: {
-    id: string;
-    sortOrder: number;
-    employee: string;
-    isEmployee: boolean;
-    workCell: string;
-    fax: string;
-    extension: string;
-    personalEmail: string;
-    personalPhone: string;
-    remarks: string;
-  }
-): PhoneBookEntryDTO {
+function serialize(row: {
+  id: string;
+  sortOrder: number;
+  employee: string;
+  isEmployee: boolean;
+  workCell: string;
+  fax: string;
+  extension: string;
+  personalEmail: string;
+  personalPhone: string;
+  remarks: string;
+}): PhoneBookEntryDTO {
   return {
     id: row.id,
     sortOrder: row.sortOrder,
@@ -46,8 +43,8 @@ function serialize(
 }
 
 export async function GET() {
-  const session = await getServerSession(authOptions);
-  if (!session) {
+  const user = await requireAuth();
+  if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -82,8 +79,8 @@ type IncomingEntry = {
 };
 
 export async function PUT(req: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session || (session.user as { role?: string }).role !== "admin") {
+  const admin = await requireRealAdmin();
+  if (!admin) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

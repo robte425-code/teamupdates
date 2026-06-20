@@ -33,6 +33,10 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE() {
+  const real = await getRealSessionUser();
+  if (!real) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   cookies().set(clearImpersonateCookieOptions());
   return NextResponse.json({ ok: true });
 }

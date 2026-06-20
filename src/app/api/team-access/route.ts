@@ -1,15 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { requireRealAdmin } from "@/lib/session";
 import { fetchAggregatedAccess, saveAggregatedAccess, type AccessRow } from "@/lib/team-access-hub";
 
 export const dynamic = "force-dynamic";
 
 async function requireAdmin() {
-  const session = await getServerSession(authOptions);
-  const role = (session?.user as { role?: string } | undefined)?.role;
-  if (!session || role !== "admin") return null;
-  return session;
+  return requireRealAdmin();
 }
 
 export async function GET() {

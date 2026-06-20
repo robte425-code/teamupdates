@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { requireRealAdmin } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 
 const SETTINGS_ID = "default";
@@ -8,11 +7,8 @@ const MIN_THRESHOLD = 1;
 const MAX_THRESHOLD = 365;
 
 async function requireAdmin() {
-  const session = await getServerSession(authOptions);
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  if ((session.user as { role?: string }).role !== "admin") {
+  const admin = await requireRealAdmin();
+  if (!admin) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   return null;
