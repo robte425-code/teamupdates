@@ -11,7 +11,7 @@ export type AccessRow = {
   email: string;
   displayName: string;
   envAdmin: boolean;
-  requests: { signIn: boolean; agent: boolean };
+  requests: { agent: boolean };
   hr: { admin: boolean };
   payroll: { admin: boolean };
   voc: { admin: boolean };
@@ -58,7 +58,7 @@ function emptyRow(email: string, envAdmin = false): AccessRow {
     email,
     displayName: "",
     envAdmin,
-    requests: { signIn: envAdmin, agent: envAdmin },
+    requests: { agent: envAdmin },
     hr: { admin: envAdmin },
     payroll: { admin: envAdmin },
     voc: { admin: envAdmin },
@@ -110,8 +110,7 @@ export async function fetchAggregatedAccess(): Promise<{
       const row = map.get(key) ?? emptyRow(key, envAdmins.includes(key));
       if (u.displayName) row.displayName = u.displayName;
       if (app.id === "requests") {
-        row.requests.signIn = u.signInEnabled;
-        row.requests.agent = u.isAdmin;
+        if (u.isAdmin) row.requests.agent = true;
       } else if (app.id === "hr") {
         if (u.isAdmin) row.hr.admin = true;
       } else if (app.id === "payroll") {
@@ -140,12 +139,12 @@ export async function saveAggregatedAccess(rows: AccessRow[]): Promise<{ appErro
   const appOnly = rows.filter((r) => r.email.includes("@") && !envSet.has(r.email.toLowerCase()));
 
   const requestsUsers: InternalAccessUser[] = appOnly
-    .filter((r) => r.requests.signIn || r.requests.agent)
+    .filter((r) => r.requests.agent)
     .map((r) => ({
       email: r.email,
       displayName: r.displayName,
-      signInEnabled: r.requests.signIn,
-      isAdmin: r.requests.agent,
+      signInEnabled: true,
+      isAdmin: true,
     }));
 
   const hrUsers: InternalAccessUser[] = appOnly

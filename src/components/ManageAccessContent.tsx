@@ -36,7 +36,7 @@ function emptyEditableRow(): AccessRow {
     email: "",
     displayName: "",
     envAdmin: false,
-    requests: { signIn: true, agent: false },
+    requests: { agent: false },
     hr: { admin: false },
     payroll: { admin: false },
     voc: { admin: false },
@@ -148,11 +148,10 @@ export function ManageAccessContent() {
       <div>
         <h1 className="text-2xl font-semibold text-stone-900">Access &amp; Backups</h1>
         <p className="mt-2 max-w-3xl text-sm text-stone-600">
-          Manage admin and agent access across TEAM apps. Anyone on your allowed email domain can
-          sign in to HR and Payroll as an employee; use this page to grant admin privileges only.
-          Requests still uses explicit sign-in and agent toggles. Addresses in{" "}
-          <code className="rounded bg-stone-100 px-1">ADMIN_EMAILS</code> (Vercel) are always
-          full admins everywhere and cannot be edited here.
+          Grant admin/agent access across TEAM apps. Anyone on your allowed email domain can sign in
+          as an employee and submit requests; use this page for agent and admin privileges only.
+          Addresses in <code className="rounded bg-stone-100 px-1">ADMIN_EMAILS</code> (Vercel) are
+          always full admins everywhere and cannot be edited here.
         </p>
       </div>
 
@@ -206,7 +205,6 @@ export function ManageAccessContent() {
             <thead className="border-b border-stone-200 bg-stone-50 text-xs uppercase tracking-wide text-stone-500">
               <tr>
                 <th className="px-3 py-2">Email</th>
-                <th className="px-3 py-2">Requests sign-in</th>
                 <th className="px-3 py-2">Requests agent</th>
                 <th className="px-3 py-2">HR admin</th>
                 <th className="px-3 py-2">Payroll admin</th>
@@ -222,14 +220,6 @@ export function ManageAccessContent() {
                     {row.envAdmin && (
                       <span className="text-xs text-stone-500">env admin</span>
                     )}
-                  </td>
-                  <td className="px-3 py-2">
-                    <Toggle
-                      label="Requests sign-in"
-                      checked={row.requests.signIn}
-                      disabled={row.envAdmin}
-                      onChange={() => toggleApp(i, "requests", "signIn")}
-                    />
                   </td>
                   <td className="px-3 py-2">
                     <Toggle
