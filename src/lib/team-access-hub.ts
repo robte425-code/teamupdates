@@ -12,8 +12,8 @@ export type AccessRow = {
   displayName: string;
   envAdmin: boolean;
   requests: { signIn: boolean; agent: boolean };
-  hr: { signIn: boolean; admin: boolean };
-  payroll: { signIn: boolean; admin: boolean };
+  hr: { admin: boolean };
+  payroll: { admin: boolean };
   voc: { admin: boolean };
 };
 
@@ -59,8 +59,8 @@ function emptyRow(email: string, envAdmin = false): AccessRow {
     displayName: "",
     envAdmin,
     requests: { signIn: envAdmin, agent: envAdmin },
-    hr: { signIn: envAdmin, admin: envAdmin },
-    payroll: { signIn: envAdmin, admin: envAdmin },
+    hr: { admin: envAdmin },
+    payroll: { admin: envAdmin },
     voc: { admin: envAdmin },
   };
 }
@@ -113,11 +113,9 @@ export async function fetchAggregatedAccess(): Promise<{
         row.requests.signIn = u.signInEnabled;
         row.requests.agent = u.isAdmin;
       } else if (app.id === "hr") {
-        row.hr.signIn = u.signInEnabled;
-        row.hr.admin = u.isAdmin;
+        if (u.isAdmin) row.hr.admin = true;
       } else if (app.id === "payroll") {
-        row.payroll.signIn = u.signInEnabled;
-        row.payroll.admin = u.isAdmin;
+        if (u.isAdmin) row.payroll.admin = true;
       }
       map.set(key, row);
     }
@@ -151,21 +149,21 @@ export async function saveAggregatedAccess(rows: AccessRow[]): Promise<{ appErro
     }));
 
   const hrUsers: InternalAccessUser[] = appOnly
-    .filter((r) => r.hr.signIn || r.hr.admin)
+    .filter((r) => r.hr.admin)
     .map((r) => ({
       email: r.email,
       displayName: r.displayName,
-      signInEnabled: r.hr.signIn,
-      isAdmin: r.hr.admin,
+      signInEnabled: true,
+      isAdmin: true,
     }));
 
   const payrollUsers: InternalAccessUser[] = appOnly
-    .filter((r) => r.payroll.signIn || r.payroll.admin)
+    .filter((r) => r.payroll.admin)
     .map((r) => ({
       email: r.email,
       displayName: r.displayName,
-      signInEnabled: r.payroll.signIn,
-      isAdmin: r.payroll.admin,
+      signInEnabled: true,
+      isAdmin: true,
     }));
 
   const vocAdmins = appOnly.filter((r) => r.voc.admin).map((r) => r.email.toLowerCase());
