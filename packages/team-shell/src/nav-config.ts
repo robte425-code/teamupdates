@@ -4,9 +4,18 @@ export const DEFAULT_VOC_HOTLINE_URL = "https://voc-hotline-nine.vercel.app";
 export const DEFAULT_HR_URL = "https://team-hr.vercel.app";
 export const DEFAULT_PAYROLL_URL = "https://team-payroll.vercel.app/my-leave.html";
 
+export const PAYROLL_NAV_KEY = "payroll";
+export const PAYROLL_UNREAD_API_PATH = "/api/payroll-unread";
+
 export type UserNavLink =
-  | { kind: "internal"; href: string; label: string; isActive: (path: string) => boolean }
-  | { kind: "external"; href: string; label: string; openInNewTab?: boolean };
+  | {
+      kind: "internal";
+      href: string;
+      label: string;
+      isActive: (path: string) => boolean;
+      navKey?: string;
+    }
+  | { kind: "external"; href: string; label: string; openInNewTab?: boolean; navKey?: string };
 
 export type AdminNavSection = {
   label: string;
@@ -62,7 +71,7 @@ export function updatesUserNav(pathname: string, env?: NodeJS.ProcessEnv): UserN
       isActive: (p) => p.startsWith("/phone-book"),
     },
     { kind: "external", href: urls.vocHotline, label: "Voc hotline" },
-    { kind: "external", href: urls.payroll, label: "Payroll" },
+    { kind: "external", href: urls.payroll, label: "Payroll", navKey: PAYROLL_NAV_KEY },
     { kind: "external", href: urls.hr, label: "HR" },
   ];
 }
@@ -85,7 +94,7 @@ export function requestsUserNav(isAgent: boolean, pathname: string, env?: NodeJS
     },
     { kind: "external", href: `${urls.updates}/phone-book`, label: "Phone book" },
     { kind: "external", href: urls.vocHotline, label: "Voc hotline" },
-    { kind: "external", href: urls.payroll, label: "Payroll" },
+    { kind: "external", href: urls.payroll, label: "Payroll", navKey: PAYROLL_NAV_KEY },
     { kind: "external", href: urls.hr, label: "HR" },
   ];
 }
@@ -102,7 +111,7 @@ export function vocHotlineUserNav(pathname: string, env?: NodeJS.ProcessEnv): Us
       label: "Voc hotline",
       isActive: (p) => p === "/" || p.startsWith("/chat"),
     },
-    { kind: "external", href: urls.payroll, label: "Payroll" },
+    { kind: "external", href: urls.payroll, label: "Payroll", navKey: PAYROLL_NAV_KEY },
     { kind: "external", href: urls.hr, label: "HR" },
   ];
 }

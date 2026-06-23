@@ -51,7 +51,12 @@ export function Header() {
               </Link>
               {session && (
                 <nav className="flex min-w-0 flex-1 flex-wrap items-center gap-2 sm:flex-nowrap">
-                  <UserNav links={userNav} pathname={pathname} LinkComponent={NextLink} />
+                  <UserNav
+                    links={userNav}
+                    pathname={pathname}
+                    LinkComponent={NextLink}
+                    refreshKey={impersonating ? target?.email : session?.user?.email ?? undefined}
+                  />
                 </nav>
               )}
             </div>

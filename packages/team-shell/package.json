@@ -11,6 +11,7 @@
     "./greeting": "./src/greeting.ts",
     "./impersonation": "./src/impersonation/constants.ts",
     "./impersonate-client": "./src/impersonate-client.ts",
+    "./payroll-unread-server": "./src/payroll-unread-server.ts",
     "./styles/team-shell.css": "./styles/team-shell.css"
   },
   "peerDependencies": {
