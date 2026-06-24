@@ -18,9 +18,6 @@ export type NeonBackupTarget = {
   neonEndpointHint: string | null;
   /** Production root branch name in Neon (schedules apply here only). */
   rootBranch: string;
-  snapshotSchedule: "daily" | "weekly" | "monthly";
-  /** Shown in Backup hub; reflects Neon Console schedule configuration. */
-  snapshotScheduleEnabled: boolean;
   coveredByBackupHub: boolean;
   notes?: string;
 };
@@ -35,8 +32,6 @@ export const NEON_BACKUP_TARGETS: NeonBackupTarget[] = [
     neonBranchId: null,
     neonEndpointHint: "ep-hidden-union-akqrv9j9",
     rootBranch: "main",
-    snapshotSchedule: "daily",
-    snapshotScheduleEnabled: true,
     coveredByBackupHub: true,
   },
   {
@@ -47,8 +42,6 @@ export const NEON_BACKUP_TARGETS: NeonBackupTarget[] = [
     neonBranchId: "br-billowing-mountain-afdjswm8",
     neonEndpointHint: "ep-falling-frog-af76gebl",
     rootBranch: "main",
-    snapshotSchedule: "daily",
-    snapshotScheduleEnabled: true,
     coveredByBackupHub: true,
   },
   {
@@ -59,8 +52,6 @@ export const NEON_BACKUP_TARGETS: NeonBackupTarget[] = [
     neonBranchId: null,
     neonEndpointHint: "ep-muddy-surf-akmqv5zc",
     rootBranch: "main",
-    snapshotSchedule: "daily",
-    snapshotScheduleEnabled: true,
     coveredByBackupHub: true,
   },
   {
@@ -71,8 +62,6 @@ export const NEON_BACKUP_TARGETS: NeonBackupTarget[] = [
     neonBranchId: null,
     neonEndpointHint: "ep-autumn-sun-atno8xwy",
     rootBranch: "main",
-    snapshotSchedule: "daily",
-    snapshotScheduleEnabled: true,
     coveredByBackupHub: true,
     notes: "Neon covers Postgres only; HR document files still rely on SharePoint zip backups.",
   },
@@ -84,8 +73,6 @@ export const NEON_BACKUP_TARGETS: NeonBackupTarget[] = [
     neonBranchId: "br-icy-fog-a6uazw7v",
     neonEndpointHint: "ep-shy-night-a6pkwiip",
     rootBranch: "main",
-    snapshotSchedule: "daily",
-    snapshotScheduleEnabled: true,
     coveredByBackupHub: true,
   },
 ];

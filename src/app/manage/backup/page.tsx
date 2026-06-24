@@ -1,4 +1,5 @@
-import { BackupHubLayersOverview, NeonBackupPanel } from "@/components/NeonBackupPanel";
+import { BackupHubLayersOverview } from "@/components/BackupHubLayersOverview";
+import { NeonBackupPanel } from "@/components/NeonBackupPanel";
 import { TeamBackupSection } from "@/components/TeamBackupSection";
 
 export default function ManageBackupPage() {
