@@ -28,7 +28,13 @@ Every Vercel project should use the same **`AZURE_AD_TENANT_ID`** — your Micro
 
 **`a6009694-7fa8-4b24-ab9c-ef6b98136638`**
 
-Confirm in Entra → **Overview** → **Tenant ID**. Same value for **`SHAREPOINT_AZURE_TENANT_ID`** where that var exists. Do not use `common` in production.
+Confirm in Entra → **Overview** → **Tenant ID**. Same value for **`SHAREPOINT_AZURE_TENANT_ID`** and **`AZURE_AD_TENANT_ID`** on every project. Do not use `common` in production.
+
+**Vercel UI:** Most projects mark env vars as sensitive and **hide all values** (including tenant ID). Payroll may show `AZURE_AD_TENANT_ID` if that var was not flagged sensitive — hidden on **voc-hotline-nine** is normal. Confirm the var **name** exists; use one of these to verify the value:
+
+1. **Sign-in URL** — [voc-hotline-nine/login](https://voc-hotline-nine.vercel.app/login) → **Sign in with Microsoft** → address bar is `login.microsoftonline.com/{tenant-id-or-domain}/...` — the GUID should be `a6009694-7fa8-4b24-ab9c-ef6b98136638`.
+2. **CLI** — `npx vercel env ls production` confirms `AZURE_AD_TENANT_ID` and `SHAREPOINT_AZURE_TENANT_ID` exist (names only).
+3. **`vercel env pull`** — `grep TENANT_ID .env.production.local` (delete file after; do not commit).
 
 ### How to confirm in Azure Portal
 
