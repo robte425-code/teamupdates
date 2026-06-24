@@ -158,21 +158,87 @@ GitHub Action: **`.github/workflows/credential-expiry-report.yml`** (1st of each
 | Vercel API | Deploy token `expiresAt` | `VERCEL_TOKEN` |
 | Local registry | Neon, Postmark, Anthropic, etc. | Set `lastRotated` after each rotation |
 
-### One-time setup: Graph reader app
+### One-time setup: Graph reader app (step-by-step)
 
-Your **SSO app** usually does *not* have permission to read its own secrets via API. Create a small **automation** app:
+Your **SSO app** cannot read its own secret expiry via Graph unless it has **Application.Read.All** — which you usually do *not* want on a sign-in app. Create a dedicated **automation** registration instead.
 
-1. Entra → **App registrations** → **New registration** (e.g. `TEAM credential monitor`).
-2. **API permissions** → **Microsoft Graph** → **Application permissions** → **Application.Read.All** → **Grant admin consent**.
-3. **Certificates & secrets** → new client secret → copy value once.
-4. Add to **GitHub** repo secrets (`teamupdates`):
-   - `AZURE_GRAPH_CLIENT_ID` — automation app client ID
-   - `AZURE_GRAPH_CLIENT_SECRET` — automation app secret
-   - `AZURE_GRAPH_TENANT_ID` — your tenant ID
-   - `AZURE_APP_CLIENT_ID` — TEAM SSO app client ID (same as production `AZURE_AD_CLIENT_ID`)
-5. Optional: `VERCEL_TOKEN` — token that can list account tokens (for deploy token expiry).
+#### 1. Create the app
+
+1. Sign in to [Azure Portal](https://portal.azure.com) as a tenant admin.
+2. **Microsoft Entra ID** → **App registrations** → **New registration**.
+3. **Name:** `TEAM credential monitor` (any name is fine).
+4. **Supported account types:** *Accounts in this organizational directory only*.
+5. **Redirect URI:** leave blank → **Register**.
+
+Copy these from the app **Overview** page (you will need them for GitHub secrets):
+
+| Value | GitHub secret |
+|-------|----------------|
+| **Application (client) ID** | `AZURE_GRAPH_CLIENT_ID` |
+| **Directory (tenant) ID** | `AZURE_GRAPH_TENANT_ID` |
+
+#### 2. Grant Graph permission
+
+1. On the new app → **API permissions** → **Add a permission**.
+2. **Microsoft Graph** → **Application permissions** (not Delegated).
+3. Search **Application.Read.All** → check it → **Add permissions**.
+4. Click **Grant admin consent for [your tenant]** → **Yes**.
+5. Confirm the row shows a green check under **Status**.
+
+Without admin consent, the script returns *Insufficient privileges*.
+
+#### 3. Create the automation app secret
+
+1. **Certificates & secrets** → **Client secrets** → **New client secret**.
+2. Description: `GitHub credential report`.
+3. Expires: **24 months** (set a calendar reminder for this secret too).
+4. **Add** → copy the **Value** immediately (shown once) → GitHub secret **`AZURE_GRAPH_CLIENT_SECRET`**.
+
+#### 4. Identify the SSO app to inspect
+
+1. **App registrations** → open your existing TEAM SSO app (e.g. *Teamvoc Updates*).
+2. Copy **Application (client) ID** → GitHub secret **`AZURE_APP_CLIENT_ID`**.
+
+This must match production **`AZURE_AD_CLIENT_ID`** on all five Vercel projects.
+
+#### 5. Add GitHub secrets (`robte425-code/teamupdates`)
+
+**Settings → Secrets and variables → Actions → New repository secret:**
+
+| Secret | Value |
+|--------|--------|
+| `AZURE_GRAPH_CLIENT_ID` | Credential monitor app client ID |
+| `AZURE_GRAPH_CLIENT_SECRET` | Monitor app secret (step 3) |
+| `AZURE_GRAPH_TENANT_ID` | Tenant ID |
+| `AZURE_APP_CLIENT_ID` | TEAM SSO app client ID |
+| `VERCEL_TOKEN` | *(optional)* Vercel token that can call `/v5/user/tokens` |
+| `RESEND_API_KEY` | *(optional)* same Resend key as Updates production |
+| `CREDENTIAL_ALERT_TO` | *(optional)* e.g. `you@team-voc.com,ops@team-voc.com` |
+| `EMAIL_FROM` | *(optional)* verified Resend From, e.g. `TEAM Dashboard <noreply@team-voc.com>` |
+| `SLACK_WEBHOOK_URL` | *(optional)* Slack incoming webhook URL |
 
 For local runs, add the same vars to `.env` (see `.env.example`).
+
+#### 6. Verify Graph access
+
+After saving secrets, run the workflow manually (**Actions → Credential expiry report → Run workflow**), or locally:
+
+```bash
+# Add AZURE_GRAPH_* and AZURE_APP_CLIENT_ID to .env first
+node scripts/credential-expiry-report.mjs --json | node -e "
+  const d=require('fs').readFileSync(0,'utf8'); const j=JSON.parse(d);
+  console.log('Azure error:', j.errors.azure || '(none)');
+  console.log('Secrets found:', j.items.filter(i=>i.source==='azure').length);
+  j.items.filter(i=>i.source==='azure').forEach(i=>
+    console.log(' -', i.name, i.expiresLabel, '('+i.daysUntil+'d)'));
+"
+```
+
+**Expected:** `Azure error: (none)` and at least one row for `AZURE_AD_CLIENT_SECRET` with an expiry date.
+
+**If you see *Insufficient privileges*:** admin consent was not granted on **Application.Read.All**, or the wrong tenant ID was used.
+
+**If you see *No app registration found*:** `AZURE_APP_CLIENT_ID` does not match the SSO app’s client ID.
 
 ### Run locally
 
@@ -180,6 +246,26 @@ For local runs, add the same vars to `.env` (see `.env.example`).
 node scripts/credential-expiry-report.mjs
 node scripts/credential-expiry-report.mjs --json --out /tmp/expiry.json
 node scripts/credential-expiry-report.mjs --days 60 --out credential-expiry-report.md
+node scripts/credential-expiry-report.mjs --days 60 --notify          # email/Slack if within threshold
+node scripts/credential-expiry-report.mjs --days 60 --notify-always   # always send monthly summary
+```
+
+### Email and Slack alerts
+
+The workflow runs with **`--notify`**. Alerts fire when any credential is **expired**, **critical** (≤7 days), **warning** (≤30 days), or **within the `--days` window** (default 60).
+
+| Channel | Env / secret | Notes |
+|---------|--------------|--------|
+| Email | `RESEND_API_KEY` + `CREDENTIAL_ALERT_TO` | Uses Resend HTTP API (no npm install). `EMAIL_FROM` must be a verified domain. |
+| Slack | `SLACK_WEBHOOK_URL` | Optional; same message as email. Create at [Slack API → Incoming Webhooks](https://api.slack.com/messaging/webhooks). |
+
+If nothing is within threshold, **no email/Slack is sent** (artifact still uploaded). Use **`--notify-always`** for a monthly “all clear” message.
+
+Test locally:
+
+```bash
+CREDENTIAL_ALERT_TO="you@team-voc.com" RESEND_API_KEY="re_..." \
+  node scripts/credential-expiry-report.mjs --days 365 --notify-always
 ```
 
 ### After rotating a policy credential
@@ -188,4 +274,4 @@ Edit `scripts/credential-expiry-registry.json` and set `"lastRotated": "YYYY-MM-
 
 ### GitHub Action output
 
-Each run uploads **`credential-expiry-report.md`** as a workflow artifact (Actions → Credential expiry report → Artifacts). Optionally add an email step (Logic App, Postmark) later.
+Each run uploads **`credential-expiry-report.md`** as a workflow artifact (Actions → Credential expiry report → Artifacts). Email/Slack fire automatically when credentials need attention (see above).

@@ -13,8 +13,11 @@
  *   node scripts/credential-expiry-report.mjs
  *   node scripts/credential-expiry-report.mjs --json
  *   node scripts/credential-expiry-report.mjs --days 60
+ *   node scripts/credential-expiry-report.mjs --days 60 --notify
  *
- * Env (Graph reader — needs Application.Read.All on the tenant):
+ * Env (notifications — optional):
+ *   RESEND_API_KEY, CREDENTIAL_ALERT_TO (comma-separated), EMAIL_FROM
+ *   SLACK_WEBHOOK_URL
  *   AZURE_GRAPH_CLIENT_ID, AZURE_GRAPH_CLIENT_SECRET, AZURE_GRAPH_TENANT_ID
  *   Or set AZURE_AD_* if that app has Application.Read.All (uncommon).
  *
@@ -65,14 +68,20 @@ function mergeEnv() {
 const env = mergeEnv();
 
 function parseArgs(argv) {
-  const opts = { json: false, days: 60, out: null };
+  const opts = { json: false, days: 60, out: null, notify: false, notifyAlways: false };
   for (let i = 2; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === "--json") opts.json = true;
     else if (arg === "--days") opts.days = Number(argv[++i] ?? 60);
     else if (arg === "--out") opts.out = argv[++i] ?? null;
-    else if (arg === "--help" || arg === "-h") {
-      console.log(`Usage: node scripts/credential-expiry-report.mjs [--json] [--days 60] [--out report.md]`);
+    else if (arg === "--notify") opts.notify = true;
+    else if (arg === "--notify-always") {
+      opts.notify = true;
+      opts.notifyAlways = true;
+    } else if (arg === "--help" || arg === "-h") {
+      console.log(
+        `Usage: node scripts/credential-expiry-report.mjs [--json] [--days 60] [--out report.md] [--notify] [--notify-always]`
+      );
       process.exit(0);
     }
   }
@@ -368,6 +377,188 @@ function buildReport(result, warnDays) {
   return lines.join("\n");
 }
 
+function itemsNeedingAttention(items, warnDays) {
+  const attention = items.filter(
+    (i) =>
+      i.status === "expired" ||
+      i.status === "critical" ||
+      i.status === "warning" ||
+      (i.daysUntil != null && i.daysUntil <= warnDays)
+  );
+  const unknownPolicy = items.filter((i) => i.source === "policy" && i.status === "unknown");
+  return { attention, unknownPolicy };
+}
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function buildNotifySubject(result, warnDays, notifyAlways) {
+  const { attention } = itemsNeedingAttention(result.items, warnDays);
+  if (attention.length === 0 && !notifyAlways) {
+    return null;
+  }
+  const expired = attention.filter((i) => i.status === "expired").length;
+  const critical = attention.filter((i) => i.status === "critical").length;
+  const warning = attention.filter((i) => i.status === "warning").length;
+  const upcoming = attention.filter(
+    (i) => i.status !== "expired" && i.status !== "critical" && i.status !== "warning"
+  ).length;
+
+  if (attention.length === 0) {
+    return "[TEAM] Credential expiry report — all clear";
+  }
+  const parts = [];
+  if (expired) parts.push(`${expired} expired`);
+  if (critical) parts.push(`${critical} critical`);
+  if (warning) parts.push(`${warning} warning`);
+  if (upcoming) parts.push(`${upcoming} within ${warnDays}d`);
+  return `[TEAM] Credential expiry: ${parts.join(", ")}`;
+}
+
+function buildNotifyHtml(result, warnDays, markdown) {
+  const { attention, unknownPolicy } = itemsNeedingAttention(result.items, warnDays);
+  const lines = [];
+  lines.push(`<p>TEAM credential expiry report — ${formatDate(result.generatedAt)}</p>`);
+
+  if (attention.length === 0) {
+    lines.push(`<p><strong>All tracked credentials are outside the ${warnDays}-day window.</strong></p>`);
+  } else {
+    lines.push("<table border=\"1\" cellpadding=\"6\" cellspacing=\"0\" style=\"border-collapse:collapse\">");
+    lines.push("<tr><th>Status</th><th>Credential</th><th>Expires</th><th>Days left</th><th>Apps</th></tr>");
+    for (const item of attention) {
+      const daysLabel = item.daysUntil == null ? "—" : String(item.daysUntil);
+      const link = item.consoleUrl
+        ? `<a href="${escapeHtml(item.consoleUrl)}">${escapeHtml(item.name)}</a>`
+        : escapeHtml(item.name);
+      lines.push(
+        `<tr><td>${escapeHtml(item.status)}</td><td>${link}</td><td>${escapeHtml(item.expiresLabel)}</td><td>${daysLabel}</td><td>${escapeHtml(item.apps.join(", "))}</td></tr>`
+      );
+    }
+    lines.push("</table>");
+  }
+
+  if (unknownPolicy.length > 0) {
+    lines.push(`<p><strong>${unknownPolicy.length} policy credential(s)</strong> need <code>lastRotated</code> set in <code>scripts/credential-expiry-registry.json</code>.</p>`);
+  }
+
+  if (result.errors.azure || result.errors.vercel) {
+    lines.push("<p><strong>Scan notes:</strong></p><ul>");
+    if (result.errors.azure) lines.push(`<li>Azure: ${escapeHtml(result.errors.azure)}</li>`);
+    if (result.errors.vercel) lines.push(`<li>Vercel: ${escapeHtml(result.errors.vercel)}</li>`);
+    lines.push("</ul>");
+  }
+
+  lines.push("<p>See <code>docs/CREDENTIAL_ROTATION.md</code> for rotation runbooks.</p>");
+  if (markdown) {
+    lines.push("<hr/>");
+    lines.push(`<pre style="white-space:pre-wrap;font-size:12px">${escapeHtml(markdown)}</pre>`);
+  }
+  return lines.join("\n");
+}
+
+function buildSlackText(result, warnDays, subject) {
+  const { attention, unknownPolicy } = itemsNeedingAttention(result.items, warnDays);
+  const lines = [subject, ""];
+  if (attention.length === 0) {
+    lines.push(`All tracked credentials are outside the ${warnDays}-day window.`);
+  } else {
+    for (const item of attention) {
+      const daysLabel = item.daysUntil == null ? "?" : String(item.daysUntil);
+      lines.push(`• *${item.status}* — ${item.name} — ${item.expiresLabel} (${daysLabel}d) — ${item.apps.join(", ")}`);
+    }
+  }
+  if (unknownPolicy.length > 0) {
+    lines.push("");
+    lines.push(`${unknownPolicy.length} policy credential(s) need lastRotated in the registry JSON.`);
+  }
+  if (result.errors.azure) lines.push("", `Azure scan: ${result.errors.azure}`);
+  if (result.errors.vercel) lines.push("", `Vercel scan: ${result.errors.vercel}`);
+  lines.push("", "Runbook: docs/CREDENTIAL_ROTATION.md in teamupdates repo.");
+  return lines.join("\n");
+}
+
+async function sendResendEmail({ to, subject, html, text }) {
+  const apiKey = env.RESEND_API_KEY?.trim();
+  if (!apiKey) return { ok: false, error: "RESEND_API_KEY not set" };
+
+  const from = env.EMAIL_FROM?.trim() || "TEAM Dashboard <noreply@team-voc.com>";
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ from, to, subject, html, text }),
+  });
+  const data = await res.json();
+  if (!res.ok) {
+    return { ok: false, error: data.message || data.error || `Resend failed (${res.status})` };
+  }
+  return { ok: true, id: data.id };
+}
+
+async function sendSlackWebhook(text) {
+  const url = env.SLACK_WEBHOOK_URL?.trim();
+  if (!url) return { ok: false, error: "SLACK_WEBHOOK_URL not set" };
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    return { ok: false, error: body || `Slack webhook failed (${res.status})` };
+  }
+  return { ok: true };
+}
+
+async function sendNotifications(result, opts, markdown) {
+  if (!opts.notify) return { email: null, slack: null };
+
+  const recipients = (env.CREDENTIAL_ALERT_TO || env.ADMIN_EMAILS || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  const subject = buildNotifySubject(result, opts.days, opts.notifyAlways);
+  if (!subject) {
+    console.error("Notify: nothing within threshold — skipping (--notify-always to send anyway).");
+    return { email: { ok: true, skipped: true }, slack: { ok: true, skipped: true } };
+  }
+
+  const html = buildNotifyHtml(result, opts.days, opts.notifyAlways ? markdown : null);
+  const text = buildSlackText(result, opts.days, subject);
+  const outcomes = { email: null, slack: null };
+
+  if (recipients.length > 0) {
+    outcomes.email = await sendResendEmail({ to: recipients, subject, html, text });
+    if (!outcomes.email.ok) {
+      console.error(`Email notify failed: ${outcomes.email.error}`);
+    } else {
+      console.error(`Email sent to ${recipients.join(", ")}`);
+    }
+  } else if (env.RESEND_API_KEY?.trim()) {
+    console.error("Notify: RESEND_API_KEY set but CREDENTIAL_ALERT_TO / ADMIN_EMAILS empty — skipping email.");
+  }
+
+  if (env.SLACK_WEBHOOK_URL?.trim()) {
+    outcomes.slack = await sendSlackWebhook(text);
+    if (!outcomes.slack.ok) {
+      console.error(`Slack notify failed: ${outcomes.slack.error}`);
+    } else {
+      console.error("Slack notification sent.");
+    }
+  }
+
+  return outcomes;
+}
+
 async function main() {
   const opts = parseArgs(process.argv);
 
@@ -397,12 +588,20 @@ async function main() {
     const out = JSON.stringify(result, null, 2);
     if (opts.out) writeFileSync(opts.out, out);
     else console.log(out);
+    if (opts.notify) {
+      const markdown = buildReport(result, opts.days);
+      await sendNotifications(result, opts, markdown);
+    }
     process.exit(items.some((i) => i.status === "expired") ? 2 : 0);
   }
 
   const markdown = buildReport(result, opts.days);
   if (opts.out) writeFileSync(opts.out, markdown);
   else console.log(markdown);
+
+  if (opts.notify) {
+    await sendNotifications(result, opts, markdown);
+  }
 
   const hasExpired = items.some((i) => i.status === "expired");
   process.exit(hasExpired ? 2 : 0);
