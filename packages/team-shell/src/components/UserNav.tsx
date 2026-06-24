@@ -9,7 +9,7 @@ const linkClass =
   "rounded-lg px-3 py-2 text-sm font-medium transition-colors text-stone-600 hover:bg-stone-50 hover:text-stone-900";
 
 const unreadPayrollClass =
-  "bg-orange-50 text-orange-900 ring-1 ring-inset ring-orange-300 after:ml-1.5 after:inline-block after:h-2 after:w-2 after:rounded-full after:bg-orange-600 after:align-middle";
+  "bg-emerald-50 text-emerald-900 ring-1 ring-inset ring-emerald-300 after:ml-1.5 after:inline-block after:h-2 after:w-2 after:rounded-full after:bg-emerald-600 after:align-middle";
 
 function usePayrollUnread(refreshKey?: string) {
   const [hasUnread, setHasUnread] = useState(false);
