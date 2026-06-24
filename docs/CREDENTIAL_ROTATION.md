@@ -32,7 +32,7 @@ Confirm in Entra → **Overview** → **Tenant ID**. Same value for **`SHAREPOIN
 
 **Vercel UI:** Most projects mark env vars as sensitive and **hide all values** (including tenant ID). Payroll may show `AZURE_AD_TENANT_ID` if that var was not flagged sensitive — hidden on **voc-hotline-nine** is normal. Confirm the var **name** exists; use one of these to verify the value:
 
-1. **Sign-in URL** — [voc-hotline-nine/login](https://voc-hotline-nine.vercel.app/login) → **Sign in with Microsoft** → address bar is `login.microsoftonline.com/{tenant-id-or-domain}/...` — the GUID should be `a6009694-7fa8-4b24-ab9c-ef6b98136638`.
+1. **Sign-in URL** — often **does not work** with NextAuth (see §2 below). Prefer Entra redirect URIs (§2) or sign-in logs (§4).
 2. **CLI** — `npx vercel env ls production` confirms `AZURE_AD_TENANT_ID` and `SHAREPOINT_AZURE_TENANT_ID` exist (names only).
 3. **`vercel env pull`** — `grep TENANT_ID .env.production.local` (delete file after; do not commit).
 
@@ -222,46 +222,13 @@ npx vercel env ls production | rg -i 'AZURE|SHAREPOINT'
 
 **Payroll production today:** `AZURE_AD_CLIENT_ID`, `AZURE_AD_CLIENT_SECRET`, `AZURE_AD_TENANT_ID`, plus **`SHAREPOINT_AZURE_CLIENT_ID` / `SECRET` / `TENANT_ID`** and `SHAREPOINT_SITE_URL`. SSO uses **Teamvoc Update**; SharePoint backups use **TEAM SharePoint backups** (separate from SSO, like Voc).
 
-### 2. Read client ID from the sign-in redirect (easiest)
+**Voc internal auth env (production):** also requires **`NEXTAUTH_URL`** (`https://voc-hotline-nine.vercel.app`), **`NEXTAUTH_SECRET`**, and **`ALLOWED_DOMAIN`** — added 2026-06-24; redeploy after any env change.
 
-**Voc internal**
+### 2. Match redirect URI in Entra (recommended — no Vercel values, no browser tricks)
 
-1. Open [voc-hotline-nine/login](https://voc-hotline-nine.vercel.app/login).
-2. Click **Sign in with Microsoft** (do not complete login if you prefer).
-3. On `login.microsoftonline.com`, copy **`client_id=`** from the address bar.
-4. Entra → **VOC Hotline** → **Overview** → compare **Application (client) ID**.
+TEAM apps use **NextAuth**, which POSTs to `/api/auth/signin/azure-ad` before redirecting to Microsoft. The **`client_id` usually does not appear in the browser address bar** on the login page — do not rely on that.
 
-For SharePoint backups on Voc: compare **`SHAREPOINT_AZURE_CLIENT_ID`** (via `vercel env pull`) to **TEAM SharePoint backups** — separate from the SSO redirect.
-
-**HR**
-
-1. Open [team-hr/login](https://team-hr.vercel.app/login).
-2. Click **Sign in with Microsoft**.
-3. Copy **`client_id=`** from the Microsoft login URL.
-4. Entra → **Team HR** → **Overview** → compare **Application (client) ID**.
-
-HR uses one registration for both SSO and SharePoint backups — there is no separate SharePoint client ID in Vercel.
-
-**Requests**
-
-1. Open [team-requests/login](https://team-requests.vercel.app/login).
-2. Click **Sign in with Microsoft**.
-3. Copy **`client_id=`** from the Microsoft login URL.
-4. Entra → **Teamvoc Update** → **Overview** → compare **Application (client) ID**.
-
-Requests uses one registration (**Teamvoc Update**) for both SSO and SharePoint backups — same secret as Updates (`AZURE_AD_*` expires **2028-03-04**).
-
-**Payroll**
-
-1. Open [team-payroll](https://team-payroll.vercel.app) and sign in via Microsoft (login flow on static pages).
-2. Copy **`client_id=`** from the Microsoft login URL.
-3. Entra → **Teamvoc Update** → **Overview** → compare **Application (client) ID**.
-
-SSO uses **Teamvoc Update** (`AZURE_AD_*`, secret expires **2028-03-04**). SharePoint backups use **`SHAREPOINT_AZURE_*`** → **TEAM SharePoint backups** (secret expires **2028-06-22**). **`AZURE_AD_TENANT_ID`** on Payroll is visible in Vercel and should be **`a6009694-7fa8-4b24-ab9c-ef6b98136638`** on all TEAM apps.
-
-### 3. Match redirect URI in Entra (no Vercel access needed)
-
-Entra → app registration → **Authentication** → **Redirect URIs**. The app that lists the callback URL owns that deployment’s SSO client ID:
+Instead, in Entra → each app registration → **Authentication** → **Redirect URIs**, find which registration lists each app’s callback URL. That app owns SSO for that deployment:
 
 | Callback URL | Expected Entra app |
 |--------------|-------------------|
@@ -271,7 +238,28 @@ Entra → app registration → **Authentication** → **Redirect URIs**. The app
 | `https://teamvoc-updates.vercel.app/api/auth/callback/azure-ad` | **Teamvoc Update** |
 | `https://team-payroll.vercel.app/api/auth/callback/azure-ad` | **Teamvoc Update** |
 
-### 4. Pull env locally (optional)
+If the callback URL is listed on **VOC Hotline**, production `AZURE_AD_CLIENT_ID` on Voc is that app’s **Application (client) ID** — no need to read Vercel.
+
+**Do not open the callback URL in a browser to “test” it.** OAuth callbacks only work when Microsoft redirects back with `code` and `state` after a real sign-in. Visiting `…/api/auth/callback/azure-ad` directly always fails on **every** TEAM app (`OAuthCallback`) — Voc’s login page just shows a clearer error message than HR or Requests.
+
+### 3. Browser Network tab (if you need the actual `client_id` GUID)
+
+1. Open DevTools → **Network** → enable **Preserve log**.
+2. Open the app login page → click **Sign in with Microsoft**.
+3. Filter for **`authorize`** or **`login.microsoftonline.com`**.
+4. Select the request → **Query string** or **Headers** → find **`client_id`**.
+
+The address bar on the Microsoft login screen may omit `client_id` (especially after redirects or saved-session login).
+
+### 4. Per-app notes (expected Entra registration)
+
+| App | SSO Entra app | SharePoint Graph |
+|-----|---------------|------------------|
+| Updates, Requests, Payroll | **Teamvoc Update** (`AZURE_AD_*` expires **2028-03-04**) | Payroll/Voc: **TEAM SharePoint backups** via `SHAREPOINT_AZURE_*`; Requests/Updates: same SSO app |
+| HR | **Team HR** (**2028-06-16**) | Same **Team HR** `AZURE_AD_*` |
+| Voc internal | **VOC Hotline** (**2028-06-07**) | **TEAM SharePoint backups** via `SHAREPOINT_AZURE_*` |
+
+### 5. Pull env locally (optional)
 
 If you have Vercel CLI access to the project:
 
@@ -302,7 +290,7 @@ grep AZURE_AD_TENANT_ID .env.production.local
 
 Do **not** commit the pulled file. Delete when done.
 
-### 5. Entra sign-in logs
+### 6. Entra sign-in logs
 
 **Entra ID → Sign-in logs** → filter by user + app → **Application** column shows which registration handled the login.
 
