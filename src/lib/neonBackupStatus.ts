@@ -37,26 +37,45 @@ export type NeonBackupStatusResponse = {
   apps: NeonAppBackupStatus[];
 };
 
+function isRootBranch(branch: { parent_id?: string | null }): boolean {
+  return branch.parent_id == null;
+}
+
 async function resolveBranchId(
   target: NeonBackupTarget,
   projectDefaultBranchId?: string
 ): Promise<{ branchId: string | null; branchName: string | null }> {
-  if (target.neonBranchId) {
-    return { branchId: target.neonBranchId, branchName: target.rootBranch };
-  }
-
   if (!target.neonProjectId) {
     return { branchId: null, branchName: null };
   }
 
   const branches = await listNeonBranches(target.neonProjectId);
+  if (branches.length === 0) {
+    return { branchId: null, branchName: null };
+  }
+
+  // Snapshot schedules are configured on the project default / root branch.
+  // Prefer Neon’s default branch over a hardcoded branch ID (used only for deep links).
   if (projectDefaultBranchId) {
     const byDefault = branches.find((b) => b.id === projectDefaultBranchId);
     if (byDefault) return { branchId: byDefault.id, branchName: byDefault.name };
   }
 
+  const rootByName = branches.find((b) => b.name === target.rootBranch && isRootBranch(b));
+  if (rootByName) return { branchId: rootByName.id, branchName: rootByName.name };
+
   const byName = branches.find((b) => b.name === target.rootBranch);
   if (byName) return { branchId: byName.id, branchName: byName.name };
+
+  const rootBranch = branches.find(isRootBranch);
+  if (rootBranch) return { branchId: rootBranch.id, branchName: rootBranch.name };
+
+  if (target.neonBranchId) {
+    const byConfigured = branches.find((b) => b.id === target.neonBranchId);
+    if (byConfigured) {
+      return { branchId: byConfigured.id, branchName: byConfigured.name };
+    }
+  }
 
   const primary = branches.find((b) => b.primary || b.default);
   if (primary) return { branchId: primary.id, branchName: primary.name };
@@ -93,7 +112,7 @@ async function fetchAppStatus(target: NeonBackupTarget): Promise<NeonAppBackupSt
     }
 
     const [schedule, snapshots] = await Promise.all([
-      getNeonBackupSchedule(target.neonProjectId, branchId).catch(() => [] as NeonBackupScheduleItem[]),
+      getNeonBackupSchedule(target.neonProjectId, branchId),
       listNeonSnapshots(target.neonProjectId),
     ]);
 

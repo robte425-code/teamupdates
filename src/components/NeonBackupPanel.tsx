@@ -35,7 +35,7 @@ function ScheduleBadge({
 }) {
   if (!configured) {
     return (
-      <span className="inline-flex rounded-full bg-stone-100 px-2.5 py-0.5 text-xs font-medium text-stone-700">
+      <span className="inline-flex rounded-full bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-700">
         API key not set
       </span>
     );
@@ -43,7 +43,7 @@ function ScheduleBadge({
 
   if (live?.error) {
     return (
-      <span className="inline-flex rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-900 ring-1 ring-amber-200">
+      <span className="inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-900 ring-1 ring-amber-200">
         Error
       </span>
     );
@@ -52,14 +52,14 @@ function ScheduleBadge({
   const hasSchedule = (live?.schedule.length ?? 0) > 0;
   if (!hasSchedule) {
     return (
-      <span className="inline-flex rounded-full bg-stone-100 px-2.5 py-0.5 text-xs font-medium text-stone-700">
+      <span className="inline-flex rounded-full bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-700">
         No schedule
       </span>
     );
   }
 
   return (
-    <span className="inline-flex rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-800 ring-1 ring-emerald-200">
+    <span className="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-800 ring-1 ring-emerald-200">
       {live?.scheduleSummary}
     </span>
   );
@@ -84,69 +84,62 @@ function TargetRow({
   });
 
   return (
-    <tr className="border-t border-stone-200 align-top">
-      <td className="px-4 py-3">
+    <tr className="border-t border-stone-200 align-middle">
+      <td className="w-36 whitespace-nowrap px-3 py-2.5">
         <div className="font-medium text-stone-900">{target.name}</div>
-        {target.notes && <p className="mt-1 max-w-md text-xs text-stone-500">{target.notes}</p>}
-        {live?.error && (
-          <p className="mt-1 max-w-md text-xs text-amber-800">{live.error}</p>
+        {target.notes && (
+          <p className="mt-0.5 max-w-[10rem] text-xs leading-snug text-stone-500">{target.notes}</p>
         )}
       </td>
-      <td className="px-4 py-3 text-sm text-stone-700">
-        <code className="rounded bg-stone-100 px-1.5 py-0.5 text-xs">{target.vercelProject}</code>
-      </td>
-      <td className="px-4 py-3 text-sm text-stone-700">
-        {target.neonProjectId ? (
-          <code className="rounded bg-stone-100 px-1.5 py-0.5 text-xs">{target.neonProjectId}</code>
-        ) : (
-          <span className="text-stone-500">—</span>
-        )}
-        {(live?.branchId || target.neonBranchId) && (
-          <div className="mt-1">
-            <code className="rounded bg-stone-100 px-1.5 py-0.5 text-xs text-stone-600">
-              {live?.branchId ?? target.neonBranchId}
-            </code>
-          </div>
-        )}
-        <div className="mt-1 text-xs text-stone-500">
-          Branch: {live?.branchName ?? target.rootBranch}
-        </div>
-        {configured && live?.historyRetentionLabel && (
-          <div className="mt-1 text-xs text-stone-500">
-            PITR window: {live.historyRetentionLabel}
-          </div>
-        )}
-      </td>
-      <td className="px-4 py-3 text-sm text-stone-700">
+      <td className="px-3 py-2.5">
         <ScheduleBadge live={live} configured={configured} />
+        {live?.error && (
+          <p className="mt-1 max-w-xs text-xs text-amber-800">{live.error}</p>
+        )}
         {configured && !live?.error && (
-          <div className="mt-2 space-y-1 text-xs text-stone-600">
+          <div className="mt-1 space-y-0.5 text-xs text-stone-500">
             <div>
-              Last snapshot: {formatWhen(live?.lastSnapshotAt ?? null)}
-              {live?.lastSnapshotName ? ` (${live.lastSnapshotName})` : ""}
+              {live?.branchName ?? target.rootBranch} branch
+              {live?.historyRetentionLabel ? ` · PITR ${live.historyRetentionLabel}` : ""}
             </div>
-            <div>{live?.snapshotCount ?? 0} snapshot(s) on branch</div>
+            {live?.snapshotCount != null && live.snapshotCount > 0 && (
+              <div>{live.snapshotCount} snapshot{live.snapshotCount === 1 ? "" : "s"} on branch</div>
+            )}
           </div>
         )}
       </td>
-      <td className="px-4 py-3">
-        <div className="flex flex-col gap-2">
+      <td className="px-3 py-2.5 text-xs text-stone-600">
+        {configured && !live?.error ? (
+          <>
+            <div>{formatWhen(live?.lastSnapshotAt ?? null)}</div>
+            {live?.lastSnapshotName && (
+              <div className="mt-0.5 truncate max-w-[14rem] text-stone-500" title={live.lastSnapshotName}>
+                {live.lastSnapshotName}
+              </div>
+            )}
+          </>
+        ) : (
+          <span className="text-stone-400">—</span>
+        )}
+      </td>
+      <td className="px-3 py-2.5">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           <a
             href={neonLink.href}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex w-fit rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm font-medium text-stone-800 hover:bg-stone-50"
+            className="rounded-md border border-stone-300 bg-white px-2.5 py-1.5 text-xs font-medium text-stone-800 hover:bg-stone-50"
           >
-            {neonLink.label}
+            Neon
           </a>
           {configured && (
             <button
               type="button"
               disabled={snapshotBusy || Boolean(live?.error) || !target.neonProjectId}
               onClick={() => onSnapshot(target.id)}
-              className="inline-flex w-fit rounded-lg bg-stone-800 px-3 py-1.5 text-sm font-medium text-white hover:bg-stone-700 disabled:opacity-60"
+              className="rounded-md bg-stone-800 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-stone-700 disabled:opacity-60"
             >
-              {snapshotBusy ? "Creating…" : "Create snapshot"}
+              {snapshotBusy ? "…" : "Snapshot"}
             </button>
           )}
           {target.neonProjectId && (
@@ -154,9 +147,9 @@ function TargetRow({
               href={vercelStorageUrl(target.vercelProject)}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex w-fit text-xs text-stone-600 underline hover:text-stone-900"
+              className="px-1 text-xs text-stone-500 underline hover:text-stone-900"
             >
-              Vercel Storage
+              Vercel
             </a>
           )}
         </div>
@@ -247,8 +240,7 @@ export function NeonBackupPanel() {
           <div>
             <h2 className="text-lg font-semibold text-stone-900">Neon database protection</h2>
             <p className="mt-1 max-w-3xl text-sm text-stone-600">
-              Live status from the Neon API: scheduled snapshots, last snapshot time, and instant
-              restore (PITR) window per project.
+              Scheduled snapshots and point-in-time restore (PITR) on each production database.
             </p>
             {fetchedLabel && configured && (
               <p className="mt-1 text-xs text-stone-500">Last refreshed: {fetchedLabel}</p>
@@ -258,32 +250,27 @@ export function NeonBackupPanel() {
             type="button"
             onClick={() => load()}
             disabled={loading}
-            className="rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm font-medium text-stone-800 hover:bg-stone-50 disabled:opacity-60"
+            className="shrink-0 rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm font-medium text-stone-800 hover:bg-stone-50 disabled:opacity-60"
           >
             {loading ? "Refreshing…" : "Refresh"}
           </button>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-left text-sm">
-            <thead className="bg-stone-50 text-stone-600">
-              <tr>
-                <th className="px-4 py-3 font-medium">App</th>
-                <th className="px-4 py-3 font-medium">Vercel project</th>
-                <th className="px-4 py-3 font-medium">Neon project</th>
-                <th className="px-4 py-3 font-medium">Snapshots</th>
-                <th className="px-4 py-3 font-medium">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading && !live ? (
+        {loading && !live ? (
+          <p className="px-4 py-6 text-sm text-stone-500">Loading Neon status…</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead className="bg-stone-50 text-xs text-stone-600">
                 <tr>
-                  <td colSpan={5} className="px-4 py-6 text-sm text-stone-500">
-                    Loading Neon status…
-                  </td>
+                  <th className="w-36 px-3 py-2.5 font-medium">App</th>
+                  <th className="px-3 py-2.5 font-medium">Schedule</th>
+                  <th className="px-3 py-2.5 font-medium">Last snapshot</th>
+                  <th className="px-3 py-2.5 font-medium text-right">Actions</th>
                 </tr>
-              ) : (
-                NEON_BACKUP_TARGETS.map((target) => (
+              </thead>
+              <tbody>
+                {NEON_BACKUP_TARGETS.map((target) => (
                   <TargetRow
                     key={target.id}
                     target={target}
@@ -292,11 +279,11 @@ export function NeonBackupPanel() {
                     snapshotBusy={snapshotBusy === target.id}
                     onSnapshot={createSnapshot}
                   />
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
     </div>
   );

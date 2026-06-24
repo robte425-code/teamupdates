@@ -26,6 +26,8 @@ export type NeonBranch = {
   name: string;
   primary?: boolean;
   default?: boolean;
+  /** Root branches have no parent; snapshot schedules apply here only. */
+  parent_id?: string | null;
 };
 
 export type NeonProject = {
