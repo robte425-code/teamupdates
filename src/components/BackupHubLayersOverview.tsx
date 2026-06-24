@@ -13,8 +13,9 @@ export function BackupHubLayersOverview() {
       <div className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
         <h3 className="text-sm font-semibold text-stone-900">Neon snapshots</h3>
         <p className="mt-2 text-sm text-stone-600">
-          Daily scheduled snapshots on each production root branch in Neon. Use for fast
-          point-in-time recovery inside Neon when something goes wrong on a single database.
+          Daily scheduled snapshots on each production root branch in Neon. Use{" "}
+          <strong>Run full protection</strong> above to create SharePoint backups and fresh Neon
+          snapshots together.
         </p>
       </div>
     </div>

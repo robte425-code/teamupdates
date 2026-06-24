@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { BACKUP_HUB_REFRESH_NEON_EVENT } from "@/lib/backupHubEvents";
 import {
   NEON_BACKUP_TARGETS,
   primaryNeonLink,
@@ -191,6 +192,14 @@ export function NeonBackupPanel() {
 
   useEffect(() => {
     load();
+  }, [load]);
+
+  useEffect(() => {
+    const onRefresh = () => {
+      load();
+    };
+    window.addEventListener(BACKUP_HUB_REFRESH_NEON_EVENT, onRefresh);
+    return () => window.removeEventListener(BACKUP_HUB_REFRESH_NEON_EVENT, onRefresh);
   }, [load]);
 
   async function createSnapshot(appId: TeamBackupAppId) {

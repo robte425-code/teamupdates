@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { BACKUP_HUB_REFRESH_NEON_EVENT, dispatchBackupHubRefreshNeon } from "@/lib/backupHubEvents";
 import type { TeamBackupAppId } from "@/lib/teamBackupApps";
 
 type BackupFile = {
@@ -32,11 +33,20 @@ type BackupResult = {
   error?: string;
 };
 
-type AppBackupStepStatus = "pending" | "running" | "done" | "failed";
+type AppBackupStepStatus = "pending" | "running" | "done" | "failed" | "skipped";
 
 type AllBackupProgress = Record<
   TeamBackupAppId,
   { status: AppBackupStepStatus; filename?: string; error?: string }
+>;
+
+type ProtectionPhase = "sharepoint" | "neon";
+
+type ProtectionStepKey = `${ProtectionPhase}:${TeamBackupAppId}`;
+
+type ProtectionProgress = Record<
+  ProtectionStepKey,
+  { status: AppBackupStepStatus; detail?: string; error?: string }
 >;
 
 function formatWhen(iso: string): string {
@@ -69,6 +79,12 @@ export function TeamBackupSection() {
   const [error, setError] = useState<string | null>(null);
   const [allProgress, setAllProgress] = useState<AllBackupProgress | null>(null);
   const [allProgressCurrent, setAllProgressCurrent] = useState<TeamBackupAppId | null>(null);
+  const [protectionBusy, setProtectionBusy] = useState(false);
+  const [protectionProgress, setProtectionProgress] = useState<ProtectionProgress | null>(null);
+  const [protectionCurrent, setProtectionCurrent] = useState<ProtectionStepKey | null>(null);
+  const [protectionNeonEnabled, setProtectionNeonEnabled] = useState(true);
+
+  const hubBusy = allBusy || protectionBusy || appBusy !== null;
 
   const backupsByApp = useMemo(() => {
     const map = new Map<TeamBackupAppId, BackupFile[]>();
@@ -154,6 +170,192 @@ export function TeamBackupSection() {
           ? `${succeeded[0]!.appName} backup saved to SharePoint as ${succeeded[0]!.filename}.`
           : `${succeeded.length} app backups saved to SharePoint Backups folder.`
       );
+    }
+  }
+
+  const protectionProgressStats = useMemo(() => {
+    if (!protectionProgress) return null;
+    const steps = Object.values(protectionProgress);
+    const done = steps.filter((s) => s.status === "done").length;
+    const failed = steps.filter((s) => s.status === "failed").length;
+    const skipped = steps.filter((s) => s.status === "skipped").length;
+    const finished = done + failed + skipped;
+    return { done, failed, skipped, finished, total: steps.length };
+  }, [protectionProgress]);
+
+  function initProtectionProgress(
+    apps: BackupApp[],
+    neonEnabled: boolean
+  ): ProtectionProgress {
+    const progress = {} as ProtectionProgress;
+    for (const app of apps) {
+      progress[`sharepoint:${app.id}`] = { status: "pending" };
+      progress[`neon:${app.id}`] = neonEnabled
+        ? { status: "pending" }
+        : { status: "skipped", detail: "NEON_API_KEY not set" };
+    }
+    return progress;
+  }
+
+  async function createNeonSnapshot(appId: TeamBackupAppId): Promise<{ ok: boolean; error?: string }> {
+    const res = await fetch("/api/team-backup/neon-snapshot", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ app: appId }),
+    });
+    const data = (await res.json()) as { error?: string };
+    if (!res.ok) return { ok: false, error: data.error || "Neon snapshot failed" };
+    return { ok: true };
+  }
+
+  async function runFullProtection() {
+    const targets = state.apps;
+    if (targets.length === 0) return;
+
+    setMessage(null);
+    setError(null);
+    setAllProgress(null);
+    setAllProgressCurrent(null);
+    setProtectionBusy(true);
+
+    let neonEnabled = true;
+    try {
+      const statusRes = await fetch("/api/team-backup/neon-status", { cache: "no-store" });
+      const statusData = (await statusRes.json()) as { configured?: boolean };
+      neonEnabled = Boolean(statusData.configured);
+      setProtectionNeonEnabled(neonEnabled);
+    } catch {
+      neonEnabled = false;
+      setProtectionNeonEnabled(false);
+    }
+
+    setProtectionProgress(initProtectionProgress(targets, neonEnabled));
+    setProtectionCurrent(null);
+
+    const spSucceeded: BackupResult[] = [];
+    const spFailed: BackupResult[] = [];
+    let configErrors: string[] = [];
+    let neonSucceeded = 0;
+    let neonFailed = 0;
+
+    try {
+      for (const app of targets) {
+        const stepKey: ProtectionStepKey = `sharepoint:${app.id}`;
+        setProtectionCurrent(stepKey);
+        setProtectionProgress((prev) =>
+          prev ? { ...prev, [stepKey]: { status: "running" } } : prev
+        );
+
+        try {
+          const batch = await backupApps([app.id]);
+          if (batch.configErrors.length > 0) {
+            configErrors = batch.configErrors;
+            const configMessage = batch.configErrors.join(" ");
+            spFailed.push({
+              appId: app.id,
+              appName: app.name,
+              ok: false,
+              error: configMessage,
+            });
+            setProtectionProgress((prev) =>
+              prev
+                ? { ...prev, [stepKey]: { status: "failed", error: configMessage } }
+                : prev
+            );
+            break;
+          }
+
+          const result = batch.results[0];
+          if (result?.ok) {
+            spSucceeded.push(result);
+            setProtectionProgress((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    [stepKey]: { status: "done", detail: result.filename },
+                  }
+                : prev
+            );
+          } else {
+            const failure: BackupResult = result ?? {
+              appId: app.id,
+              appName: app.name,
+              ok: false,
+              error: "Backup failed",
+            };
+            spFailed.push(failure);
+            setProtectionProgress((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    [stepKey]: { status: "failed", error: failure.error },
+                  }
+                : prev
+            );
+          }
+        } catch (e) {
+          const msg = e instanceof Error ? e.message : "Backup failed";
+          spFailed.push({ appId: app.id, appName: app.name, ok: false, error: msg });
+          setProtectionProgress((prev) =>
+            prev ? { ...prev, [stepKey]: { status: "failed", error: msg } } : prev
+          );
+        }
+      }
+
+      if (neonEnabled && configErrors.length === 0) {
+        for (const app of targets) {
+          const stepKey: ProtectionStepKey = `neon:${app.id}`;
+          setProtectionCurrent(stepKey);
+          setProtectionProgress((prev) =>
+            prev ? { ...prev, [stepKey]: { status: "running" } } : prev
+          );
+
+          const result = await createNeonSnapshot(app.id);
+          if (result.ok) {
+            neonSucceeded += 1;
+            setProtectionProgress((prev) =>
+              prev ? { ...prev, [stepKey]: { status: "done", detail: "Snapshot created" } } : prev
+            );
+          } else {
+            neonFailed += 1;
+            setProtectionProgress((prev) =>
+              prev
+                ? { ...prev, [stepKey]: { status: "failed", error: result.error } }
+                : prev
+            );
+          }
+        }
+        dispatchBackupHubRefreshNeon();
+      }
+
+      await load();
+
+      const parts: string[] = [];
+      if (spSucceeded.length > 0) {
+        parts.push(`${spSucceeded.length} SharePoint backup(s) saved`);
+      }
+      if (neonEnabled && neonSucceeded > 0) {
+        parts.push(`${neonSucceeded} Neon snapshot(s) created`);
+      }
+      if (!neonEnabled) {
+        parts.push("Neon snapshots skipped (set NEON_API_KEY on Updates)");
+      }
+      if (parts.length > 0) setMessage(`Full protection run complete: ${parts.join("; ")}.`);
+
+      if (configErrors.length > 0) {
+        setError(configErrors.join(" "));
+      } else if (spFailed.length > 0 || neonFailed > 0) {
+        const msgs = [
+          ...spFailed.map((r) => `SharePoint ${r.appName}: ${r.error}`),
+        ];
+        if (neonFailed > 0) msgs.push(`${neonFailed} Neon snapshot(s) failed`);
+        setError(msgs.join(" "));
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Full protection run failed");
+    } finally {
+      setProtectionBusy(false);
+      setProtectionCurrent(null);
     }
   }
 
@@ -352,6 +554,121 @@ export function TeamBackupSection() {
         </div>
       )}
 
+      <section className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-4 shadow-sm">
+        <h2 className="mb-2 text-lg font-semibold text-stone-900">Full protection run</h2>
+        <p className="mb-4 max-w-3xl text-sm text-stone-600">
+          Back up all apps to SharePoint, then create a fresh Neon snapshot for each production
+          database. Use before risky changes or on a regular schedule.
+        </p>
+        <button
+          type="button"
+          disabled={loading || hubBusy || restoreBusy !== null}
+          onClick={() => runFullProtection()}
+          className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800 disabled:opacity-60"
+        >
+          {protectionBusy ? "Running full protection…" : "Run full protection"}
+        </button>
+
+        {protectionProgress && protectionProgressStats && (
+          <div className="mt-4 space-y-3">
+            <div>
+              <div className="mb-1 flex items-center justify-between text-sm text-stone-600">
+                <span>
+                  {protectionBusy && protectionCurrent
+                    ? protectionCurrent.startsWith("sharepoint:")
+                      ? `SharePoint: ${state.apps.find((a) => `sharepoint:${a.id}` === protectionCurrent)?.name ?? "app"}…`
+                      : `Neon snapshot: ${state.apps.find((a) => `neon:${a.id}` === protectionCurrent)?.name ?? "app"}…`
+                    : protectionProgressStats.failed > 0
+                      ? `${protectionProgressStats.done} done, ${protectionProgressStats.failed} failed`
+                      : `${protectionProgressStats.finished} of ${protectionProgressStats.total} steps complete`}
+                </span>
+                <span>
+                  {protectionProgressStats.finished}/{protectionProgressStats.total}
+                </span>
+              </div>
+              <div
+                className="h-2 overflow-hidden rounded-full bg-stone-200"
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={protectionProgressStats.total}
+                aria-valuenow={protectionProgressStats.finished}
+                aria-label="Full protection progress"
+              >
+                <div
+                  className={`h-full rounded-full transition-all duration-300 ${
+                    protectionProgressStats.failed > 0 && !protectionBusy
+                      ? "bg-amber-500"
+                      : "bg-emerald-700"
+                  }`}
+                  style={{
+                    width: `${Math.round(
+                      (protectionProgressStats.finished / protectionProgressStats.total) * 100
+                    )}%`,
+                  }}
+                />
+              </div>
+            </div>
+
+            <ul className="space-y-1 text-sm">
+              {state.apps.map((app) => {
+                const sp = protectionProgress[`sharepoint:${app.id}`];
+                const neon = protectionProgress[`neon:${app.id}`];
+                return (
+                  <li key={app.id} className="space-y-0.5">
+                    {sp && (
+                      <div
+                        className={
+                          sp.status === "failed"
+                            ? "text-amber-900"
+                            : sp.status === "done"
+                              ? "text-emerald-800"
+                              : sp.status === "running"
+                                ? "font-medium text-emerald-700"
+                                : "text-stone-500"
+                        }
+                      >
+                        {sp.status === "pending" && "· "}
+                        {sp.status === "running" && "… "}
+                        {sp.status === "done" && "✓ "}
+                        {sp.status === "failed" && "✕ "}
+                        SharePoint {app.name}
+                        {sp.status === "done" && sp.detail ? ` — ${sp.detail}` : ""}
+                        {sp.status === "failed" && sp.error ? ` — ${sp.error}` : ""}
+                      </div>
+                    )}
+                    {neon && protectionNeonEnabled && (
+                      <div
+                        className={
+                          neon.status === "failed"
+                            ? "text-amber-900"
+                            : neon.status === "done"
+                              ? "text-emerald-800"
+                              : neon.status === "running"
+                                ? "font-medium text-emerald-700"
+                                : neon.status === "skipped"
+                                  ? "text-stone-400"
+                                  : "text-stone-500"
+                        }
+                      >
+                        {neon.status === "pending" && "· "}
+                        {neon.status === "running" && "… "}
+                        {neon.status === "done" && "✓ "}
+                        {neon.status === "failed" && "✕ "}
+                        {neon.status === "skipped" && "– "}
+                        Neon {app.name}
+                        {neon.status === "done" && neon.detail ? ` — ${neon.detail}` : ""}
+                        {neon.status === "failed" && neon.error ? ` — ${neon.error}` : ""}
+                        {neon.status === "skipped" && neon.detail ? ` — ${neon.detail}` : ""}
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+      </section>
+
       <section className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
         <h2 className="mb-2 text-lg font-semibold text-stone-900">Backup all apps</h2>
         <p className="mb-4 text-sm text-stone-600">
@@ -360,7 +677,7 @@ export function TeamBackupSection() {
         </p>
         <button
           type="button"
-          disabled={loading || allBusy || appBusy !== null}
+          disabled={loading || hubBusy || restoreBusy !== null}
           onClick={() => runBackup()}
           className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
         >
@@ -451,7 +768,7 @@ export function TeamBackupSection() {
                     <h3 className="text-base font-semibold text-stone-900">{app.name}</h3>
                     <button
                       type="button"
-                      disabled={loading || allBusy || appBusy !== null || restoreBusy !== null}
+                      disabled={loading || hubBusy || restoreBusy !== null}
                       onClick={() => runBackup([app.id])}
                       className="rounded-lg bg-stone-800 px-3 py-2 text-sm font-medium text-white hover:bg-stone-700 disabled:opacity-60"
                     >
@@ -490,7 +807,8 @@ export function TeamBackupSection() {
                         !selectedBackup[app.id] ||
                         restoreBusy !== null ||
                         appBusy !== null ||
-                        allBusy
+                        allBusy ||
+                        protectionBusy
                       }
                       onClick={() => runRestore(app.id)}
                       className="rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-60"
