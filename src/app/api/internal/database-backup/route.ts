@@ -4,6 +4,11 @@ import {
   generateBackupSql,
   isValidBackupSql,
 } from "@/lib/databaseBackup";
+import {
+  downloadSharePointBackup,
+  isSharePointConfigured,
+  uploadSharePointBackup,
+} from "@/lib/sharepointBackups";
 import { buildBackupFilename, getTeamBackupApp } from "@/lib/teamBackupApps";
 
 export const dynamic = "force-dynamic";
@@ -23,10 +28,36 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const { searchParams } = new URL(req.url);
+  const target = searchParams.get("target");
+
   try {
     const app = getTeamBackupApp("dashboard");
     const sql = await generateBackupSql();
     const filename = buildBackupFilename(app);
+
+    if (target === "sharepoint") {
+      if (!isSharePointConfigured()) {
+        return NextResponse.json(
+          { error: "SHAREPOINT_SITE_URL is not configured on Dashboard" },
+          { status: 500 }
+        );
+      }
+
+      const uploaded = await uploadSharePointBackup(
+        filename,
+        Buffer.from(sql, "utf8"),
+        app.contentType
+      );
+      return NextResponse.json({
+        ok: true,
+        filename: uploaded.name,
+        size: uploaded.size,
+        id: uploaded.id,
+        webUrl: uploaded.webUrl,
+      });
+    }
+
     return new NextResponse(sql, {
       status: 200,
       headers: {
@@ -44,6 +75,35 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   if (!verifyInternalAccess(req)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const contentType = req.headers.get("content-type") ?? "";
+  if (contentType.includes("application/json")) {
+    const body = (await req.json()) as { source?: string; backupId?: string };
+    if (body.source === "sharepoint") {
+      if (!isSharePointConfigured()) {
+        return NextResponse.json(
+          { error: "SHAREPOINT_SITE_URL is not configured on Dashboard" },
+          { status: 500 }
+        );
+      }
+      if (!body.backupId) {
+        return NextResponse.json({ error: "backupId is required" }, { status: 400 });
+      }
+
+      try {
+        const downloaded = await downloadSharePointBackup(body.backupId);
+        const sql = downloaded.content.toString("utf8");
+        if (!isValidBackupSql(sql)) {
+          return NextResponse.json({ error: "Invalid Dashboard backup file." }, { status: 400 });
+        }
+        await executeBackupSql(sql);
+        return NextResponse.json({ ok: true, filename: downloaded.name });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Restore failed";
+        return NextResponse.json({ error: message }, { status: 400 });
+      }
+    }
   }
 
   const contentLength = Number(req.headers.get("content-length") ?? "0");
