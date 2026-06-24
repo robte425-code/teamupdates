@@ -112,7 +112,7 @@ function toSharePointFile(item: {
 export async function listSharePointBackups(): Promise<SharePointBackupFile[]> {
   const siteId = await getSiteId();
   const res = await graphFetch(
-    `/sites/${siteId}/drive/root:/${encodeURIComponent(SHAREPOINT_BACKUPS_FOLDER)}:/children?$select=id,name,size,createdDateTime,webUrl`
+    `/sites/${siteId}/drive/root:/${encodeURIComponent(SHAREPOINT_BACKUPS_FOLDER)}:/children?$select=id,name,size,createdDateTime,webUrl,file,folder`
   );
   const data = (await res.json()) as {
     value?: Array<{
@@ -122,6 +122,7 @@ export async function listSharePointBackups(): Promise<SharePointBackupFile[]> {
       createdDateTime?: string;
       webUrl?: string;
       file?: Record<string, unknown>;
+      folder?: Record<string, unknown>;
     }>;
     error?: { message?: string };
   };
@@ -133,7 +134,7 @@ export async function listSharePointBackups(): Promise<SharePointBackupFile[]> {
   }
 
   return (data.value ?? [])
-    .filter((item) => item.file)
+    .filter((item) => item.file && !item.folder)
     .map((item) => toSharePointFile(item))
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
