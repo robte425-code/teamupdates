@@ -22,11 +22,19 @@ Recorded from **Microsoft Entra ID → App registrations → Certificates & secr
 
 **Voc public** (`voc-hotline.org`) does not use Azure AD — it has its own NextAuth + email/2FA.
 
+### TEAM tenant ID (all apps)
+
+Every Vercel project should use the same **`AZURE_AD_TENANT_ID`** — your Microsoft 365 directory ID (not secret):
+
+**`a6009694-7fa8-4b24-ab9c-ef6b98136638`**
+
+Confirm in Entra → **Overview** → **Tenant ID**. Same value for **`SHAREPOINT_AZURE_TENANT_ID`** where that var exists. Do not use `common` in production.
+
 ### How to confirm in Azure Portal
 
 1. Open [Azure Portal](https://portal.azure.com) → **Microsoft Entra ID** → **App registrations**.
 2. Open each app above → **Certificates & secrets** → match **Secret ID** and **Expires** to this table after any rotation.
-3. In Vercel → each project → **Environment Variables** → confirm **`AZURE_AD_CLIENT_ID`** (and optional **`SHAREPOINT_AZURE_CLIENT_ID`**) matches the intended registration.
+3. In Vercel → each project → **Environment Variables** → confirm the **names** `AZURE_AD_CLIENT_ID` and `SHAREPOINT_AZURE_CLIENT_ID` exist (values are hidden — see verification below).
 4. On the SharePoint backup app → **API permissions** → confirm **Application** permissions include **Sites.ReadWrite.All** and **Files.ReadWrite.All**.
 
 ### Per-project Azure env (verify after changes)
@@ -34,10 +42,10 @@ Recorded from **Microsoft Entra ID → App registrations → Certificates & secr
 | Vercel project | SSO app (typical) | SharePoint Graph |
 |----------------|-------------------|------------------|
 | `teamvoc-updates` | Teamvoc Update | TEAM SharePoint backups or same as SSO — verify env |
-| `team-requests` | Teamvoc Update | Same as Updates — verify env |
-| `team-payroll` | Teamvoc Update | Optional `SHAREPOINT_AZURE_*` — verify env |
-| `team-hr` | Team HR | Verify env |
-| `voc-hotline-nine` (internal) | VOC Hotline | Optional `SHAREPOINT_AZURE_*` — verify env |
+| `team-requests` | Teamvoc Update | Same **`AZURE_AD_*`** for SharePoint Graph (no `SHAREPOINT_AZURE_*` on Vercel) |
+| `team-payroll` | Teamvoc Update | **TEAM SharePoint backups** via `SHAREPOINT_AZURE_*` (set on Vercel) |
+| `team-hr` | Team HR | Same **`AZURE_AD_*`** for SharePoint Graph (no `SHAREPOINT_AZURE_*` on Vercel) |
+| `voc-hotline-nine` (internal) | VOC Hotline | **TEAM SharePoint backups** via `SHAREPOINT_AZURE_*` (set on Vercel) |
 
 Payroll and Voc internal code supports **`SHAREPOINT_AZURE_CLIENT_ID` / `SECRET` / `TENANT_ID`** so Graph can use a different app than login. Compare Vercel production values to the **TEAM SharePoint backups** registration when rotating backup credentials.
 
@@ -173,13 +181,126 @@ Each app has its **own** secret and expiry — see the table at the top of this 
 
 ## Quick verification commands
 
-List Azure-related env **names** on Vercel (no values):
+Vercel **never shows values** for encrypted/sensitive environment variables in the dashboard — only names and “Updated … ago”. That is normal. **`AZURE_AD_CLIENT_ID` is not a secret** (it appears in the browser sign-in URL), but Vercel still hides it in the UI.
+
+### 1. Confirm env var names exist (CLI)
+
+Run from your machine (linked Vercel project or pass `--scope`):
 
 ```bash
-npx vercel env ls production --scope robert-evans-projects-bb7ab988 | rg -i 'AZURE|SHAREPOINT'
+# Updates
+npx vercel env ls production --scope robert-evans-projects-bb7ab988 --project teamvoc-updates | rg -i 'AZURE|SHAREPOINT'
+
+# Voc internal (project: voc-hotline-nine)
+cd path/to/VOCHotline/apps/internal
+npx vercel env ls production | rg -i 'AZURE|SHAREPOINT'
+
+# HR (project: team-hr)
+cd path/to/TEAM\ HR
+npx vercel env ls production | rg -i 'AZURE|SHAREPOINT'
+
+# Requests (project: team-requests)
+cd path/to/Tickets
+npx vercel env ls production | rg -i 'AZURE|SHAREPOINT'
+
+# Payroll (project: team-payroll)
+cd path/to/payroll
+npx vercel env ls production | rg -i 'AZURE|SHAREPOINT'
 ```
 
-Compare client ID across projects in Vercel UI — **`AZURE_AD_CLIENT_ID`** should match the Entra app for that project (Teamvoc Update, VOC Hotline, or Team HR). SharePoint uploads may use **TEAM SharePoint backups** via `SHAREPOINT_AZURE_*`.
+**Voc internal production today:** `AZURE_AD_CLIENT_ID`, `AZURE_AD_CLIENT_SECRET`, `AZURE_AD_TENANT_ID`, plus **`SHAREPOINT_AZURE_CLIENT_ID` / `SECRET` / `TENANT_ID`** and `SHAREPOINT_SITE_URL`.
+
+**HR production today:** `AZURE_AD_CLIENT_ID`, `AZURE_AD_CLIENT_SECRET`, `AZURE_AD_TENANT_ID`, and `SHAREPOINT_SITE_URL` only — **no** `SHAREPOINT_AZURE_*` (SharePoint Graph uses the same **Team HR** app as SSO).
+
+**Requests production today:** `AZURE_AD_CLIENT_ID`, `AZURE_AD_CLIENT_SECRET`, `AZURE_AD_TENANT_ID`, and `SHAREPOINT_SITE_URL` only — **no** `SHAREPOINT_AZURE_*` (SharePoint Graph uses the same **Teamvoc Update** app as SSO).
+
+**Payroll production today:** `AZURE_AD_CLIENT_ID`, `AZURE_AD_CLIENT_SECRET`, `AZURE_AD_TENANT_ID`, plus **`SHAREPOINT_AZURE_CLIENT_ID` / `SECRET` / `TENANT_ID`** and `SHAREPOINT_SITE_URL`. SSO uses **Teamvoc Update**; SharePoint backups use **TEAM SharePoint backups** (separate from SSO, like Voc).
+
+### 2. Read client ID from the sign-in redirect (easiest)
+
+**Voc internal**
+
+1. Open [voc-hotline-nine/login](https://voc-hotline-nine.vercel.app/login).
+2. Click **Sign in with Microsoft** (do not complete login if you prefer).
+3. On `login.microsoftonline.com`, copy **`client_id=`** from the address bar.
+4. Entra → **VOC Hotline** → **Overview** → compare **Application (client) ID**.
+
+For SharePoint backups on Voc: compare **`SHAREPOINT_AZURE_CLIENT_ID`** (via `vercel env pull`) to **TEAM SharePoint backups** — separate from the SSO redirect.
+
+**HR**
+
+1. Open [team-hr/login](https://team-hr.vercel.app/login).
+2. Click **Sign in with Microsoft**.
+3. Copy **`client_id=`** from the Microsoft login URL.
+4. Entra → **Team HR** → **Overview** → compare **Application (client) ID**.
+
+HR uses one registration for both SSO and SharePoint backups — there is no separate SharePoint client ID in Vercel.
+
+**Requests**
+
+1. Open [team-requests/login](https://team-requests.vercel.app/login).
+2. Click **Sign in with Microsoft**.
+3. Copy **`client_id=`** from the Microsoft login URL.
+4. Entra → **Teamvoc Update** → **Overview** → compare **Application (client) ID**.
+
+Requests uses one registration (**Teamvoc Update**) for both SSO and SharePoint backups — same secret as Updates (`AZURE_AD_*` expires **2028-03-04**).
+
+**Payroll**
+
+1. Open [team-payroll](https://team-payroll.vercel.app) and sign in via Microsoft (login flow on static pages).
+2. Copy **`client_id=`** from the Microsoft login URL.
+3. Entra → **Teamvoc Update** → **Overview** → compare **Application (client) ID**.
+
+SSO uses **Teamvoc Update** (`AZURE_AD_*`, secret expires **2028-03-04**). SharePoint backups use **`SHAREPOINT_AZURE_*`** → **TEAM SharePoint backups** (secret expires **2028-06-22**). **`AZURE_AD_TENANT_ID`** on Payroll is visible in Vercel and should be **`a6009694-7fa8-4b24-ab9c-ef6b98136638`** on all TEAM apps.
+
+### 3. Match redirect URI in Entra (no Vercel access needed)
+
+Entra → app registration → **Authentication** → **Redirect URIs**. The app that lists the callback URL owns that deployment’s SSO client ID:
+
+| Callback URL | Expected Entra app |
+|--------------|-------------------|
+| `https://team-requests.vercel.app/api/auth/callback/azure-ad` | **Teamvoc Update** |
+| `https://voc-hotline-nine.vercel.app/api/auth/callback/azure-ad` | **VOC Hotline** |
+| `https://team-hr.vercel.app/api/auth/callback/azure-ad` | **Team HR** |
+| `https://teamvoc-updates.vercel.app/api/auth/callback/azure-ad` | **Teamvoc Update** |
+| `https://team-payroll.vercel.app/api/auth/callback/azure-ad` | **Teamvoc Update** |
+
+### 4. Pull env locally (optional)
+
+If you have Vercel CLI access to the project:
+
+```bash
+# Voc internal
+cd path/to/VOCHotline/apps/internal
+vercel env pull .env.production.local --environment=production
+grep AZURE_AD_CLIENT_ID .env.production.local
+grep SHAREPOINT_AZURE_CLIENT_ID .env.production.local
+
+# HR
+cd path/to/TEAM\ HR
+vercel env pull .env.production.local --environment=production
+grep AZURE_AD_CLIENT_ID .env.production.local
+
+# Requests
+cd path/to/Tickets
+vercel env pull .env.production.local --environment=production
+grep AZURE_AD_CLIENT_ID .env.production.local
+
+# Payroll
+cd path/to/payroll
+vercel env pull .env.production.local --environment=production
+grep AZURE_AD_CLIENT_ID .env.production.local
+grep SHAREPOINT_AZURE_CLIENT_ID .env.production.local
+grep AZURE_AD_TENANT_ID .env.production.local
+```
+
+Do **not** commit the pulled file. Delete when done.
+
+### 5. Entra sign-in logs
+
+**Entra ID → Sign-in logs** → filter by user + app → **Application** column shows which registration handled the login.
+
+**Expected mapping:** **`AZURE_AD_TENANT_ID`** = **`a6009694-7fa8-4b24-ab9c-ef6b98136638`** on all projects. **`AZURE_AD_CLIENT_ID`** → **Teamvoc Update** (Updates, Requests, Payroll SSO), **VOC Hotline** (Voc internal), **Team HR** (HR). SharePoint backups: **TEAM SharePoint backups** via **`SHAREPOINT_AZURE_*`** on Voc and Payroll; Requests and HR use SSO app **`AZURE_AD_*`** for Graph.
 
 ---
 
