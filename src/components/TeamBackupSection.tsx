@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { BACKUP_HUB_REFRESH_NEON_EVENT, dispatchBackupHubRefreshNeon } from "@/lib/backupHubEvents";
+import { dispatchBackupHubRefreshNeon } from "@/lib/backupHubEvents";
 import type { TeamBackupAppId } from "@/lib/teamBackupApps";
 
 type BackupFile = {
@@ -60,6 +60,82 @@ function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function BackupAllProgress({
+  apps,
+  progress,
+  currentAppId,
+  busy,
+}: {
+  apps: BackupApp[];
+  progress: AllBackupProgress;
+  currentAppId: TeamBackupAppId | null;
+  busy: boolean;
+}) {
+  const stats = useMemo(() => {
+    const steps = Object.values(progress);
+    const done = steps.filter((s) => s.status === "done").length;
+    const failed = steps.filter((s) => s.status === "failed").length;
+    return { done, failed, finished: done + failed, total: steps.length };
+  }, [progress]);
+
+  return (
+    <div className="mt-4 space-y-2 border-t border-stone-200 pt-4">
+      <div className="mb-1 flex items-center justify-between text-xs text-stone-600">
+        <span>
+          {busy && currentAppId
+            ? `Backing up ${apps.find((a) => a.id === currentAppId)?.name ?? "app"}…`
+            : stats.failed > 0
+              ? `${stats.done} of ${stats.total} backed up, ${stats.failed} failed`
+              : `${stats.done} of ${stats.total} backed up`}
+        </span>
+        <span>
+          {stats.finished}/{stats.total}
+        </span>
+      </div>
+      <div
+        className="h-1.5 overflow-hidden rounded-full bg-stone-200"
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={stats.total}
+        aria-valuenow={stats.finished}
+        aria-label="SharePoint backup progress"
+      >
+        <div
+          className={`h-full rounded-full transition-all duration-300 ${
+            stats.failed > 0 && !busy ? "bg-amber-500" : "bg-emerald-600"
+          }`}
+          style={{ width: `${Math.round((stats.finished / stats.total) * 100)}%` }}
+        />
+      </div>
+      <ul className="space-y-0.5 text-xs">
+        {apps.map((app) => {
+          const step = progress[app.id];
+          if (!step) return null;
+          const tone =
+            step.status === "failed"
+              ? "text-amber-900"
+              : step.status === "done"
+                ? "text-emerald-800"
+                : step.status === "running"
+                  ? "font-medium text-emerald-700"
+                  : "text-stone-500";
+          return (
+            <li key={app.id} className={tone}>
+              {step.status === "pending" && "· "}
+              {step.status === "running" && "… "}
+              {step.status === "done" && "✓ "}
+              {step.status === "failed" && "✕ "}
+              {app.name}
+              {step.status === "done" && step.filename ? ` — ${step.filename}` : ""}
+              {step.status === "failed" && step.error ? ` — ${step.error}` : ""}
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
 }
 
 export function TeamBackupSection() {
@@ -125,16 +201,6 @@ export function TeamBackupSection() {
   useEffect(() => {
     load();
   }, [load]);
-
-  const allProgressStats = useMemo(() => {
-    if (!allProgress) return null;
-    const steps = Object.values(allProgress);
-    const done = steps.filter((s) => s.status === "done").length;
-    const failed = steps.filter((s) => s.status === "failed").length;
-    const finished = done + failed;
-    const total = steps.length;
-    return { done, failed, finished, total };
-  }, [allProgress]);
 
   async function backupApps(appIds: TeamBackupAppId[]): Promise<{
     results: BackupResult[];
@@ -531,15 +597,6 @@ export function TeamBackupSection() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="max-w-3xl text-sm text-stone-600">
-          Backups are stored in the TEAM SharePoint site under the <strong>Backups</strong> folder.
-          Each file is named <code className="rounded bg-stone-100 px-1">App name-YYYY-MM-DD_HH-mm-ss</code>.
-          HR backups include database rows and Vercel Blob document files. Voc hotline backups
-          include uploaded RAG source files.
-        </p>
-      </div>
-
       {(state.errors.length > 0 || error) && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
           {[...state.errors, ...(error ? [error] : [])].map((msg) => (
@@ -669,156 +726,114 @@ export function TeamBackupSection() {
         )}
       </section>
 
-      <section className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
-        <h2 className="mb-2 text-lg font-semibold text-stone-900">Backup all apps</h2>
-        <p className="mb-4 text-sm text-stone-600">
-          Create fresh backups for Dashboard, Requests, Voc hotline, Payroll, and HR, then upload
-          them to SharePoint.
-        </p>
-        <button
-          type="button"
-          disabled={loading || hubBusy || restoreBusy !== null}
-          onClick={() => runBackup()}
-          className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
-        >
-          {allBusy ? "Backing up all apps..." : "Backup all apps"}
-        </button>
+      <section className="rounded-xl border border-stone-200 bg-white shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-stone-200 px-4 py-4">
+          <div>
+            <h2 className="text-lg font-semibold text-stone-900">SharePoint backups</h2>
+            <p className="mt-1 max-w-3xl text-sm text-stone-600">
+              Portable backups in the TEAM SharePoint <strong>Backups</strong> folder (
+              <code className="rounded bg-stone-100 px-1 text-xs">App name-YYYY-MM-DD_HH-mm-ss</code>
+              ). HR and Voc hotline include file archives.
+            </p>
+          </div>
+          <button
+            type="button"
+            disabled={loading || hubBusy || restoreBusy !== null}
+            onClick={() => runBackup()}
+            className="shrink-0 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
+          >
+            {allBusy ? "Backing up all…" : "Backup all"}
+          </button>
+        </div>
 
-        {allProgress && allProgressStats && (
-          <div className="mt-4 space-y-3">
-            <div>
-              <div className="mb-1 flex items-center justify-between text-sm text-stone-600">
-                <span>
-                  {allBusy && allProgressCurrent
-                    ? `Backing up ${state.apps.find((a) => a.id === allProgressCurrent)?.name ?? "app"} (${allProgressStats.finished + 1} of ${allProgressStats.total})…`
-                    : allProgressStats.failed > 0
-                      ? `${allProgressStats.done} of ${allProgressStats.total} backed up, ${allProgressStats.failed} failed`
-                      : `${allProgressStats.done} of ${allProgressStats.total} backed up`}
-                </span>
-                <span>
-                  {allProgressStats.finished}/{allProgressStats.total}
-                </span>
-              </div>
-              <div
-                className="h-2 overflow-hidden rounded-full bg-stone-200"
-                role="progressbar"
-                aria-valuemin={0}
-                aria-valuemax={allProgressStats.total}
-                aria-valuenow={allProgressStats.finished}
-                aria-label="Backup progress"
-              >
-                <div
-                  className={`h-full rounded-full transition-all duration-300 ${
-                    allProgressStats.failed > 0 && !allBusy ? "bg-amber-500" : "bg-emerald-600"
-                  }`}
-                  style={{
-                    width: `${Math.round((allProgressStats.finished / allProgressStats.total) * 100)}%`,
-                  }}
-                />
-              </div>
-            </div>
-
-            <ul className="space-y-1 text-sm">
-              {state.apps.map((app) => {
-                const step = allProgress[app.id];
-                if (!step) return null;
-
-                let label = app.name;
-                let tone = "text-stone-500";
-                if (step.status === "running") {
-                  label = `${app.name} — backing up…`;
-                  tone = "font-medium text-emerald-700";
-                } else if (step.status === "done") {
-                  label = `${app.name} — saved${step.filename ? ` (${step.filename})` : ""}`;
-                  tone = "text-emerald-800";
-                } else if (step.status === "failed") {
-                  label = `${app.name} — ${step.error ?? "failed"}`;
-                  tone = "text-amber-900";
-                }
-
-                return (
-                  <li key={app.id} className={tone}>
-                    {step.status === "pending" && "· "}
-                    {step.status === "running" && "… "}
-                    {step.status === "done" && "✓ "}
-                    {step.status === "failed" && "✕ "}
-                    {label}
-                  </li>
-                );
-              })}
-            </ul>
+        {loading ? (
+          <p className="px-4 py-6 text-sm text-stone-500">Loading SharePoint backups…</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-left text-sm">
+              <thead className="bg-stone-50 text-xs text-stone-600">
+                <tr>
+                  <th className="px-4 py-2.5 font-medium">App</th>
+                  <th className="px-4 py-2.5 font-medium">Restore from</th>
+                  <th className="px-4 py-2.5 font-medium text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {state.apps.map((app) => {
+                  const files = backupsByApp.get(app.id) ?? [];
+                  const latest = files[0];
+                  return (
+                    <tr key={app.id} className="border-t border-stone-200 align-middle">
+                      <td className="px-4 py-2.5">
+                        <div className="font-medium text-stone-900">{app.name}</div>
+                        {latest && (
+                          <div className="mt-0.5 truncate text-xs text-stone-500" title={latest.name}>
+                            Latest: {formatWhen(latest.createdAt)} · {formatSize(latest.size)}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <select
+                          value={selectedBackup[app.id]}
+                          onChange={(e) =>
+                            setSelectedBackup((prev) => ({ ...prev, [app.id]: e.target.value }))
+                          }
+                          disabled={files.length === 0 || restoreBusy !== null}
+                          className="w-full min-w-[12rem] max-w-md rounded-md border border-stone-300 bg-white px-2 py-1.5 text-xs disabled:bg-stone-100"
+                          aria-label={`Restore backup for ${app.name}`}
+                        >
+                          {files.length === 0 ? (
+                            <option value="">No backups yet</option>
+                          ) : (
+                            files.map((file) => (
+                              <option key={file.id} value={file.id}>
+                                {formatWhen(file.createdAt)} · {formatSize(file.size)}
+                              </option>
+                            ))
+                          )}
+                        </select>
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <div className="flex justify-end gap-2">
+                          <button
+                            type="button"
+                            disabled={loading || hubBusy || restoreBusy !== null}
+                            onClick={() => runBackup([app.id])}
+                            className="rounded-md border border-stone-300 bg-white px-2.5 py-1.5 text-xs font-medium text-stone-800 hover:bg-stone-50 disabled:opacity-60"
+                          >
+                            {appBusy === app.id ? "…" : "Backup"}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={
+                              files.length === 0 ||
+                              !selectedBackup[app.id] ||
+                              restoreBusy !== null ||
+                              hubBusy
+                            }
+                            onClick={() => runRestore(app.id)}
+                            className="rounded-md bg-red-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-red-700 disabled:opacity-60"
+                          >
+                            {restoreBusy === app.id ? "…" : "Restore"}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
-      </section>
 
-      <section className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
-        <h2 className="mb-4 text-lg font-semibold text-stone-900">App backups</h2>
-        {loading ? (
-          <p className="text-sm text-stone-500">Loading SharePoint backups...</p>
-        ) : (
-          <div className="space-y-4">
-            {state.apps.map((app) => {
-              const files = backupsByApp.get(app.id) ?? [];
-              return (
-                <div
-                  key={app.id}
-                  className="rounded-lg border border-stone-200 p-4"
-                >
-                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                    <h3 className="text-base font-semibold text-stone-900">{app.name}</h3>
-                    <button
-                      type="button"
-                      disabled={loading || hubBusy || restoreBusy !== null}
-                      onClick={() => runBackup([app.id])}
-                      className="rounded-lg bg-stone-800 px-3 py-2 text-sm font-medium text-white hover:bg-stone-700 disabled:opacity-60"
-                    >
-                      {appBusy === app.id ? "Backing up..." : "Backup"}
-                    </button>
-                  </div>
-
-                  <div className="flex flex-col gap-3 lg:flex-row lg:items-end">
-                    <label className="block flex-1 text-sm">
-                      <span className="mb-1 block font-medium text-stone-700">
-                        SharePoint backup to restore
-                      </span>
-                      <select
-                        value={selectedBackup[app.id]}
-                        onChange={(e) =>
-                          setSelectedBackup((prev) => ({ ...prev, [app.id]: e.target.value }))
-                        }
-                        disabled={files.length === 0 || restoreBusy !== null}
-                        className="w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm disabled:bg-stone-100"
-                      >
-                        {files.length === 0 ? (
-                          <option value="">No backups yet</option>
-                        ) : (
-                          files.map((file) => (
-                            <option key={file.id} value={file.id}>
-                              {file.name} ({formatWhen(file.createdAt)}, {formatSize(file.size)})
-                            </option>
-                          ))
-                        )}
-                      </select>
-                    </label>
-                    <button
-                      type="button"
-                      disabled={
-                        files.length === 0 ||
-                        !selectedBackup[app.id] ||
-                        restoreBusy !== null ||
-                        appBusy !== null ||
-                        allBusy ||
-                        protectionBusy
-                      }
-                      onClick={() => runRestore(app.id)}
-                      className="rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-60"
-                    >
-                      {restoreBusy === app.id ? "Restoring..." : "Restore"}
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+        {allProgress && (
+          <div className="px-4 pb-4">
+            <BackupAllProgress
+              apps={state.apps}
+              progress={allProgress}
+              currentAppId={allProgressCurrent}
+              busy={allBusy}
+            />
           </div>
         )}
       </section>
