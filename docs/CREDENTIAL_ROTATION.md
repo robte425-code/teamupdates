@@ -1,47 +1,78 @@
 # TEAM credential rotation checklist
 
 Living inventory for secrets that expire or should be rotated on a schedule.  
-**Last reviewed:** 2026-06-24
+**Last reviewed:** 2026-06-24 (Entra client secrets + Vercel deploy token verified in portal)
 
 ---
 
 ## Azure app registrations (SSO vs SharePoint)
 
-### Production today: **one registration**
+### Entra client secrets (expiration dates)
 
-Vercel production env for all five staff apps lists **`AZURE_AD_CLIENT_ID`**, **`AZURE_AD_CLIENT_SECRET`**, **`AZURE_AD_TENANT_ID`**, and **`SHAREPOINT_SITE_URL`** only.  
-**No project has `SHAREPOINT_AZURE_*` set**, so SharePoint Graph uses the same app as staff sign-in.
+Recorded from **Microsoft Entra ID → App registrations → Certificates & secrets** (June 2026).
 
-| Vercel project | SSO (`AZURE_AD_*`) | SharePoint Graph |
-|----------------|-------------------|------------------|
-| `teamvoc-updates` | Yes | Same `AZURE_AD_*` |
-| `team-requests` | Yes | Same `AZURE_AD_*` |
-| `team-payroll` | Yes | Falls back to `AZURE_AD_*` (optional `SHAREPOINT_AZURE_*` not set) |
-| `team-hr` | Yes | Same `AZURE_AD_*` |
-| `voc-hotline-nine` (internal) | Yes | Falls back to `AZURE_AD_*` (optional `SHAREPOINT_AZURE_*` not set) |
+| Entra app registration | Expires | Secret ID | Value hint | Vercel / usage |
+|------------------------|---------|-----------|------------|----------------|
+| **Teamvoc Update** | **2028-03-04** | `05916ac4-4bdd-459a-aae8-5493d2a1ec70` | `_T-…` | Primary SSO — `teamvoc-updates`, `team-requests`, `team-payroll` (`AZURE_AD_*`; confirm client IDs match) |
+| **VOC Hotline** | **2028-06-07** | `506a3b7d-3b95-4614-b30f-8a65c3674d80` | `YSZ…` | `voc-hotline-nine` (`AZURE_AD_*`) |
+| **Team HR** | **2028-06-16** | `811d5704-b8c4-4e77-aeee-0e28ca1fa577` | `A8w…` | `team-hr` (`AZURE_AD_*`) |
+| **TEAM SharePoint backups** | **2028-06-22** | `74103444-6211-4a28-bec3-8ba667db75b3` | `r-L…` | SharePoint Graph for Backup hub uploads (`SHAREPOINT_AZURE_*` and/or `AZURE_AD_*` — confirm per project) |
+
+**Calendar reminders:** 30 days and 7 days before each date above.
 
 **Voc public** (`voc-hotline.org`) does not use Azure AD — it has its own NextAuth + email/2FA.
 
 ### How to confirm in Azure Portal
 
 1. Open [Azure Portal](https://portal.azure.com) → **Microsoft Entra ID** → **App registrations**.
-2. You should see **one primary TEAM app** (often named like *Teamvoc Updates*). Its **Application (client) ID** should match `AZURE_AD_CLIENT_ID` in any Vercel project (compare in Vercel → Project → Settings → Environment Variables — client ID is safe to view).
-3. Check for a **second** registration only if you intentionally split Graph from SSO. If none exists, you have one app.
-4. On that app → **Certificates & secrets** → note each secret’s **Expires** date for your calendar.
-5. On that app → **API permissions** → confirm **Application** permissions include **Sites.ReadWrite.All** and **Files.ReadWrite.All** (required for Backup hub SharePoint uploads).
+2. Open each app above → **Certificates & secrets** → match **Secret ID** and **Expires** to this table after any rotation.
+3. In Vercel → each project → **Environment Variables** → confirm **`AZURE_AD_CLIENT_ID`** (and optional **`SHAREPOINT_AZURE_CLIENT_ID`**) matches the intended registration.
+4. On the SharePoint backup app → **API permissions** → confirm **Application** permissions include **Sites.ReadWrite.All** and **Files.ReadWrite.All**.
 
-### Optional second registration (code only, not in prod)
+### Per-project Azure env (verify after changes)
 
-Payroll and Voc internal support **`SHAREPOINT_AZURE_CLIENT_ID` / `SECRET` / `TENANT_ID`** so Graph can use a different app than login (useful if the sign-in app must not hold SharePoint permissions). This is documented in their `.env.example` but **not configured on Vercel today**.
+| Vercel project | SSO app (typical) | SharePoint Graph |
+|----------------|-------------------|------------------|
+| `teamvoc-updates` | Teamvoc Update | TEAM SharePoint backups or same as SSO — verify env |
+| `team-requests` | Teamvoc Update | Same as Updates — verify env |
+| `team-payroll` | Teamvoc Update | Optional `SHAREPOINT_AZURE_*` — verify env |
+| `team-hr` | Team HR | Verify env |
+| `voc-hotline-nine` (internal) | VOC Hotline | Optional `SHAREPOINT_AZURE_*` — verify env |
+
+Payroll and Voc internal code supports **`SHAREPOINT_AZURE_CLIENT_ID` / `SECRET` / `TENANT_ID`** so Graph can use a different app than login. Compare Vercel production values to the **TEAM SharePoint backups** registration when rotating backup credentials.
+
+---
+
+## Vercel deploy tokens (GitHub Actions)
+
+Recorded from [vercel.com/account/tokens](https://vercel.com/account/tokens) (June 2026).  
+GitHub repo secrets only store the token value — **expiry is visible in Vercel**, not on the GitHub secrets page.
+
+| Vercel token name | Created | Expires | GitHub secret | Repo / usage |
+|-------------------|---------|---------|---------------|--------------|
+| **GitHub Actions teamupdates** | 2026-03-27 | **Never expires** | `VERCEL_TOKEN` | `robte425-code/teamupdates` — **Deploy to Vercel** + credential expiry report |
+| *(voc-hotline deploy — verify)* | — | — | `VERCEL_TOKEN` | Check `voc-hotline` repo if separate token exists |
+
+**Not the GitHub deploy token:** local **Vercel CLI** sessions (e.g. “Vercel CLI from MacBookPro”) can show a short expiry (e.g. 2026-06-24) — those are for `vercel` on your machine only.
+
+**Policy:** `VERCEL_TOKEN` for GitHub has no vendor expiry today. Rotate **every 12 months** anyway, or **set an expiration** when you create the next token (then update the GitHub secret before the old token is revoked).
+
+**Where to update:** GitHub → repo → **Settings → Secrets and variables → Actions** → `VERCEL_TOKEN`.  
+Also on `teamupdates`: `VERCEL_ORG_ID` and `VERCEL_PROJECT_ID` (IDs — they do not expire).
+
+**Legacy GitHub secrets on `teamupdates` (not used by current workflows):** `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `AZURE_TENANT_ID`, `DATABASE_URL`, `ONEDRIVE_USER_UPN` — review and remove if nothing else references them.
 
 ---
 
 ## Calendar: credentials with vendor expiration dates
 
-| Credential | Apps | Where to see expiration | Calendar action |
-|------------|------|-------------------------|-----------------|
-| **`AZURE_AD_CLIENT_SECRET`** | Updates, Requests, Payroll, HR, Voc internal | Entra → App registrations → *[TEAM app]* → **Certificates & secrets** → **Expires** | Reminder 30 + 7 days before; rotate all five Vercel projects together |
-| **`VERCEL_TOKEN`** | GitHub Actions: `teamupdates`, `voc-hotline` deploy workflows | [vercel.com/account/tokens](https://vercel.com/account/tokens) | Set expiry when creating; reminder before GitHub secret update |
+| Credential | Apps | Expires (next) | Where to see expiration | Calendar action |
+|------------|------|----------------|-------------------------|-----------------|
+| **`AZURE_AD_CLIENT_SECRET`** (Teamvoc Update) | Updates, Requests, Payroll | **2028-03-04** | Entra → *Teamvoc Update* → **Certificates & secrets** | Reminder 30 + 7 days before; update all three Vercel projects together |
+| **`AZURE_AD_CLIENT_SECRET`** (VOC Hotline) | Voc internal | **2028-06-07** | Entra → *VOC Hotline* | Reminder 30 + 7 days before; update `voc-hotline-nine` |
+| **`AZURE_AD_CLIENT_SECRET`** (Team HR) | HR | **2028-06-16** | Entra → *Team HR* | Reminder 30 + 7 days before; update `team-hr` |
+| **SharePoint client secret** (TEAM SharePoint backups) | Backup hub (all apps that upload) | **2028-06-22** | Entra → *TEAM SharePoint backups* | Reminder 30 + 7 days before; update `SHAREPOINT_AZURE_*` (or `AZURE_AD_*` if shared) on each project that uploads |
+| **`VERCEL_TOKEN`** (GitHub Actions teamupdates) | `teamupdates` deploy + expiry report | **No vendor expiry** (created 2026-03-27) | [vercel.com/account/tokens](https://vercel.com/account/tokens) | Rotate on policy (~12 months) or set expiry on next token; update GitHub secret |
 
 **Entra alerts:** Enable **Identity → Recommendations → Renew expiring application credentials**. There is no built-in email for app secret expiry — consider a monthly PowerShell/Logic App check.
 
@@ -81,12 +112,18 @@ Generate: `openssl rand -base64 32`
 
 ## Rotation runbooks
 
-### Azure client secret (one app, five Vercel projects)
+### Azure client secret (per Entra app registration)
 
-1. Entra → App registration → **Certificates & secrets** → **New client secret** (note new **Expires** in calendar).
-2. Update **`AZURE_AD_CLIENT_SECRET`** on: `teamvoc-updates`, `team-requests`, `team-payroll`, `team-hr`, `voc-hotline-nine`.
-3. Redeploy all five (or push empty commit / redeploy from Vercel).
-4. Test sign-in on each app + run **Backup all** from Backup hub.
+Each app has its **own** secret and expiry — see the table at the top of this doc. Rotate one registration at a time:
+
+1. Entra → that app registration → **Certificates & secrets** → **New client secret** (update this doc with new **Expires** and **Secret ID**).
+2. Update the matching Vercel env var(s):
+   - **Teamvoc Update** → `AZURE_AD_CLIENT_SECRET` on `teamvoc-updates`, `team-requests`, `team-payroll`
+   - **VOC Hotline** → `AZURE_AD_CLIENT_SECRET` on `voc-hotline-nine`
+   - **Team HR** → `AZURE_AD_CLIENT_SECRET` on `team-hr`
+   - **TEAM SharePoint backups** → `SHAREPOINT_AZURE_CLIENT_SECRET` (or `AZURE_AD_CLIENT_SECRET` if that project uses the backup app for Graph) on every project that uploads to SharePoint
+3. Redeploy affected project(s).
+4. Test sign-in on each affected app; run **Backup all** from Backup hub after SharePoint secret changes.
 5. Delete the **old** secret in Entra.
 
 ### `TEAM_INTERNAL_ACCESS_SECRET`
@@ -112,10 +149,12 @@ Generate: `openssl rand -base64 32`
 
 ### `VERCEL_TOKEN` (GitHub Actions)
 
-1. Create new token at vercel.com → Account Settings → Tokens (**set expiration**).
-2. Update GitHub repo secret `VERCEL_TOKEN` for `teamupdates` and/or `voc-hotline`.
-3. Run deploy workflow once.
-4. Revoke old token.
+1. [vercel.com/account/tokens](https://vercel.com/account/tokens) → create new token (name e.g. `GitHub Actions teamupdates`) — **set an expiration** if possible.
+2. GitHub → `teamupdates` → **Settings → Secrets and variables → Actions** → update `VERCEL_TOKEN`.
+3. Repeat for `voc-hotline` repo if it uses a separate token.
+4. Run **Deploy to Vercel** workflow once; confirm production deploy succeeds.
+5. Revoke the old token in Vercel.
+6. Update the **Vercel deploy tokens** table in this doc (created date, expiry).
 
 ---
 
@@ -140,7 +179,7 @@ List Azure-related env **names** on Vercel (no values):
 npx vercel env ls production --scope robert-evans-projects-bb7ab988 | rg -i 'AZURE|SHAREPOINT'
 ```
 
-Compare client ID across projects in Vercel UI — all `AZURE_AD_CLIENT_ID` values should be identical if using one registration.
+Compare client ID across projects in Vercel UI — **`AZURE_AD_CLIENT_ID`** should match the Entra app for that project (Teamvoc Update, VOC Hotline, or Team HR). SharePoint uploads may use **TEAM SharePoint backups** via `SHAREPOINT_AZURE_*`.
 
 ---
 
