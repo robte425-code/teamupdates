@@ -6,6 +6,7 @@ import {
 } from "@/lib/databaseBackup";
 import {
   downloadSharePointBackup,
+  getSharePointBackupName,
   isSharePointConfigured,
   listSharePointBackups,
   uploadSharePointBackup,
@@ -45,6 +46,41 @@ function internalBackupUrl(appId: TeamBackupAppId): string | null {
   return `${bases[appId]}/api/internal/database-backup`;
 }
 
+function usesDirectSharePointBackup(app: TeamBackupApp): boolean {
+  return app.extension === ".zip";
+}
+
+async function triggerRemoteSharePointBackup(app: TeamBackupApp): Promise<{ filename: string }> {
+  const secret = internalSecret();
+  const baseUrl = internalBackupUrl(app.id);
+  if (!secret || !baseUrl) {
+    throw new Error(`${app.name}: TEAM_INTERNAL_ACCESS_SECRET or app URL not configured`);
+  }
+
+  const url = new URL(baseUrl);
+  url.searchParams.set("target", "sharepoint");
+  if (app.id === "voc") {
+    url.searchParams.set("files", "1");
+  }
+
+  const res = await fetch(url.toString(), {
+    headers: { Authorization: `Bearer ${secret}` },
+    cache: "no-store",
+  });
+
+  const payload = (await res.json().catch(() => ({}))) as {
+    ok?: boolean;
+    filename?: string;
+    error?: string;
+  };
+
+  if (!res.ok || !payload.filename) {
+    throw new Error(payload.error || `${app.name}: SharePoint backup failed (${res.status})`);
+  }
+
+  return { filename: payload.filename };
+}
+
 async function fetchRemoteBackup(app: TeamBackupApp): Promise<Buffer> {
   const secret = internalSecret();
   const url = internalBackupUrl(app.id);
@@ -74,7 +110,7 @@ async function createLocalBackup(app: TeamBackupApp): Promise<Buffer> {
   return Buffer.from(sql, "utf8");
 }
 
-async function restoreLocalBackup(app: TeamBackupApp, content: Buffer): Promise<void> {
+async function restoreLocalBackup(app: TeamBackupApp, content: Buffer, backupId?: string): Promise<void> {
   if (app.id === "dashboard") {
     const sql = content.toString("utf8");
     if (!isValidBackupSql(sql)) {
@@ -88,6 +124,23 @@ async function restoreLocalBackup(app: TeamBackupApp, content: Buffer): Promise<
   const url = internalBackupUrl(app.id);
   if (!secret || !url) {
     throw new Error(`${app.name}: TEAM_INTERNAL_ACCESS_SECRET or app URL not configured`);
+  }
+
+  if (usesDirectSharePointBackup(app) && backupId) {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${secret}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ source: "sharepoint", backupId }),
+    });
+
+    if (!res.ok) {
+      const payload = (await res.json().catch(() => ({}))) as { error?: string };
+      throw new Error(payload.error || `${app.name}: restore failed (${res.status})`);
+    }
+    return;
   }
 
   const res = await fetch(url, {
@@ -151,6 +204,12 @@ export async function runTeamBackup(appIds?: TeamBackupAppId[]): Promise<{
 
   for (const app of targets) {
     try {
+      if (usesDirectSharePointBackup(app)) {
+        const uploaded = await triggerRemoteSharePointBackup(app);
+        results.push({ appId: app.id, appName: app.name, ok: true, filename: uploaded.filename });
+        continue;
+      }
+
       const content = await createLocalBackup(app);
       const filename = buildBackupFilename(app);
       await uploadSharePointBackup(filename, content, app.contentType);
@@ -182,6 +241,16 @@ export async function runTeamRestore(
   const app = getTeamBackupApp(appId);
 
   try {
+    if (usesDirectSharePointBackup(app)) {
+      const name = await getSharePointBackupName(backupId);
+      const fileAppId = parseBackupAppId(name);
+      if (fileAppId !== appId) {
+        return { error: `Selected backup does not match ${app.name}.` };
+      }
+      await restoreLocalBackup(app, Buffer.alloc(0), backupId);
+      return { ok: true };
+    }
+
     const downloaded = await downloadSharePointBackup(backupId);
     const fileAppId = parseBackupAppId(downloaded.name);
     if (fileAppId !== appId) {

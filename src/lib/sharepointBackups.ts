@@ -1,6 +1,8 @@
 import { parseBackupAppId, type TeamBackupAppId } from "@/lib/teamBackupApps";
 
 export const SHAREPOINT_BACKUPS_FOLDER = "Backups";
+const SIMPLE_UPLOAD_MAX_BYTES = 3.5 * 1024 * 1024;
+const UPLOAD_CHUNK_BYTES = 10 * 1024 * 1024;
 
 export type SharePointBackupFile = {
   id: string;
@@ -162,6 +164,62 @@ async function ensureBackupsFolder(siteId: string): Promise<void> {
   }
 }
 
+async function uploadWithSession(
+  siteId: string,
+  filename: string,
+  content: Buffer,
+  contentType: string
+) {
+  const itemPath = `/sites/${siteId}/drive/root:/${encodeURIComponent(SHAREPOINT_BACKUPS_FOLDER)}/${encodeURIComponent(filename)}`;
+  const sessionRes = await graphFetch(`${itemPath}:/createUploadSession`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      item: { "@microsoft.graph.conflictBehavior": "replace" },
+    }),
+  });
+
+  const session = (await sessionRes.json()) as {
+    uploadUrl?: string;
+    error?: { message?: string };
+  };
+  if (!sessionRes.ok || !session.uploadUrl) {
+    throw new Error(session.error?.message || "Could not start SharePoint upload session");
+  }
+
+  let response: Response | null = null;
+  for (let start = 0; start < content.length; start += UPLOAD_CHUNK_BYTES) {
+    const end = Math.min(start + UPLOAD_CHUNK_BYTES, content.length) - 1;
+    const chunk = content.subarray(start, end + 1);
+    response = await fetch(session.uploadUrl, {
+      method: "PUT",
+      headers: {
+        "Content-Length": String(chunk.length),
+        "Content-Range": `bytes ${start}-${end}/${content.length}`,
+        "Content-Type": contentType,
+      },
+      body: chunk,
+    });
+
+    if (!response.ok && response.status !== 202 && response.status !== 201) {
+      const text = await response.text().catch(() => "");
+      throw new Error(text || `SharePoint upload failed (${response.status})`);
+    }
+  }
+
+  if (!response) throw new Error("SharePoint upload failed");
+  if (response.status === 200 || response.status === 201) {
+    return response.json() as Promise<{
+      id: string;
+      name: string;
+      size?: number;
+      createdDateTime?: string;
+      webUrl?: string;
+    }>;
+  }
+  throw new Error("SharePoint upload did not complete");
+}
+
 export async function uploadSharePointBackup(
   filename: string,
   content: Buffer,
@@ -170,15 +228,8 @@ export async function uploadSharePointBackup(
   const siteId = await getSiteId();
   await ensureBackupsFolder(siteId);
   const path = `/sites/${siteId}/drive/root:/${encodeURIComponent(SHAREPOINT_BACKUPS_FOLDER)}/${encodeURIComponent(filename)}:/content`;
-  const res = await graphFetch(path, {
-    method: "PUT",
-    headers: {
-      "Content-Type": contentType,
-    },
-    body: new Uint8Array(content),
-  });
 
-  const data = (await res.json()) as {
+  let data: {
     id?: string;
     name?: string;
     size?: number;
@@ -187,7 +238,20 @@ export async function uploadSharePointBackup(
     error?: { message?: string };
   };
 
-  if (!res.ok || !data.id || !data.name) {
+  if (content.length <= SIMPLE_UPLOAD_MAX_BYTES) {
+    const res = await graphFetch(path, {
+      method: "PUT",
+      headers: {
+        "Content-Type": contentType,
+      },
+      body: new Uint8Array(content),
+    });
+    data = (await res.json()) as typeof data;
+  } else {
+    data = await uploadWithSession(siteId, filename, content, contentType);
+  }
+
+  if (!data.id || !data.name) {
     throw new Error(data.error?.message || "Could not upload backup to SharePoint");
   }
 
@@ -198,6 +262,16 @@ export async function uploadSharePointBackup(
     createdDateTime: data.createdDateTime,
     webUrl: data.webUrl,
   });
+}
+
+export async function getSharePointBackupName(itemId: string): Promise<string> {
+  const siteId = await getSiteId();
+  const res = await graphFetch(`/sites/${siteId}/drive/items/${itemId}?$select=name`);
+  const data = (await res.json()) as { name?: string; error?: { message?: string } };
+  if (!res.ok || !data.name) {
+    throw new Error(data.error?.message || "Could not read SharePoint backup metadata");
+  }
+  return data.name;
 }
 
 export async function downloadSharePointBackup(
