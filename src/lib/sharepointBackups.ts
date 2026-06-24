@@ -164,27 +164,60 @@ async function ensureBackupsFolder(siteId: string): Promise<void> {
   }
 }
 
-async function uploadWithSession(
+async function parseGraphError(res: Response): Promise<string> {
+  const text = await res.text().catch(() => "");
+  if (!text) return `HTTP ${res.status}`;
+  try {
+    const data = JSON.parse(text) as { error?: { message?: string; code?: string } };
+    return data.error?.message || data.error?.code || text;
+  } catch {
+    return text;
+  }
+}
+
+async function parseGraphJson<T>(res: Response): Promise<T | null> {
+  const text = await res.text().catch(() => "");
+  if (!text) return null;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return null;
+  }
+}
+
+function backupItemPath(siteId: string, filename: string): string {
+  return `/sites/${siteId}/drive/root:/${encodeURIComponent(SHAREPOINT_BACKUPS_FOLDER)}/${encodeURIComponent(filename)}`;
+}
+
+async function getUploadedBackupItem(
   siteId: string,
-  filename: string,
-  content: Buffer,
-  contentType: string
-) {
-  const itemPath = `/sites/${siteId}/drive/root:/${encodeURIComponent(SHAREPOINT_BACKUPS_FOLDER)}/${encodeURIComponent(filename)}`;
-  const sessionRes = await graphFetch(`${itemPath}:/createUploadSession`, {
+  filename: string
+): Promise<{ id: string; name: string; size?: number; createdDateTime?: string; webUrl?: string }> {
+  const res = await graphFetch(
+    `${backupItemPath(siteId, filename)}?$select=id,name,size,webUrl,createdDateTime`
+  );
+  const data = await parseGraphJson<{ id?: string; name?: string; size?: number; createdDateTime?: string; webUrl?: string }>(res);
+  if (!res.ok || !data?.id || !data.name) {
+    throw new Error((data as { error?: { message?: string } } | null)?.error?.message || "Could not read uploaded SharePoint backup");
+  }
+  return data as { id: string; name: string; size?: number; createdDateTime?: string; webUrl?: string };
+}
+
+async function uploadWithSession(siteId: string, filename: string, content: Buffer) {
+  const sessionRes = await graphFetch(`${backupItemPath(siteId, filename)}:/createUploadSession`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      item: { "@microsoft.graph.conflictBehavior": "replace" },
+      item: {
+        "@microsoft.graph.conflictBehavior": "replace",
+        name: filename,
+      },
     }),
   });
 
-  const session = (await sessionRes.json()) as {
-    uploadUrl?: string;
-    error?: { message?: string };
-  };
-  if (!sessionRes.ok || !session.uploadUrl) {
-    throw new Error(session.error?.message || "Could not start SharePoint upload session");
+  const session = await parseGraphJson<{ uploadUrl?: string; error?: { message?: string } }>(sessionRes);
+  if (!sessionRes.ok || !session?.uploadUrl) {
+    throw new Error(session?.error?.message || (await parseGraphError(sessionRes)));
   }
 
   let response: Response | null = null;
@@ -196,29 +229,38 @@ async function uploadWithSession(
       headers: {
         "Content-Length": String(chunk.length),
         "Content-Range": `bytes ${start}-${end}/${content.length}`,
-        "Content-Type": contentType,
       },
       body: new Uint8Array(chunk),
     });
 
     if (!response.ok && response.status !== 202 && response.status !== 201) {
-      const text = await response.text().catch(() => "");
-      throw new Error(text || `SharePoint upload failed (${response.status})`);
+      throw new Error(await parseGraphError(response));
     }
   }
 
   if (!response) throw new Error("SharePoint upload failed");
   if (response.status === 200 || response.status === 201) {
-    return response.json() as Promise<{
+    const completed = await parseGraphJson<{
       id: string;
       name: string;
       size?: number;
       createdDateTime?: string;
       webUrl?: string;
-    }>;
+    }>(response);
+    if (completed?.id && completed.name) return completed;
   }
-  throw new Error("SharePoint upload did not complete");
+
+  return getUploadedBackupItem(siteId, filename);
 }
+
+type UploadedItem = {
+  id?: string;
+  name?: string;
+  size?: number;
+  createdDateTime?: string;
+  webUrl?: string;
+  error?: { message?: string };
+};
 
 export async function uploadSharePointBackup(
   filename: string,
@@ -227,32 +269,33 @@ export async function uploadSharePointBackup(
 ): Promise<SharePointBackupFile> {
   const siteId = await getSiteId();
   await ensureBackupsFolder(siteId);
-  const path = `/sites/${siteId}/drive/root:/${encodeURIComponent(SHAREPOINT_BACKUPS_FOLDER)}/${encodeURIComponent(filename)}:/content`;
 
-  let data: {
-    id?: string;
-    name?: string;
-    size?: number;
-    createdDateTime?: string;
-    webUrl?: string;
-    error?: { message?: string };
-  };
+  let data: UploadedItem | null = null;
 
   if (content.length <= SIMPLE_UPLOAD_MAX_BYTES) {
-    const res = await graphFetch(path, {
-      method: "PUT",
-      headers: {
-        "Content-Type": contentType,
-      },
-      body: new Uint8Array(content),
-    });
-    data = (await res.json()) as typeof data;
+    const res = await graphFetch(
+      `${backupItemPath(siteId, filename)}:/content?@microsoft.graph.conflictBehavior=replace`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": contentType || "application/octet-stream",
+        },
+        body: new Uint8Array(content),
+      }
+    );
+    data = await parseGraphJson<UploadedItem>(res);
+    if (!res.ok) {
+      throw new Error(data?.error?.message || (await parseGraphError(res)));
+    }
+    if (!data?.id || !data.name) {
+      data = await getUploadedBackupItem(siteId, filename);
+    }
   } else {
-    data = await uploadWithSession(siteId, filename, content, contentType);
+    data = await uploadWithSession(siteId, filename, content);
   }
 
-  if (!data.id || !data.name) {
-    throw new Error(data.error?.message || "Could not upload backup to SharePoint");
+  if (!data?.id || !data.name) {
+    throw new Error("Could not upload backup to SharePoint");
   }
 
   return toSharePointFile({

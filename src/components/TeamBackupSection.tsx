@@ -332,7 +332,7 @@ export function TeamBackupSection() {
       <div>
         <p className="max-w-3xl text-sm text-stone-600">
           Backups are stored in the TEAM SharePoint site under the <strong>Backups</strong> folder.
-          Each file is named <code className="rounded bg-stone-100 px-1">App name-YYYY-MM-DD HH-mm-ss</code>.
+          Each file is named <code className="rounded bg-stone-100 px-1">App name-YYYY-MM-DD_HH-mm-ss</code>.
           HR backups include database rows and Vercel Blob document files. Voc hotline backups
           include uploaded RAG source files.
         </p>

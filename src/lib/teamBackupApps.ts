@@ -21,11 +21,11 @@ export function getTeamBackupApp(id: TeamBackupAppId): TeamBackupApp {
   return app;
 }
 
-/** `<App name>-<YYYY-MM-DD HH-mm-ss><extension>` */
+/** `<App name>-<YYYY-MM-DD_HH-mm-ss><extension>` */
 export function buildBackupFilename(app: TeamBackupApp, date = new Date()): string {
   const iso = date.toISOString().slice(0, 19);
   const [day, time] = iso.split("T");
-  const stamp = `${day} ${time.replace(/:/g, "-")}`;
+  const stamp = `${day}_${time.replace(/:/g, "-")}`;
   return `${app.name}-${stamp}${app.extension}`;
 }
 
