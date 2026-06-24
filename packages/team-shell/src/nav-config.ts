@@ -128,7 +128,7 @@ export function updatesAdminSections(pathname: string): AdminNavSection[] {
         { href: "/manage/reminders", label: "Reminders", isActive: (p) => p.startsWith("/manage/reminders") },
         { href: "/manage/popup", label: "Popup window", isActive: (p) => p.startsWith("/manage/popup") },
         { href: "/manage/access", label: "Access management", isActive: (p) => p.startsWith("/manage/access") },
-        { href: "/manage/backup", label: "Backup", isActive: (p) => p.startsWith("/manage/backup") },
+        { href: "/manage/backup", label: "Backup hub", isActive: (p) => p.startsWith("/manage/backup") },
         { href: "/manage/usage-stats", label: "Usage stats", isActive: (p) => p.startsWith("/manage/usage-stats") },
       ],
     },
