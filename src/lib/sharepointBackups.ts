@@ -198,7 +198,7 @@ async function uploadWithSession(
         "Content-Range": `bytes ${start}-${end}/${content.length}`,
         "Content-Type": contentType,
       },
-      body: chunk,
+      body: new Uint8Array(chunk),
     });
 
     if (!response.ok && response.status !== 202 && response.status !== 201) {
