@@ -145,7 +145,7 @@ export function ManageAccessContent() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-stone-900">Access management</h1>
+        <h1 className="text-2xl font-semibold text-stone-900">Access hub</h1>
         <p className="mt-2 max-w-3xl text-sm text-stone-600">
           Grant admin/agent access across TEAM apps. Anyone on your allowed email domain can sign in
           as an employee and submit requests; use this page for agent and admin privileges only.
