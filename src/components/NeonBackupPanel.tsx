@@ -5,7 +5,6 @@ import { BACKUP_HUB_REFRESH_NEON_EVENT } from "@/lib/backupHubEvents";
 import {
   NEON_BACKUP_TARGETS,
   primaryNeonLink,
-  vercelStorageUrl,
   type NeonBackupTarget,
 } from "@/lib/neonBackupTargets";
 import type { NeonAppBackupStatus, NeonBackupStatusResponse } from "@/lib/neonBackupStatus";
@@ -127,7 +126,7 @@ function TargetRow({
             rel="noopener noreferrer"
             className="rounded-md border border-stone-300 bg-white px-2.5 py-1.5 text-xs font-medium text-stone-800 hover:bg-stone-50"
           >
-            Neon
+            Neon dashboard
           </a>
           {configured && (
             <button
@@ -136,18 +135,8 @@ function TargetRow({
               onClick={() => onSnapshot(target.id)}
               className="rounded-md bg-stone-800 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-stone-700 disabled:opacity-60"
             >
-              {snapshotBusy ? "…" : "Snapshot"}
+              {snapshotBusy ? "Taking…" : "Take snapshot"}
             </button>
-          )}
-          {target.neonProjectId && (
-            <a
-              href={vercelStorageUrl(target.vercelProject)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-1 text-xs text-stone-500 underline hover:text-stone-900"
-            >
-              Vercel
-            </a>
           )}
         </div>
       </td>
@@ -263,7 +252,7 @@ export function NeonBackupPanel() {
                   <th className="w-36 px-3 py-2.5 font-medium">App</th>
                   <th className="px-3 py-2.5 font-medium">Schedule</th>
                   <th className="w-40 px-3 py-2.5 font-medium">Last snapshot</th>
-                  <th className="w-44 px-3 py-2.5 font-medium text-right">Actions</th>
+                  <th className="w-52 px-3 py-2.5 font-medium text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
