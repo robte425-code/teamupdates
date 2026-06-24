@@ -110,7 +110,7 @@ function toSharePointFile(item: {
 export async function listSharePointBackups(): Promise<SharePointBackupFile[]> {
   const siteId = await getSiteId();
   const res = await graphFetch(
-    `/sites/${siteId}/drive/root:/${encodeURIComponent(SHAREPOINT_BACKUPS_FOLDER)}:/children?$select=id,name,size,createdDateTime,webUrl&$orderby=createdDateTime desc`
+    `/sites/${siteId}/drive/root:/${encodeURIComponent(SHAREPOINT_BACKUPS_FOLDER)}:/children?$select=id,name,size,createdDateTime,webUrl`
   );
   const data = (await res.json()) as {
     value?: Array<{
@@ -132,7 +132,34 @@ export async function listSharePointBackups(): Promise<SharePointBackupFile[]> {
 
   return (data.value ?? [])
     .filter((item) => item.file)
-    .map((item) => toSharePointFile(item));
+    .map((item) => toSharePointFile(item))
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+async function ensureBackupsFolder(siteId: string): Promise<void> {
+  const res = await graphFetch(
+    `/sites/${siteId}/drive/root:/${encodeURIComponent(SHAREPOINT_BACKUPS_FOLDER)}`
+  );
+  if (res.ok) return;
+  if (res.status !== 404) {
+    const data = (await res.json()) as { error?: { message?: string } };
+    throw new Error(data.error?.message || "Could not access SharePoint Backups folder");
+  }
+
+  const create = await graphFetch(`/sites/${siteId}/drive/root/children`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      name: SHAREPOINT_BACKUPS_FOLDER,
+      folder: {},
+      "@microsoft.graph.conflictBehavior": "fail",
+    }),
+  });
+
+  if (!create.ok && create.status !== 409) {
+    const data = (await create.json()) as { error?: { message?: string } };
+    throw new Error(data.error?.message || "Could not create SharePoint Backups folder");
+  }
 }
 
 export async function uploadSharePointBackup(
@@ -141,6 +168,7 @@ export async function uploadSharePointBackup(
   contentType: string
 ): Promise<SharePointBackupFile> {
   const siteId = await getSiteId();
+  await ensureBackupsFolder(siteId);
   const path = `/sites/${siteId}/drive/root:/${encodeURIComponent(SHAREPOINT_BACKUPS_FOLDER)}/${encodeURIComponent(filename)}:/content`;
   const res = await graphFetch(path, {
     method: "PUT",
