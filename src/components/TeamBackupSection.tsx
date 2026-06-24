@@ -24,6 +24,21 @@ type HubState = {
   errors: string[];
 };
 
+type BackupResult = {
+  appId: TeamBackupAppId;
+  appName: string;
+  ok: boolean;
+  filename?: string;
+  error?: string;
+};
+
+type AppBackupStepStatus = "pending" | "running" | "done" | "failed";
+
+type AllBackupProgress = Record<
+  TeamBackupAppId,
+  { status: AppBackupStepStatus; filename?: string; error?: string }
+>;
+
 function formatWhen(iso: string): string {
   return new Date(iso).toLocaleString(undefined, {
     dateStyle: "medium",
@@ -52,6 +67,8 @@ export function TeamBackupSection() {
   });
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [allProgress, setAllProgress] = useState<AllBackupProgress | null>(null);
+  const [allProgressCurrent, setAllProgressCurrent] = useState<TeamBackupAppId | null>(null);
 
   const backupsByApp = useMemo(() => {
     const map = new Map<TeamBackupAppId, BackupFile[]>();
@@ -93,45 +110,178 @@ export function TeamBackupSection() {
     load();
   }, [load]);
 
-  async function runBackup(appIds?: TeamBackupAppId[]) {
+  const allProgressStats = useMemo(() => {
+    if (!allProgress) return null;
+    const steps = Object.values(allProgress);
+    const done = steps.filter((s) => s.status === "done").length;
+    const failed = steps.filter((s) => s.status === "failed").length;
+    const finished = done + failed;
+    const total = steps.length;
+    return { done, failed, finished, total };
+  }, [allProgress]);
+
+  async function backupApps(appIds: TeamBackupAppId[]): Promise<{
+    results: BackupResult[];
+    configErrors: string[];
+  }> {
+    const res = await fetch("/api/team-backup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ apps: appIds }),
+    });
+    const data = (await res.json()) as {
+      results?: BackupResult[];
+      errors?: string[];
+    };
+    if (!res.ok) throw new Error("Backup request failed");
+    return { results: data.results ?? [], configErrors: data.errors ?? [] };
+  }
+
+  function summarizeBackupResults(
+    succeeded: BackupResult[],
+    failed: BackupResult[],
+    configErrors: string[]
+  ) {
+    if (configErrors.length > 0) {
+      setError(configErrors.join(" "));
+    } else if (failed.length > 0) {
+      setError(failed.map((r) => `${r.appName}: ${r.error}`).join(" "));
+    }
+
+    if (succeeded.length > 0) {
+      setMessage(
+        succeeded.length === 1
+          ? `${succeeded[0]!.appName} backup saved to SharePoint as ${succeeded[0]!.filename}.`
+          : `${succeeded.length} app backups saved to SharePoint Backups folder.`
+      );
+    }
+  }
+
+  async function runBackupAll() {
+    const targets = state.apps;
+    if (targets.length === 0) return;
+
     setMessage(null);
     setError(null);
-    if (appIds?.length === 1) {
+    setAllBusy(true);
+    setAllProgressCurrent(null);
+    setAllProgress(
+      Object.fromEntries(
+        targets.map((app) => [app.id, { status: "pending" as const }])
+      ) as AllBackupProgress
+    );
+
+    const succeeded: BackupResult[] = [];
+    const failed: BackupResult[] = [];
+    let configErrors: string[] = [];
+
+    try {
+      for (const app of targets) {
+        setAllProgressCurrent(app.id);
+        setAllProgress((prev) =>
+          prev
+            ? {
+                ...prev,
+                [app.id]: { status: "running" },
+              }
+            : prev
+        );
+
+        try {
+          const batch = await backupApps([app.id]);
+          if (batch.configErrors.length > 0) {
+            configErrors = batch.configErrors;
+            const configMessage = batch.configErrors.join(" ");
+            failed.push({
+              appId: app.id,
+              appName: app.name,
+              ok: false,
+              error: configMessage,
+            });
+            setAllProgress((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    [app.id]: { status: "failed", error: configMessage },
+                  }
+                : prev
+            );
+            break;
+          }
+
+          const result = batch.results[0];
+          if (result?.ok) {
+            succeeded.push(result);
+            setAllProgress((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    [app.id]: { status: "done", filename: result.filename },
+                  }
+                : prev
+            );
+          } else {
+            const failure: BackupResult = result ?? {
+              appId: app.id,
+              appName: app.name,
+              ok: false,
+              error: "Backup failed",
+            };
+            failed.push(failure);
+            setAllProgress((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    [app.id]: { status: "failed", error: failure.error },
+                  }
+                : prev
+            );
+          }
+        } catch (e) {
+          const message = e instanceof Error ? e.message : "Backup failed";
+          failed.push({ appId: app.id, appName: app.name, ok: false, error: message });
+          setAllProgress((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  [app.id]: { status: "failed", error: message },
+                }
+              : prev
+          );
+        }
+      }
+
+      summarizeBackupResults(succeeded, failed, configErrors);
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Backup failed");
+    } finally {
+      setAllBusy(false);
+      setAllProgressCurrent(null);
+    }
+  }
+
+  async function runBackup(appIds?: TeamBackupAppId[]) {
+    if (!appIds) {
+      await runBackupAll();
+      return;
+    }
+
+    setMessage(null);
+    setError(null);
+    setAllProgress(null);
+    setAllProgressCurrent(null);
+    if (appIds.length === 1) {
       setAppBusy(appIds[0]!);
     } else {
       setAllBusy(true);
     }
 
     try {
-      const res = await fetch("/api/team-backup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(appIds ? { apps: appIds } : {}),
-      });
-      const data = (await res.json()) as {
-        results?: Array<{ appName: string; ok: boolean; filename?: string; error?: string }>;
-        errors?: string[];
-      };
-      if (!res.ok) throw new Error("Backup request failed");
-
-      const failed = (data.results ?? []).filter((r) => !r.ok);
-      const succeeded = (data.results ?? []).filter((r) => r.ok);
-      const configErrors = data.errors ?? [];
-
-      if (configErrors.length > 0) {
-        setError(configErrors.join(" "));
-      } else if (failed.length > 0) {
-        setError(failed.map((r) => `${r.appName}: ${r.error}`).join(" "));
-      }
-
-      if (succeeded.length > 0) {
-        setMessage(
-          succeeded.length === 1
-            ? `${succeeded[0]!.appName} backup saved to SharePoint as ${succeeded[0]!.filename}.`
-            : `${succeeded.length} app backups saved to SharePoint Backups folder.`
-        );
-      }
-
+      const { results, configErrors } = await backupApps(appIds);
+      const failed = results.filter((r) => !r.ok);
+      const succeeded = results.filter((r) => r.ok);
+      summarizeBackupResults(succeeded, failed, configErrors);
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Backup failed");
@@ -216,6 +366,72 @@ export function TeamBackupSection() {
         >
           {allBusy ? "Backing up all apps..." : "Backup all apps"}
         </button>
+
+        {allProgress && allProgressStats && (
+          <div className="mt-4 space-y-3">
+            <div>
+              <div className="mb-1 flex items-center justify-between text-sm text-stone-600">
+                <span>
+                  {allBusy && allProgressCurrent
+                    ? `Backing up ${state.apps.find((a) => a.id === allProgressCurrent)?.name ?? "app"} (${allProgressStats.finished + 1} of ${allProgressStats.total})…`
+                    : allProgressStats.failed > 0
+                      ? `${allProgressStats.done} of ${allProgressStats.total} backed up, ${allProgressStats.failed} failed`
+                      : `${allProgressStats.done} of ${allProgressStats.total} backed up`}
+                </span>
+                <span>
+                  {allProgressStats.finished}/{allProgressStats.total}
+                </span>
+              </div>
+              <div
+                className="h-2 overflow-hidden rounded-full bg-stone-200"
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={allProgressStats.total}
+                aria-valuenow={allProgressStats.finished}
+                aria-label="Backup progress"
+              >
+                <div
+                  className={`h-full rounded-full transition-all duration-300 ${
+                    allProgressStats.failed > 0 && !allBusy ? "bg-amber-500" : "bg-emerald-600"
+                  }`}
+                  style={{
+                    width: `${Math.round((allProgressStats.finished / allProgressStats.total) * 100)}%`,
+                  }}
+                />
+              </div>
+            </div>
+
+            <ul className="space-y-1 text-sm">
+              {state.apps.map((app) => {
+                const step = allProgress[app.id];
+                if (!step) return null;
+
+                let label = app.name;
+                let tone = "text-stone-500";
+                if (step.status === "running") {
+                  label = `${app.name} — backing up…`;
+                  tone = "font-medium text-emerald-700";
+                } else if (step.status === "done") {
+                  label = `${app.name} — saved${step.filename ? ` (${step.filename})` : ""}`;
+                  tone = "text-emerald-800";
+                } else if (step.status === "failed") {
+                  label = `${app.name} — ${step.error ?? "failed"}`;
+                  tone = "text-amber-900";
+                }
+
+                return (
+                  <li key={app.id} className={tone}>
+                    {step.status === "pending" && "· "}
+                    {step.status === "running" && "… "}
+                    {step.status === "done" && "✓ "}
+                    {step.status === "failed" && "✕ "}
+                    {label}
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
       </section>
 
       <section className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
