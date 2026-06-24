@@ -85,11 +85,8 @@ function TargetRow({
 
   return (
     <tr className="border-t border-stone-200 align-middle">
-      <td className="w-36 whitespace-nowrap px-3 py-2.5">
-        <div className="font-medium text-stone-900">{target.name}</div>
-        {target.notes && (
-          <p className="mt-0.5 max-w-[10rem] text-xs leading-snug text-stone-500">{target.notes}</p>
-        )}
+      <td className="w-36 px-3 py-2.5">
+        <div className="whitespace-nowrap font-medium text-stone-900">{target.name}</div>
       </td>
       <td className="px-3 py-2.5">
         <ScheduleBadge live={live} configured={configured} />
@@ -260,13 +257,13 @@ export function NeonBackupPanel() {
           <p className="px-4 py-6 text-sm text-stone-500">Loading Neon status…</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
+            <table className="min-w-full table-fixed text-left text-sm">
               <thead className="bg-stone-50 text-xs text-stone-600">
                 <tr>
                   <th className="w-36 px-3 py-2.5 font-medium">App</th>
                   <th className="px-3 py-2.5 font-medium">Schedule</th>
-                  <th className="px-3 py-2.5 font-medium">Last snapshot</th>
-                  <th className="px-3 py-2.5 font-medium text-right">Actions</th>
+                  <th className="w-40 px-3 py-2.5 font-medium">Last snapshot</th>
+                  <th className="w-44 px-3 py-2.5 font-medium text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -282,6 +279,15 @@ export function NeonBackupPanel() {
                 ))}
               </tbody>
             </table>
+            {NEON_BACKUP_TARGETS.some((t) => t.notes) && (
+              <p className="border-t border-stone-200 px-4 py-3 text-xs text-stone-500">
+                {NEON_BACKUP_TARGETS.filter((t) => t.notes).map((target) => (
+                  <span key={target.id}>
+                    <span className="font-medium text-stone-700">{target.name}:</span> {target.notes}
+                  </span>
+                ))}
+              </p>
+            )}
           </div>
         )}
       </section>
