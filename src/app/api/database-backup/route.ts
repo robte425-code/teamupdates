@@ -1,32 +1,16 @@
 import { NextResponse } from "next/server";
-import { Client } from "pg";
 import { requireRealAdmin } from "@/lib/session";
-import { prisma } from "@/lib/prisma";
+import {
+  clearPreRestoreSnapshot,
+  executeBackupSql,
+  generateBackupSql,
+  getPreRestoreSnapshot,
+  isValidBackupSql,
+  loadPreRestoreSnapshotSql,
+  savePreRestoreSnapshot,
+} from "@/lib/databaseBackup";
 
-const BACKUP_HEADER = "-- TEAMVOC_DB_BACKUP_V1";
 const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
-
-function sqlString(value: string): string {
-  return `'${value.replace(/'/g, "''")}'`;
-}
-
-function sqlValue(value: unknown): string {
-  if (value === null || value === undefined) return "NULL";
-  if (value instanceof Date) return sqlString(value.toISOString());
-  if (typeof value === "string") return sqlString(value);
-  if (typeof value === "number") return Number.isFinite(value) ? String(value) : "NULL";
-  if (typeof value === "boolean") return value ? "TRUE" : "FALSE";
-  return sqlString(JSON.stringify(value));
-}
-
-function insertStatement(table: string, columns: string[], rows: Record<string, unknown>[]): string[] {
-  if (rows.length === 0) return [];
-  return rows.map((row) => {
-    const values = columns.map((c) => sqlValue(row[c])).join(", ");
-    const cols = columns.map((c) => `"${c}"`).join(", ");
-    return `INSERT INTO ${table} (${cols}) VALUES (${values});`;
-  });
-}
 
 async function requireAdmin() {
   const admin = await requireRealAdmin();
@@ -40,127 +24,7 @@ export async function GET() {
   const authError = await requireAdmin();
   if (authError) return authError;
 
-  const [
-    users,
-    updates,
-    keyDates,
-    keyDateBadgeSettings,
-    tickerSettings,
-    tickerItems,
-    birthdayEntries,
-    reminderSettings,
-    reminderRecipients,
-    pageVisits,
-    phoneBookEntries,
-  ] =
-    await Promise.all([
-      prisma.user.findMany({ orderBy: { createdAt: "asc" } }),
-      prisma.update.findMany({ orderBy: { createdAt: "asc" } }),
-      prisma.keyDate.findMany({ orderBy: { createdAt: "asc" } }),
-      prisma.keyDateBadgeSettings.findMany(),
-      prisma.tickerSettings.findMany(),
-      prisma.tickerItem.findMany({ orderBy: { createdAt: "asc" } }),
-      prisma.birthdayEntry.findMany({ orderBy: [{ month: "asc" }, { day: "asc" }, { name: "asc" }] }),
-      prisma.reminderSettings.findMany(),
-      prisma.reminderRecipient.findMany({ orderBy: { email: "asc" } }),
-      prisma.pageVisit.findMany({ orderBy: { visitedAt: "asc" } }),
-      prisma.phoneBookEntry.findMany({ orderBy: { sortOrder: "asc" } }),
-    ]);
-
-  const lines: string[] = [
-    BACKUP_HEADER,
-    `-- generated_at_utc: ${new Date().toISOString()}`,
-    "BEGIN;",
-    'TRUNCATE TABLE public."PageVisit", public."PhoneBookEntry", public."BirthdayEntry", public."ReminderRecipient", public."ReminderSettings", public."TickerItem", public."TickerSettings", public."KeyDateBadgeSettings", public."KeyDate", public."Update", public."User" RESTART IDENTITY CASCADE;',
-    ...insertStatement('public."User"', ["id", "email", "name", "password", "role", "createdAt"], users),
-    ...insertStatement(
-      'public."Update"',
-      ["id", "date", "title", "body", "archived", "createdAt", "createdByName", "createdByEmail"],
-      updates
-    ),
-    ...insertStatement(
-      'public."KeyDate"',
-      [
-        "id",
-        "dateType",
-        "eventDate",
-        "eventEndDate",
-        "title",
-        "body",
-        "archived",
-        "createdAt",
-        "createdByName",
-        "createdByEmail",
-      ],
-      keyDates
-    ),
-    ...insertStatement(
-      'public."KeyDateBadgeSettings"',
-      ["id", "newBadgeDays", "soonBadgeDays"],
-      keyDateBadgeSettings.length
-        ? keyDateBadgeSettings
-        : [{ id: "default", newBadgeDays: 3, soonBadgeDays: 7 }]
-    ),
-    ...insertStatement(
-      'public."TickerSettings"',
-      ["id", "scrollSpeedPxPerSec"],
-      tickerSettings.length
-        ? tickerSettings
-        : [{ id: "default", scrollSpeedPxPerSec: 40 }]
-    ),
-    ...insertStatement('public."TickerItem"', ["id", "text", "displayed", "createdAt"], tickerItems),
-    ...insertStatement(
-      'public."BirthdayEntry"',
-      ["id", "name", "month", "day", "createdAt", "updatedAt"],
-      birthdayEntries
-    ),
-    ...insertStatement(
-      'public."ReminderSettings"',
-      ["id", "inactiveDaysThreshold", "emailSubject", "emailBody"],
-      reminderSettings.length
-        ? reminderSettings
-        : [
-            {
-              id: "default",
-              inactiveDaysThreshold: 7,
-              emailSubject: "Reminder: TEAM dashboard",
-              emailBody:
-                "Hi {{firstName}},\n\nWe have not seen you on the TEAM dashboard for {{inactiveDays}} days.\n\nPlease visit: {{dashboardUrl}}\n\nThank you.",
-            },
-          ]
-    ),
-    ...insertStatement(
-      'public."ReminderRecipient"',
-      ["id", "email", "name", "enabled", "lastReminderSentAt", "createdAt", "updatedAt"],
-      reminderRecipients
-    ),
-    ...insertStatement(
-      'public."PageVisit"',
-      ["id", "userId", "userName", "userEmail", "path", "visitedAt"],
-      pageVisits
-    ),
-    ...insertStatement(
-      'public."PhoneBookEntry"',
-      [
-        "id",
-        "sortOrder",
-        "employee",
-        "workCell",
-        "fax",
-        "extension",
-        "personalEmail",
-        "personalPhone",
-        "remarks",
-        "createdAt",
-        "updatedAt",
-      ],
-      phoneBookEntries
-    ),
-    "COMMIT;",
-    "",
-  ];
-
-  const content = lines.join("\n");
+  const content = await generateBackupSql();
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
 
   return new NextResponse(content, {
@@ -187,27 +51,20 @@ export async function POST(req: Request) {
   }
 
   const sql = await file.text();
-  if (!sql.includes(BACKUP_HEADER)) {
+  if (!isValidBackupSql(sql)) {
     return NextResponse.json(
       { error: "Invalid backup file. Please upload a file downloaded from this Admin page." },
       { status: 400 }
     );
   }
 
-  const dbUrl = process.env.DATABASE_URL;
-  if (!dbUrl) {
-    return NextResponse.json({ error: "DATABASE_URL is not configured" }, { status: 500 });
-  }
-
-  const client = new Client({ connectionString: dbUrl });
   try {
-    await client.connect();
-    await client.query(sql);
+    const currentSql = await generateBackupSql();
+    await savePreRestoreSnapshot(currentSql);
+    await executeBackupSql(sql);
     return NextResponse.json({ ok: true });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Restore failed";
     return NextResponse.json({ error: message }, { status: 400 });
-  } finally {
-    await client.end().catch(() => undefined);
   }
 }

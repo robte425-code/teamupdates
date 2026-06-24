@@ -148,3 +148,10 @@ model PopupDismissal {
 
   @@unique([userEmail, popupMessageId])
 }
+
+/// Singleton id `"latest"` — SQL snapshot taken automatically before the last restore.
+model DatabasePreRestoreSnapshot {
+  id        String   @id @default("latest")
+  sql       String   @db.Text
+  createdAt DateTime @default(now())
+}
