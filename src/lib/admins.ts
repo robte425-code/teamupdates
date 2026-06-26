@@ -57,9 +57,9 @@ async function addAdmin(email: string, addedBy: string | null): Promise<void> {
 
 /** Replace the full admin list synced from the Access hub. */
 export async function replaceAdminsList(emails: string[]): Promise<void> {
-  const keep = [
-    ...new Set(emails.map((e) => e.trim().toLowerCase()).filter((e) => e.includes("@"))),
-  ];
+  const keep = Array.from(
+    new Set(emails.map((e) => e.trim().toLowerCase()).filter((e) => e.includes("@")))
+  );
   await prisma.$transaction(async (tx) => {
     await tx.appAdmin.deleteMany();
     if (keep.length > 0) {
