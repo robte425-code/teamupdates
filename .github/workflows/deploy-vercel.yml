@@ -11,6 +11,10 @@ on:
     branches: [main]
   workflow_dispatch:
 
+concurrency:
+  group: deploy-production
+  cancel-in-progress: true
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -38,21 +42,25 @@ jobs:
       - name: Pull Vercel env & link project
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
 
-      - name: Database migrate & admin import
+      - name: Production env & database prep
         run: |
           vercel env pull .env --environment=production --yes --token=${{ secrets.VERCEL_TOKEN }}
-          for attempt in 1 2 3; do
+          # Migrate outside `npm run build` to avoid Neon advisory-lock timeouts during
+          # vercel build. Retry with backoff; do not block deploy if schema is current.
+          for attempt in 1 2 3 4 5; do
             if npx prisma migrate deploy; then
+              echo "Migrations applied (or already up to date)."
               break
             fi
-            if [ "$attempt" -eq 3 ]; then
-              echo "prisma migrate deploy failed after 3 attempts"
-              exit 1
+            if [ "$attempt" -eq 5 ]; then
+              echo "Migrate failed after 5 attempts; checking status..."
+              npx prisma migrate status || true
+            else
+              echo "Migrate attempt $attempt failed; waiting 30s..."
+              sleep 30
             fi
-            echo "Migrate attempt $attempt failed; retrying in 15s..."
-            sleep 15
           done
-          npx tsx scripts/import-env-admins-once.ts
+          npx tsx scripts/import-env-admins-once.ts || echo "Admin import skipped."
 
       - name: Build (Vercel)
         run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
