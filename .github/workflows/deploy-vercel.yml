@@ -38,6 +38,22 @@ jobs:
       - name: Pull Vercel env & link project
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
 
+      - name: Database migrate & admin import
+        run: |
+          vercel env pull .env --environment=production --yes --token=${{ secrets.VERCEL_TOKEN }}
+          for attempt in 1 2 3; do
+            if npx prisma migrate deploy; then
+              break
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "prisma migrate deploy failed after 3 attempts"
+              exit 1
+            fi
+            echo "Migrate attempt $attempt failed; retrying in 15s..."
+            sleep 15
+          done
+          npx tsx scripts/import-env-admins-once.ts
+
       - name: Build (Vercel)
         run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
 
