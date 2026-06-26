@@ -34,6 +34,7 @@ function emptyEditableRow(): AccessRow {
   return {
     email: "",
     displayName: "",
+    updates: { admin: false },
     requests: { agent: false },
     hr: { admin: false },
     payroll: { admin: false },
@@ -79,13 +80,15 @@ export function ManageAccessContent() {
 
   function toggleApp(
     index: number,
-    app: "requests" | "hr" | "payroll" | "voc",
+    app: "updates" | "requests" | "hr" | "payroll" | "voc",
     field: string
   ) {
     const row = rows[index];
     if (!row) return;
     const next = { ...row };
-    if (app === "requests") {
+    if (app === "updates") {
+      next.updates = { admin: !next.updates.admin };
+    } else if (app === "requests") {
       next.requests = {
         ...next.requests,
         [field]: !(next.requests as Record<string, boolean>)[field],
@@ -193,6 +196,7 @@ export function ManageAccessContent() {
             <thead className="border-b border-stone-200 bg-stone-50 text-xs uppercase tracking-wide text-stone-500">
               <tr>
                 <th className="px-3 py-2">Email</th>
+                <th className="px-3 py-2">Updates admin</th>
                 <th className="px-3 py-2">Requests agent</th>
                 <th className="px-3 py-2">HR admin</th>
                 <th className="px-3 py-2">Payroll admin</th>
@@ -205,6 +209,13 @@ export function ManageAccessContent() {
                 <tr key={row.email} className="border-b border-stone-100">
                   <td className="px-3 py-2">
                     <div className="font-medium text-stone-900">{row.email}</div>
+                  </td>
+                  <td className="px-3 py-2">
+                    <Toggle
+                      label="Updates admin"
+                      checked={row.updates.admin}
+                      onChange={() => toggleApp(i, "updates", "admin")}
+                    />
                   </td>
                   <td className="px-3 py-2">
                     <Toggle

@@ -10,6 +10,7 @@ export type InternalAccessUser = {
 export type AccessRow = {
   email: string;
   displayName: string;
+  updates: { admin: boolean };
   requests: { agent: boolean };
   hr: { admin: boolean };
   payroll: { admin: boolean };
@@ -21,17 +22,18 @@ function secret(): string | null {
   return s || null;
 }
 
-function appTargets() {
+type AppTarget =
+  | { id: "updates" | "voc"; url: string; adminList: true }
+  | { id: "requests" | "hr" | "payroll"; url: string; adminList?: false };
+
+function appTargets(): AppTarget[] {
   const urls = teamUrls();
   return [
-    { id: "requests" as const, url: `${urls.requests}/api/internal/team-access` },
-    { id: "hr" as const, url: `${urls.hr}/api/internal/team-access` },
-    { id: "payroll" as const, url: `${urls.payroll.replace(/\/my-leave\.html$/, "")}/api/internal/team-access` },
-    {
-      id: "voc" as const,
-      url: `${urls.vocHotline}/api/internal/team-access`,
-      vocAdmins: true,
-    },
+    { id: "updates", url: `${urls.updates}/api/internal/team-access`, adminList: true },
+    { id: "requests", url: `${urls.requests}/api/internal/team-access` },
+    { id: "hr", url: `${urls.hr}/api/internal/team-access` },
+    { id: "payroll", url: `${urls.payroll.replace(/\/my-leave\.html$/, "")}/api/internal/team-access` },
+    { id: "voc", url: `${urls.vocHotline}/api/internal/team-access`, adminList: true },
   ];
 }
 
@@ -49,6 +51,7 @@ function emptyRow(email: string): AccessRow {
   return {
     email,
     displayName: "",
+    updates: { admin: false },
     requests: { agent: false },
     hr: { admin: false },
     payroll: { admin: false },
@@ -70,7 +73,7 @@ export async function fetchAggregatedAccess(): Promise<{
       appErrors.push(`${app.id}: TEAM_INTERNAL_ACCESS_SECRET not configured`);
       continue;
     }
-    if (app.vocAdmins) {
+    if (app.adminList) {
       const data = await fetchJson<{ admins?: string[] }>(app.url, { headers });
       if (!data?.admins) {
         appErrors.push(`${app.id}: could not load`);
@@ -79,7 +82,8 @@ export async function fetchAggregatedAccess(): Promise<{
       for (const email of data.admins) {
         const key = email.toLowerCase();
         const row = map.get(key) ?? emptyRow(key);
-        row.voc.admin = true;
+        if (app.id === "updates") row.updates.admin = true;
+        else row.voc.admin = true;
         map.set(key, row);
       }
       continue;
@@ -122,6 +126,8 @@ export async function saveAggregatedAccess(rows: AccessRow[]): Promise<{ appErro
 
   const validRows = rows.filter((r) => r.email.includes("@"));
 
+  const updatesAdmins = validRows.filter((r) => r.updates.admin).map((r) => r.email.toLowerCase());
+
   const requestsUsers: InternalAccessUser[] = validRows
     .filter((r) => r.requests.agent)
     .map((r) => ({
@@ -151,12 +157,10 @@ export async function saveAggregatedAccess(rows: AccessRow[]): Promise<{ appErro
 
   const vocAdmins = validRows.filter((r) => r.voc.admin).map((r) => r.email.toLowerCase());
 
-  const targets = appTargets();
-  for (const app of targets) {
-    const url = app.url;
+  for (const app of appTargets()) {
     let body: unknown;
-    if (app.vocAdmins) {
-      body = { admins: vocAdmins };
+    if (app.adminList) {
+      body = { admins: app.id === "updates" ? updatesAdmins : vocAdmins };
     } else if (app.id === "requests") {
       body = { users: requestsUsers };
     } else if (app.id === "hr") {
@@ -167,7 +171,7 @@ export async function saveAggregatedAccess(rows: AccessRow[]): Promise<{ appErro
       continue;
     }
     try {
-      const res = await fetch(url, { method: "PUT", headers, body: JSON.stringify(body) });
+      const res = await fetch(app.url, { method: "PUT", headers, body: JSON.stringify(body) });
       if (!res.ok) appErrors.push(`${app.id}: save failed (${res.status})`);
     } catch {
       appErrors.push(`${app.id}: save failed`);

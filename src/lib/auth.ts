@@ -1,5 +1,6 @@
 import { NextAuthOptions } from "next-auth";
 import AzureADProvider from "next-auth/providers/azure-ad";
+import { isAdminEmail } from "@/lib/admins";
 
 const clientId = process.env.AZURE_AD_CLIENT_ID;
 const clientSecret = process.env.AZURE_AD_CLIENT_SECRET;
@@ -7,20 +8,10 @@ const tenantId = process.env.AZURE_AD_TENANT_ID ?? "common";
 
 const azureConfigured = Boolean(clientId?.trim() && clientSecret?.trim());
 
-const adminEmails = (process.env.ADMIN_EMAILS ?? "")
-  .split(",")
-  .map((e) => e.trim().toLowerCase())
-  .filter(Boolean);
-
 const allowedDomains = (process.env.ALLOWED_DOMAIN ?? "team-voc.com")
   .split(",")
   .map((d) => d.trim().toLowerCase())
   .filter(Boolean);
-
-function isAdmin(email: string | null | undefined): boolean {
-  if (!email) return false;
-  return adminEmails.includes(email.toLowerCase());
-}
 
 function isAllowedDomain(email: string | null | undefined): boolean {
   if (!email) return false;
@@ -74,7 +65,7 @@ export const authOptions: NextAuthOptions = {
         token.name = user.name ?? token.name;
       }
       if (token.email) {
-        token.role = isAdmin(token.email as string) ? "admin" : "member";
+        token.role = (await isAdminEmail(token.email as string)) ? "admin" : "member";
       }
       return token;
     },
