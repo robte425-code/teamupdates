@@ -34,7 +34,6 @@ function emptyEditableRow(): AccessRow {
   return {
     email: "",
     displayName: "",
-    envAdmin: false,
     requests: { agent: false },
     hr: { admin: false },
     payroll: { admin: false },
@@ -44,7 +43,6 @@ function emptyEditableRow(): AccessRow {
 
 export function ManageAccessContent() {
   const [rows, setRows] = useState<AccessRow[]>([]);
-  const [envAdmins, setEnvAdmins] = useState<string[]>([]);
   const [appErrors, setAppErrors] = useState<string[]>([]);
   const [saveErrors, setSaveErrors] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,7 +57,6 @@ export function ManageAccessContent() {
       const data = await r.json();
       if (!r.ok) throw new Error(data.error || "Could not load");
       setRows(Array.isArray(data.rows) ? data.rows : []);
-      setEnvAdmins(Array.isArray(data.envAdmins) ? data.envAdmins : []);
       setAppErrors(Array.isArray(data.appErrors) ? data.appErrors : []);
     } catch (e) {
       setAppErrors([e instanceof Error ? e.message : "Could not load"]);
@@ -86,7 +83,7 @@ export function ManageAccessContent() {
     field: string
   ) {
     const row = rows[index];
-    if (!row || row.envAdmin) return;
+    if (!row) return;
     const next = { ...row };
     if (app === "requests") {
       next.requests = {
@@ -137,8 +134,6 @@ export function ManageAccessContent() {
   }
 
   function removeRow(index: number) {
-    const row = rows[index];
-    if (!row || row.envAdmin) return;
     setRows((list) => list.filter((_, i) => i !== index));
   }
 
@@ -149,8 +144,8 @@ export function ManageAccessContent() {
         <p className="mt-2 max-w-3xl text-sm text-stone-600">
           Grant admin/agent access across TEAM apps. Anyone on your allowed email domain can sign in
           as an employee and submit requests; use this page for agent and admin privileges only.
-          Addresses in <code className="rounded bg-stone-100 px-1">ADMIN_EMAILS</code> (Vercel) are
-          always full admins everywhere and cannot be edited here.
+          Each column reflects the current admin list stored in that app — reload to refresh, save to
+          push changes.
         </p>
       </div>
 
@@ -160,12 +155,6 @@ export function ManageAccessContent() {
             <p key={msg}>{msg}</p>
           ))}
         </div>
-      )}
-
-      {envAdmins.length > 0 && (
-        <p className="text-sm text-stone-600">
-          <span className="font-medium">Default admins (env):</span> {envAdmins.join(", ")}
-        </p>
       )}
 
       <form onSubmit={addRow} className="flex flex-wrap items-end gap-3 rounded-xl border border-stone-200 bg-white p-4">
@@ -216,15 +205,11 @@ export function ManageAccessContent() {
                 <tr key={row.email} className="border-b border-stone-100">
                   <td className="px-3 py-2">
                     <div className="font-medium text-stone-900">{row.email}</div>
-                    {row.envAdmin && (
-                      <span className="text-xs text-stone-500">env admin</span>
-                    )}
                   </td>
                   <td className="px-3 py-2">
                     <Toggle
                       label="Requests agent"
                       checked={row.requests.agent}
-                      disabled={row.envAdmin}
                       onChange={() => toggleApp(i, "requests", "agent")}
                     />
                   </td>
@@ -232,7 +217,6 @@ export function ManageAccessContent() {
                     <Toggle
                       label="HR admin"
                       checked={row.hr.admin}
-                      disabled={row.envAdmin}
                       onChange={() => toggleApp(i, "hr", "admin")}
                     />
                   </td>
@@ -240,7 +224,6 @@ export function ManageAccessContent() {
                     <Toggle
                       label="Payroll admin"
                       checked={row.payroll.admin}
-                      disabled={row.envAdmin}
                       onChange={() => toggleApp(i, "payroll", "admin")}
                     />
                   </td>
@@ -248,20 +231,17 @@ export function ManageAccessContent() {
                     <Toggle
                       label="Voc admin"
                       checked={row.voc.admin}
-                      disabled={row.envAdmin}
                       onChange={() => toggleApp(i, "voc", "admin")}
                     />
                   </td>
                   <td className="px-3 py-2">
-                    {!row.envAdmin && (
-                      <button
-                        type="button"
-                        onClick={() => removeRow(i)}
-                        className="text-xs font-medium text-red-600 hover:underline"
-                      >
-                        Remove
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => removeRow(i)}
+                      className="text-xs font-medium text-red-600 hover:underline"
+                    >
+                      Remove
+                    </button>
                   </td>
                 </tr>
               ))}

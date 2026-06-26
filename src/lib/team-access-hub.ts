@@ -10,19 +10,11 @@ export type InternalAccessUser = {
 export type AccessRow = {
   email: string;
   displayName: string;
-  envAdmin: boolean;
   requests: { agent: boolean };
   hr: { admin: boolean };
   payroll: { admin: boolean };
   voc: { admin: boolean };
 };
-
-function envAdminEmails(): string[] {
-  return (process.env.ADMIN_EMAILS ?? "")
-    .split(",")
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean);
-}
 
 function secret(): string | null {
   const s = process.env.TEAM_INTERNAL_ACCESS_SECRET?.trim();
@@ -53,29 +45,22 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T | null> 
   }
 }
 
-function emptyRow(email: string, envAdmin = false): AccessRow {
+function emptyRow(email: string): AccessRow {
   return {
     email,
     displayName: "",
-    envAdmin,
-    requests: { agent: envAdmin },
-    hr: { admin: envAdmin },
-    payroll: { admin: envAdmin },
-    voc: { admin: envAdmin },
+    requests: { agent: false },
+    hr: { admin: false },
+    payroll: { admin: false },
+    voc: { admin: false },
   };
 }
 
 export async function fetchAggregatedAccess(): Promise<{
   rows: AccessRow[];
-  envAdmins: string[];
   appErrors: string[];
 }> {
-  const envAdmins = envAdminEmails();
   const map = new Map<string, AccessRow>();
-  for (const email of envAdmins) {
-    map.set(email, emptyRow(email, true));
-  }
-
   const token = secret();
   const appErrors: string[] = [];
   const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
@@ -93,7 +78,7 @@ export async function fetchAggregatedAccess(): Promise<{
       }
       for (const email of data.admins) {
         const key = email.toLowerCase();
-        const row = map.get(key) ?? emptyRow(key, envAdmins.includes(key));
+        const row = map.get(key) ?? emptyRow(key);
         row.voc.admin = true;
         map.set(key, row);
       }
@@ -107,7 +92,7 @@ export async function fetchAggregatedAccess(): Promise<{
     }
     for (const u of data.users) {
       const key = u.email.toLowerCase();
-      const row = map.get(key) ?? emptyRow(key, envAdmins.includes(key));
+      const row = map.get(key) ?? emptyRow(key);
       if (u.displayName) row.displayName = u.displayName;
       if (app.id === "requests") {
         if (u.isAdmin) row.requests.agent = true;
@@ -121,11 +106,10 @@ export async function fetchAggregatedAccess(): Promise<{
   }
 
   const rows = Array.from(map.values()).sort((a, b) => a.email.localeCompare(b.email));
-  return { rows, envAdmins, appErrors };
+  return { rows, appErrors };
 }
 
 export async function saveAggregatedAccess(rows: AccessRow[]): Promise<{ appErrors: string[] }> {
-  const envSet = new Set(envAdminEmails());
   const token = secret();
   const appErrors: string[] = [];
   if (!token) {
@@ -136,9 +120,9 @@ export async function saveAggregatedAccess(rows: AccessRow[]): Promise<{ appErro
     "Content-Type": "application/json",
   };
 
-  const appOnly = rows.filter((r) => r.email.includes("@") && !envSet.has(r.email.toLowerCase()));
+  const validRows = rows.filter((r) => r.email.includes("@"));
 
-  const requestsUsers: InternalAccessUser[] = appOnly
+  const requestsUsers: InternalAccessUser[] = validRows
     .filter((r) => r.requests.agent)
     .map((r) => ({
       email: r.email,
@@ -147,7 +131,7 @@ export async function saveAggregatedAccess(rows: AccessRow[]): Promise<{ appErro
       isAdmin: true,
     }));
 
-  const hrUsers: InternalAccessUser[] = appOnly
+  const hrUsers: InternalAccessUser[] = validRows
     .filter((r) => r.hr.admin)
     .map((r) => ({
       email: r.email,
@@ -156,7 +140,7 @@ export async function saveAggregatedAccess(rows: AccessRow[]): Promise<{ appErro
       isAdmin: true,
     }));
 
-  const payrollUsers: InternalAccessUser[] = appOnly
+  const payrollUsers: InternalAccessUser[] = validRows
     .filter((r) => r.payroll.admin)
     .map((r) => ({
       email: r.email,
@@ -165,7 +149,7 @@ export async function saveAggregatedAccess(rows: AccessRow[]): Promise<{ appErro
       isAdmin: true,
     }));
 
-  const vocAdmins = appOnly.filter((r) => r.voc.admin).map((r) => r.email.toLowerCase());
+  const vocAdmins = validRows.filter((r) => r.voc.admin).map((r) => r.email.toLowerCase());
 
   const targets = appTargets();
   for (const app of targets) {
@@ -192,5 +176,3 @@ export async function saveAggregatedAccess(rows: AccessRow[]): Promise<{ appErro
 
   return { appErrors };
 }
-
-export { envAdminEmails };

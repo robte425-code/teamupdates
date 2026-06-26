@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ElementType, type ReactNode } from "react";
+import { Fragment, useEffect, useRef, useState, type ElementType } from "react";
 import type { AdminNavSection } from "../nav-config";
 
 function Chevron({ open }: { open: boolean }) {
@@ -62,7 +62,7 @@ export function AdminNavDropdown({
         <ul
           role="menu"
           aria-label="Admin"
-          className="absolute right-0 top-full z-30 mt-1 min-w-[12rem] rounded-lg border border-stone-200 bg-white py-1 shadow-lg"
+          className="absolute left-0 top-full z-30 mt-1 min-w-[12rem] rounded-lg border border-stone-200 bg-white py-1 shadow-lg"
         >
           {sections.map((section, si) => (
             <li key={section.label} role="presentation">
@@ -79,10 +79,10 @@ export function AdminNavDropdown({
                     ? "bg-stone-100 text-stone-900"
                     : "text-stone-600 hover:bg-stone-50 hover:text-stone-900"
                 }`;
-                if (item.external) {
-                  return (
+                const itemKey = `${item.href}-${item.label}`;
+                const menuItem =
+                  item.external ? (
                     <a
-                      key={item.href}
                       role="menuitem"
                       href={item.href}
                       className={className}
@@ -90,18 +90,23 @@ export function AdminNavDropdown({
                     >
                       {item.label}
                     </a>
+                  ) : (
+                    <Link
+                      role="menuitem"
+                      href={item.href}
+                      className={className}
+                      onClick={() => setOpen(false)}
+                    >
+                      {item.label}
+                    </Link>
                   );
-                }
                 return (
-                  <Link
-                    key={item.href}
-                    role="menuitem"
-                    href={item.href}
-                    className={className}
-                    onClick={() => setOpen(false)}
-                  >
-                    {item.label}
-                  </Link>
+                  <Fragment key={itemKey}>
+                    {item.separatorBefore ? (
+                      <div role="separator" className="my-1 border-t border-stone-200" />
+                    ) : null}
+                    {menuItem}
+                  </Fragment>
                 );
               })}
             </li>
