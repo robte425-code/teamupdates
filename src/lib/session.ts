@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { readImpersonateEmail } from "@/lib/impersonation";
+import { isAdminEmail } from "@/lib/admins";
 
 export interface SessionUser {
   id: string;
@@ -41,11 +42,12 @@ export async function getEffectiveSessionUser(): Promise<SessionUser | null> {
   if (!target || target === real.email.toLowerCase()) return real;
 
   const name = await lookupDisplayName(target);
+  const role = (await isAdminEmail(target)) ? "admin" : "member";
   return {
     id: `impersonated:${target}`,
     email: target,
     name,
-    role: "member",
+    role,
   };
 }
 
@@ -62,7 +64,7 @@ export async function requireRealAdmin(): Promise<SessionUser | null> {
   return real;
 }
 
-/** Signed-in user for read APIs; admins viewing-as get member role. */
+/** Signed-in user for read APIs; reflects the impersonated user's role when viewing as someone else. */
 export async function requireAuth(): Promise<SessionUser | null> {
   return getEffectiveSessionUser();
 }

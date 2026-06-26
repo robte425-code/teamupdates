@@ -22,7 +22,7 @@ export function Header() {
   const { impersonating, real, effective, target } = useImpersonation();
 
   const isRealAdmin = (session?.user as { role?: string } | undefined)?.role === "admin";
-  const showAdminControls = isRealAdmin && !impersonating;
+  const isEffectiveAdmin = effective.role === "admin";
 
   const userNav = updatesUserNav(pathname);
   const adminSections = updatesAdminSections(pathname);
@@ -61,7 +61,7 @@ export function Header() {
               )}
             </div>
             <div className="flex items-center gap-3 self-end sm:self-center">
-              {showAdminControls && (
+              {isRealAdmin && !impersonating && (
                 <ViewAsDropdown
                   realEmail={real.email}
                   realName={real.name}
@@ -69,7 +69,7 @@ export function Header() {
                   isImpersonating={impersonating}
                 />
               )}
-              {showAdminControls && (
+              {isEffectiveAdmin && (
                 <AdminNavDropdown
                   sections={adminSections}
                   pathname={pathname}
