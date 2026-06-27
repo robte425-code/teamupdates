@@ -223,7 +223,7 @@ export function requestsAdminSections(pathname: string, env?: NodeJS.ProcessEnv)
 export function payrollAdminSections(env?: NodeJS.ProcessEnv): AdminNavSection[] {
   return [
     {
-      label: "Payroll",
+      label: "Admin",
       items: [
         { href: "/my-leave.html", label: "My balances" },
         { href: "/rates.html", label: "Employee pay rates" },
