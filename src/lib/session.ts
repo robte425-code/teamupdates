@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { readImpersonateEmail } from "@/lib/impersonation";
 import { isAdminEmail } from "@/lib/admins";
+import { isSuperAdminEmail } from "@/lib/super-admins";
 
 export interface SessionUser {
   id: string;
@@ -59,6 +60,15 @@ export function isAdmin(user: SessionUser | null): boolean {
 export async function requireRealAdmin(): Promise<SessionUser | null> {
   const real = await getRealSessionUser();
   if (!real || real.role !== "admin") return null;
+  const target = readImpersonateEmail();
+  if (target && target !== real.email.toLowerCase()) return null;
+  return real;
+}
+
+/** Super admin who is not currently viewing as another user (Access hub, Backup hub). */
+export async function requireRealSuperAdmin(): Promise<SessionUser | null> {
+  const real = await getRealSessionUser();
+  if (!real || !(await isSuperAdminEmail(real.email))) return null;
   const target = readImpersonateEmail();
   if (target && target !== real.email.toLowerCase()) return null;
   return real;

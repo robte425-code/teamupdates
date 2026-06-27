@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireRealAdmin } from "@/lib/session";
+import { requireRealSuperAdmin } from "@/lib/session";
 import {
   clearPreRestoreSnapshot,
   executeBackupSql,
@@ -13,7 +13,7 @@ import {
 const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
 
 async function requireAdmin() {
-  const admin = await requireRealAdmin();
+  const admin = await requireRealSuperAdmin();
   if (!admin) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }

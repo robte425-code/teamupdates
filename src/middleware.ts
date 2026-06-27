@@ -9,7 +9,9 @@ export default withAuth(
     if (path.startsWith("/manage") && req.cookies.get(IMPERSONATE_COOKIE)?.value) {
       return NextResponse.redirect(new URL("/", req.url));
     }
-    return NextResponse.next();
+    const requestHeaders = new Headers(req.headers);
+    requestHeaders.set("x-pathname", path);
+    return NextResponse.next({ request: { headers: requestHeaders } });
   },
   {
     callbacks: {

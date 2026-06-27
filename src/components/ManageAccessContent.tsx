@@ -34,6 +34,7 @@ function emptyEditableRow(): AccessRow {
   return {
     email: "",
     displayName: "",
+    superAdmin: false,
     updates: { admin: false },
     requests: { agent: false },
     hr: { admin: false },
@@ -80,13 +81,22 @@ export function ManageAccessContent() {
 
   function toggleApp(
     index: number,
-    app: "updates" | "requests" | "hr" | "payroll" | "voc",
+    app: "superAdmin" | "updates" | "requests" | "hr" | "payroll" | "voc",
     field: string
   ) {
     const row = rows[index];
     if (!row) return;
     const next = { ...row };
-    if (app === "updates") {
+    if (app === "superAdmin") {
+      next.superAdmin = !next.superAdmin;
+      if (next.superAdmin) {
+        next.updates = { admin: true };
+        next.requests = { agent: true };
+        next.hr = { admin: true };
+        next.payroll = { admin: true };
+        next.voc = { admin: true };
+      }
+    } else if (app === "updates") {
       next.updates = { admin: !next.updates.admin };
     } else if (app === "requests") {
       next.requests = {
@@ -145,10 +155,11 @@ export function ManageAccessContent() {
       <div>
         <h1 className="text-2xl font-semibold text-stone-900">Access hub</h1>
         <p className="mt-2 max-w-3xl text-sm text-stone-600">
-          Grant admin/agent access across TEAM apps. Anyone on your allowed email domain can sign in
-          as an employee and submit requests; use this page for agent and admin privileges only.
-          Each column reflects the current admin list stored in that app — reload to refresh, save to
-          push changes.
+          Grant super-admin, app admin, and agent access across TEAM apps. Super admins receive
+          admin access in every app automatically and can use Access hub and Backup hub. Anyone on
+          your allowed email domain can sign in as an employee; use this page for elevated access
+          only. Each app column reflects that app&apos;s stored admin list — reload to refresh,
+          save to push changes.
         </p>
       </div>
 
@@ -196,6 +207,7 @@ export function ManageAccessContent() {
             <thead className="border-b border-stone-200 bg-stone-50 text-xs uppercase tracking-wide text-stone-500">
               <tr>
                 <th className="px-3 py-2">Email</th>
+                <th className="px-3 py-2">Super admin</th>
                 <th className="px-3 py-2">Updates admin</th>
                 <th className="px-3 py-2">Requests agent</th>
                 <th className="px-3 py-2">HR admin</th>
@@ -209,6 +221,13 @@ export function ManageAccessContent() {
                 <tr key={row.email} className="border-b border-stone-100">
                   <td className="px-3 py-2">
                     <div className="font-medium text-stone-900">{row.email}</div>
+                  </td>
+                  <td className="px-3 py-2">
+                    <Toggle
+                      label="Super admin"
+                      checked={row.superAdmin}
+                      onChange={() => toggleApp(i, "superAdmin", "enabled")}
+                    />
                   </td>
                   <td className="px-3 py-2">
                     <Toggle

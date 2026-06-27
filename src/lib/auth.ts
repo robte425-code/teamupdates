@@ -1,6 +1,7 @@
 import { NextAuthOptions } from "next-auth";
 import AzureADProvider from "next-auth/providers/azure-ad";
 import { isAdminEmail } from "@/lib/admins";
+import { isSuperAdminEmail } from "@/lib/super-admins";
 
 const clientId = process.env.AZURE_AD_CLIENT_ID;
 const clientSecret = process.env.AZURE_AD_CLIENT_SECRET;
@@ -65,7 +66,9 @@ export const authOptions: NextAuthOptions = {
         token.name = user.name ?? token.name;
       }
       if (token.email) {
-        token.role = (await isAdminEmail(token.email as string)) ? "admin" : "member";
+        const email = token.email as string;
+        token.role = (await isAdminEmail(email)) ? "admin" : "member";
+        token.superAdmin = await isSuperAdminEmail(email);
       }
       return token;
     },
@@ -74,11 +77,13 @@ export const authOptions: NextAuthOptions = {
         const u = session.user as {
           id?: string;
           role?: string;
+          superAdmin?: boolean;
           name?: string | null;
           email?: string | null;
         };
         u.id = (token.id ?? token.sub) as string;
         u.role = (token.role as string) ?? "member";
+        u.superAdmin = token.superAdmin === true;
         u.name = (token.name as string | null | undefined) ?? u.name ?? null;
         u.email = (token.email as string | null | undefined) ?? u.email ?? null;
       }

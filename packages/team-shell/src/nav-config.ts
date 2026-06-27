@@ -87,18 +87,6 @@ function appendPlatformHub(
   };
 }
 
-function withPlatformHubSections(
-  sections: AdminNavSection[],
-  env?: NodeJS.ProcessEnv,
-  onUpdatesApp = false
-): AdminNavSection[] {
-  if (sections.length === 0) return sections;
-  const out = [...sections];
-  const last = out.length - 1;
-  out[last] = appendPlatformHub(out[last]!, env, onUpdatesApp);
-  return out;
-}
-
 /** First nav item — TEAM Updates home. Internal on the Updates app, external elsewhere. */
 export function dashboardNavLink(
   env?: NodeJS.ProcessEnv,
@@ -195,101 +183,92 @@ export function vocHotlineUserNav(pathname: string, env?: NodeJS.ProcessEnv): Us
   ];
 }
 
-export function updatesAdminSections(_pathname: string): AdminNavSection[] {
-  return [
-    appendPlatformHub(
-      {
-        label: "Admin",
-        items: [
-          { href: "/", label: "Home", isActive: (p) => p === "/" },
-          { href: "/manage/updates", label: "Updates", isActive: (p) => p.startsWith("/manage/updates") },
-          { href: "/manage/key-dates", label: "Key dates", isActive: (p) => p.startsWith("/manage/key-dates") },
-          { href: "/manage/ticker", label: "Ticker", isActive: (p) => p.startsWith("/manage/ticker") },
-          { href: "/manage/reminders", label: "Reminders", isActive: (p) => p.startsWith("/manage/reminders") },
-          { href: "/manage/popup", label: "Popup window", isActive: (p) => p.startsWith("/manage/popup") },
-          { href: "/manage/usage-stats", label: "Usage stats", isActive: (p) => p.startsWith("/manage/usage-stats") },
-        ],
-      },
-      undefined,
-      true
-    ),
+export function updatesAdminSections(
+  _pathname: string,
+  options?: { includePlatformHub?: boolean; includeAppAdmin?: boolean }
+): AdminNavSection[] {
+  const appItems: AdminNavItem[] = [
+    { href: "/", label: "Home", isActive: (p) => p === "/" },
+    { href: "/manage/updates", label: "Updates", isActive: (p) => p.startsWith("/manage/updates") },
+    { href: "/manage/key-dates", label: "Key dates", isActive: (p) => p.startsWith("/manage/key-dates") },
+    { href: "/manage/ticker", label: "Ticker", isActive: (p) => p.startsWith("/manage/ticker") },
+    { href: "/manage/reminders", label: "Reminders", isActive: (p) => p.startsWith("/manage/reminders") },
+    { href: "/manage/popup", label: "Popup window", isActive: (p) => p.startsWith("/manage/popup") },
+    { href: "/manage/usage-stats", label: "Usage stats", isActive: (p) => p.startsWith("/manage/usage-stats") },
   ];
+
+  const includeAppAdmin = options?.includeAppAdmin !== false;
+  let section: AdminNavSection = {
+    label: "Admin",
+    items: includeAppAdmin ? appItems : [],
+  };
+
+  if (options?.includePlatformHub) {
+    section = appendPlatformHub(section, undefined, true);
+  }
+
+  if (section.items.length === 0) return [];
+  return [section];
 }
 
 export function requestsAdminSections(pathname: string, env?: NodeJS.ProcessEnv): AdminNavSection[] {
-  return withPlatformHubSections(
-    [
-      {
-        label: "Requests",
-        items: [{ href: "/admin", label: "Settings", isActive: (p) => p.startsWith("/admin") }],
-      },
-    ],
-    env,
-    false
-  );
+  return [
+    {
+      label: "Requests",
+      items: [{ href: "/admin", label: "Settings", isActive: (p) => p.startsWith("/admin") }],
+    },
+  ];
 }
 
 export function payrollAdminSections(env?: NodeJS.ProcessEnv): AdminNavSection[] {
-  return withPlatformHubSections(
-    [
-      {
-        label: "Payroll",
-        items: [
-          { href: "/my-leave.html", label: "My balances" },
-          { href: "/rates.html", label: "Employee pay rates" },
-          { href: "/leave.html", label: "PTO/Sick management" },
-          { href: "/access.html", label: "Access management" },
-          { href: "/index.html", label: "Analyze spreadsheet" },
-        ],
-      },
-    ],
-    env,
-    false
-  );
+  return [
+    {
+      label: "Payroll",
+      items: [
+        { href: "/my-leave.html", label: "My balances" },
+        { href: "/rates.html", label: "Employee pay rates" },
+        { href: "/leave.html", label: "PTO/Sick management" },
+        { href: "/access.html", label: "Access management" },
+        { href: "/index.html", label: "Analyze spreadsheet" },
+      ],
+    },
+  ];
 }
 
 export function hrAdminSections(pathname: string, env?: NodeJS.ProcessEnv): AdminNavSection[] {
-  return withPlatformHubSections(
-    [
-      {
-        label: "Admin",
-        items: [
-          { href: "/admin/employees", label: "Employees", isActive: (p) => p.startsWith("/admin/employees") },
-          {
-            href: "/admin/onboarding",
-            label: "Onboarding templates",
-            isActive: (p) => p.startsWith("/admin/onboarding"),
-          },
-          { href: "/admin/performance", label: "Review cycles", isActive: (p) => p.startsWith("/admin/performance") },
-          {
-            href: "/admin/acknowledgements",
-            label: "Acknowledgements",
-            isActive: (p) => p.startsWith("/admin/acknowledgements"),
-          },
-        ],
-      },
-    ],
-    env,
-    false
-  );
+  return [
+    {
+      label: "Admin",
+      items: [
+        { href: "/admin/employees", label: "Employees", isActive: (p) => p.startsWith("/admin/employees") },
+        {
+          href: "/admin/onboarding",
+          label: "Onboarding templates",
+          isActive: (p) => p.startsWith("/admin/onboarding"),
+        },
+        { href: "/admin/performance", label: "Review cycles", isActive: (p) => p.startsWith("/admin/performance") },
+        {
+          href: "/admin/acknowledgements",
+          label: "Acknowledgements",
+          isActive: (p) => p.startsWith("/admin/acknowledgements"),
+        },
+      ],
+    },
+  ];
 }
 
 export function vocHotlineAdminSections(pathname: string, env?: NodeJS.ProcessEnv): AdminNavSection[] {
-  return withPlatformHubSections(
-    [
-      {
-        label: "Admin",
-        items: [
-          { href: "/", label: "Voc hotline", isActive: (p) => p === "/" || p.startsWith("/chat") },
-          { href: "/admin/usage", label: "Usage log", isActive: (p) => p.startsWith("/admin/usage") },
-          { href: "/admin/notes", label: "Best practices", isActive: (p) => p.startsWith("/admin/notes") },
-          { href: "/admin/terminology", label: "Terminology", isActive: (p) => p.startsWith("/admin/terminology") },
-          { href: "/admin/pages", label: "Page ingestion", isActive: (p) => p.startsWith("/admin/pages") },
-          { href: "/admin/admins", label: "Admin settings", isActive: (p) => p.startsWith("/admin/admins") },
-        ],
-      },
-    ],
-    env,
-    false
-  );
+  return [
+    {
+      label: "Admin",
+      items: [
+        { href: "/", label: "Voc hotline", isActive: (p) => p === "/" || p.startsWith("/chat") },
+        { href: "/admin/usage", label: "Usage log", isActive: (p) => p.startsWith("/admin/usage") },
+        { href: "/admin/notes", label: "Best practices", isActive: (p) => p.startsWith("/admin/notes") },
+        { href: "/admin/terminology", label: "Terminology", isActive: (p) => p.startsWith("/admin/terminology") },
+        { href: "/admin/pages", label: "Page ingestion", isActive: (p) => p.startsWith("/admin/pages") },
+        { href: "/admin/admins", label: "Admin settings", isActive: (p) => p.startsWith("/admin/admins") },
+      ],
+    },
+  ];
 }

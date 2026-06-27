@@ -22,10 +22,17 @@ export function Header() {
   const { impersonating, real, effective, target } = useImpersonation();
 
   const isRealAdmin = (session?.user as { role?: string } | undefined)?.role === "admin";
+  const isRealSuperAdmin =
+    (session?.user as { superAdmin?: boolean } | undefined)?.superAdmin === true;
   const isEffectiveAdmin = effective.role === "admin";
 
   const userNav = updatesUserNav(pathname);
-  const adminSections = updatesAdminSections(pathname);
+  const adminSections = updatesAdminSections(pathname, {
+    includeAppAdmin: isEffectiveAdmin,
+    includePlatformHub: isRealSuperAdmin && !impersonating,
+  });
+  const showAdminNav =
+    adminSections.length > 0 && (isEffectiveAdmin || (isRealSuperAdmin && !impersonating));
 
   const NextLink = Link as ElementType;
 
@@ -69,7 +76,7 @@ export function Header() {
                   isImpersonating={impersonating}
                 />
               )}
-              {isEffectiveAdmin && (
+              {showAdminNav && (
                 <AdminNavDropdown
                   sections={adminSections}
                   pathname={pathname}

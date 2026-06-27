@@ -1,4 +1,6 @@
 import { teamUrls } from "@team/shell/nav-config";
+import { listSuperAdminEmails, replaceSuperAdminsList } from "@/lib/super-admins";
+import { ensureSuperAdminsAreUpdatesAdmins } from "@/lib/super-admin-app-access";
 
 export type InternalAccessUser = {
   email: string;
@@ -10,12 +12,30 @@ export type InternalAccessUser = {
 export type AccessRow = {
   email: string;
   displayName: string;
+  superAdmin: boolean;
   updates: { admin: boolean };
   requests: { agent: boolean };
   hr: { admin: boolean };
   payroll: { admin: boolean };
   voc: { admin: boolean };
 };
+
+/** Super admins implicitly have admin/agent access in every TEAM app. */
+export function applySuperAdminRowAccess(row: AccessRow): AccessRow {
+  if (!row.superAdmin) return row;
+  return {
+    ...row,
+    updates: { admin: true },
+    requests: { agent: true },
+    hr: { admin: true },
+    payroll: { admin: true },
+    voc: { admin: true },
+  };
+}
+
+export function applySuperAdminRowAccessList(rows: AccessRow[]): AccessRow[] {
+  return rows.map(applySuperAdminRowAccess);
+}
 
 function secret(): string | null {
   const s = process.env.TEAM_INTERNAL_ACCESS_SECRET?.trim();
@@ -51,6 +71,7 @@ function emptyRow(email: string): AccessRow {
   return {
     email,
     displayName: "",
+    superAdmin: false,
     updates: { admin: false },
     requests: { agent: false },
     hr: { admin: false },
@@ -109,7 +130,16 @@ export async function fetchAggregatedAccess(): Promise<{
     }
   }
 
-  const rows = Array.from(map.values()).sort((a, b) => a.email.localeCompare(b.email));
+  for (const email of await listSuperAdminEmails()) {
+    const key = email.toLowerCase();
+    const row = map.get(key) ?? emptyRow(key);
+    row.superAdmin = true;
+    map.set(key, applySuperAdminRowAccess(row));
+  }
+
+  const rows = Array.from(map.values())
+    .map(applySuperAdminRowAccess)
+    .sort((a, b) => a.email.localeCompare(b.email));
   return { rows, appErrors };
 }
 
@@ -119,12 +149,23 @@ export async function saveAggregatedAccess(rows: AccessRow[]): Promise<{ appErro
   if (!token) {
     return { appErrors: ["TEAM_INTERNAL_ACCESS_SECRET not configured on Updates"] };
   }
+
+  const validRows = applySuperAdminRowAccessList(rows.filter((r) => r.email.includes("@")));
+
+  const superAdmins = validRows.filter((r) => r.superAdmin).map((r) => r.email.toLowerCase());
+  try {
+    await replaceSuperAdminsList(superAdmins);
+    await ensureSuperAdminsAreUpdatesAdmins();
+  } catch (e) {
+    return {
+      appErrors: [e instanceof Error ? e.message : "Could not save super admins"],
+    };
+  }
+
   const headers = {
     Authorization: `Bearer ${token}`,
     "Content-Type": "application/json",
   };
-
-  const validRows = rows.filter((r) => r.email.includes("@"));
 
   const updatesAdmins = validRows.filter((r) => r.updates.admin).map((r) => r.email.toLowerCase());
 

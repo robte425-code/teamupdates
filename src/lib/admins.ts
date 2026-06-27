@@ -9,15 +9,15 @@ export function envAdminEmails(): string[] {
     .filter(Boolean);
 }
 
-/** Authoritative admin check — DB only, evaluated live on each request. */
+/** Authoritative admin check — DB only, evaluated live on each request. Super admins included. */
 export async function isAdminEmail(email: string | null | undefined): Promise<boolean> {
   if (!email) return false;
   const normalized = email.trim().toLowerCase();
-  const row = await prisma.appAdmin.findUnique({
-    where: { email: normalized },
-    select: { email: true },
-  });
-  return Boolean(row);
+  const [admin, superAdmin] = await Promise.all([
+    prisma.appAdmin.findUnique({ where: { email: normalized }, select: { email: true } }),
+    prisma.appSuperAdmin.findUnique({ where: { email: normalized }, select: { email: true } }),
+  ]);
+  return Boolean(admin || superAdmin);
 }
 
 export async function listAdminEmails(): Promise<string[]> {
@@ -53,6 +53,13 @@ async function addAdmin(email: string, addedBy: string | null): Promise<void> {
     create: { email: e, addedBy },
     update: {},
   });
+}
+
+/** Add or keep admins without removing others (e.g. super-admin sync). */
+export async function mergeAdmins(emails: string[], addedBy: string): Promise<void> {
+  for (const email of emails) {
+    await addAdmin(email, addedBy);
+  }
 }
 
 /** Replace the full admin list synced from the Access hub. */

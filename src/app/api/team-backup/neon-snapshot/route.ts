@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAppNeonSnapshot } from "@/lib/neonBackupStatus";
 import { isNeonApiConfigured } from "@/lib/neonApi";
-import { requireRealAdmin } from "@/lib/session";
+import { requireRealSuperAdmin } from "@/lib/session";
 import type { TeamBackupAppId } from "@/lib/teamBackupApps";
 
 export const dynamic = "force-dynamic";
@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 const APP_IDS = new Set<TeamBackupAppId>(["dashboard", "requests", "voc", "payroll", "hr"]);
 
 export async function POST(req: Request) {
-  const admin = await requireRealAdmin();
+  const admin = await requireRealSuperAdmin();
   if (!admin) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }

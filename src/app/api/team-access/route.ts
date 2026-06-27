@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireRealAdmin } from "@/lib/session";
+import { requireRealSuperAdmin } from "@/lib/session";
 import { fetchAggregatedAccess, saveAggregatedAccess, type AccessRow } from "@/lib/team-access-hub";
 
 export const dynamic = "force-dynamic";
 
-async function requireAdmin() {
-  return requireRealAdmin();
+async function requireSuperAdmin() {
+  return requireRealSuperAdmin();
 }
 
 export async function GET() {
-  if (!(await requireAdmin())) {
+  if (!(await requireSuperAdmin())) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   const data = await fetchAggregatedAccess();
@@ -17,7 +17,7 @@ export async function GET() {
 }
 
 export async function PUT(req: NextRequest) {
-  if (!(await requireAdmin())) {
+  if (!(await requireSuperAdmin())) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   const body = (await req.json().catch(() => ({}))) as { rows?: AccessRow[] };

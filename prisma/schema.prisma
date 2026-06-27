@@ -149,8 +149,15 @@ model PopupDismissal {
   @@unique([userEmail, popupMessageId])
 }
 
-/// Site admins for Updates (Manage, Access hub, etc.). Source of truth after bootstrap.
+/// Site admins for Updates app features (manage updates, key dates, etc.). Not platform hub access.
 model AppAdmin {
+  email     String   @id
+  addedBy   String?
+  createdAt DateTime @default(now())
+}
+
+/// Platform super admins — Access hub and Backup hub only. Managed via Access hub.
+model AppSuperAdmin {
   email     String   @id
   addedBy   String?
   createdAt DateTime @default(now())

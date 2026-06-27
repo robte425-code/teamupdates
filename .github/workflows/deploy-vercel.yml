@@ -61,6 +61,8 @@ jobs:
             fi
           done
           npx tsx scripts/import-env-admins-once.ts || echo "Admin import skipped."
+          npx tsx scripts/import-env-super-admins-once.ts || echo "Super admin import skipped."
+          npx tsx scripts/sync-super-admin-app-access.ts || echo "Super admin app sync skipped."
 
       - name: Build (Vercel)
         run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}

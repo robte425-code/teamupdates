@@ -1,7 +1,10 @@
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { readImpersonateEmail } from "@/lib/impersonation";
+import { getRealSessionUser } from "@/lib/session";
+import { isSuperAdminEmail } from "@/lib/super-admins";
 import { Header } from "@/components/Header";
 
 export default async function ManageLayout({
@@ -12,8 +15,18 @@ export default async function ManageLayout({
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login");
   if (readImpersonateEmail()) redirect("/");
-  const isAdmin = (session.user as { role?: string }).role === "admin";
-  if (!isAdmin) redirect("/");
+
+  const pathname = headers().get("x-pathname") ?? "";
+  const isPlatformHub =
+    pathname.startsWith("/manage/access") || pathname.startsWith("/manage/backup");
+
+  if (isPlatformHub) {
+    const real = await getRealSessionUser();
+    if (!real || !(await isSuperAdminEmail(real.email))) redirect("/");
+  } else {
+    const isAdmin = (session.user as { role?: string }).role === "admin";
+    if (!isAdmin) redirect("/");
+  }
 
   return (
     <div className="min-h-screen">
@@ -22,4 +35,3 @@ export default async function ManageLayout({
     </div>
   );
 }
-

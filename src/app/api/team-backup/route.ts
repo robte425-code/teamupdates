@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireRealAdmin } from "@/lib/session";
+import { requireRealSuperAdmin } from "@/lib/session";
 import { listTeamBackups, runTeamBackup } from "@/lib/team-backup-hub";
 import type { TeamBackupAppId } from "@/lib/teamBackupApps";
 
@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 async function requireAdmin() {
-  const admin = await requireRealAdmin();
+  const admin = await requireRealSuperAdmin();
   if (!admin) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
