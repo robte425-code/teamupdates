@@ -45,6 +45,9 @@ jobs:
       - name: Production env & database prep
         run: |
           vercel env pull .env --environment=production --yes --token=${{ secrets.VERCEL_TOKEN }}
+          set -a
+          source .env
+          set +a
           # Migrate outside `npm run build` to avoid Neon advisory-lock timeouts during
           # vercel build. Retry with backoff; do not block deploy if schema is current.
           for attempt in 1 2 3 4 5; do
