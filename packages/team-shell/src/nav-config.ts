@@ -214,7 +214,7 @@ export function updatesAdminSections(
 export function requestsAdminSections(pathname: string, env?: NodeJS.ProcessEnv): AdminNavSection[] {
   return [
     {
-      label: "Requests",
+      label: "Admin",
       items: [{ href: "/admin", label: "Settings", isActive: (p) => p.startsWith("/admin") }],
     },
   ];
