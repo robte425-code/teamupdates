@@ -40,7 +40,7 @@ export function teamUrls(env: NodeJS.ProcessEnv = process.env) {
   };
 }
 
-/** Access hub + Backup hub — always last in admin menus (Updates internal, external elsewhere). */
+/** Access hub + Backup hub — Updates app only; gated by includePlatformHub (super admin). */
 export function platformHubAdminItems(
   env?: NodeJS.ProcessEnv,
   onUpdatesApp = false
