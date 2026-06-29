@@ -20,14 +20,23 @@ model User {
 }
 
 model Update {
-  id              String   @id @default(cuid())
-  date            DateTime // when the item was posted
+  id              String    @id @default(cuid())
+  date            DateTime  // when the item was posted
   title           String
   body            String
-  archived        Boolean  @default(false)
-  createdAt       DateTime @default(now())
+  archived        Boolean   @default(false)
+  createdAt       DateTime  @default(now())
   createdByName   String?
   createdByEmail  String?
+  contentUpdatedAt DateTime?
+  updatedByName   String?
+  updatedByEmail  String?
+}
+
+/// Singleton row id `"default"` — Updated badge window (days after content edit).
+model UpdateBadgeSettings {
+  id               String @id @default("default")
+  updatedBadgeDays Int    @default(4)
 }
 
 model KeyDate {

@@ -14,6 +14,9 @@ export type Update = {
   body: string;
   createdByName?: string | null;
   createdByEmail?: string | null;
+  contentUpdatedAt?: string | null;
+  updatedByName?: string | null;
+  updatedByEmail?: string | null;
 };
 
 function matchesSearch(item: Update, query: string): boolean {

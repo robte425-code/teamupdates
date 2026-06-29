@@ -6,6 +6,8 @@ import { UpdateForm } from "./UpdateForm";
 import { BodyWithLinks } from "./BodyWithLinks";
 import { formatDateInPST } from "@/lib/formatKeyDate";
 import { CreatedByAdminNote } from "./CreatedByAdminNote";
+import { UpdatedAdminBadge } from "./UpdatedAdminBadge";
+import { useUpdateBadgeSettings } from "@/hooks/useUpdateBadgeSettings";
 import { stripRichTextMarkup } from "@/lib/richText";
 
 export function UpdateItem({
@@ -24,6 +26,7 @@ export function UpdateItem({
 }) {
   const [editing, setEditing] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const { updatedBadgeDays } = useUpdateBadgeSettings();
 
   async function handleDelete() {
     if (!confirm("Delete this update?")) return;
@@ -62,6 +65,12 @@ export function UpdateItem({
   return (
     <li className="group relative overflow-hidden rounded-xl border border-stone-200/80 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
       <div className={`w-full ${isAdmin ? "mb-12" : ""}`}>
+        <UpdatedAdminBadge
+          updatedAt={item.contentUpdatedAt}
+          name={item.updatedByName}
+          email={item.updatedByEmail}
+          updatedBadgeDays={updatedBadgeDays}
+        />
         <div className="flex items-baseline justify-between gap-3">
           <h3 className="min-w-0 flex-1 font-semibold text-stone-900">
             <BodyWithLinks text={item.title} preLine={false} />
