@@ -5,7 +5,7 @@ export const BACKUP_HEADER = "-- TEAMVOC_DB_BACKUP_V1";
 export const PRE_RESTORE_SNAPSHOT_ID = "latest";
 
 const DATA_TABLES_TRUNCATE =
-  'public."PageVisit", public."PhoneBookEntry", public."BirthdayEntry", public."ReminderRecipient", public."ReminderSettings", public."TickerItem", public."TickerSettings", public."UpdateBadgeSettings", public."KeyDateBadgeSettings", public."KeyDate", public."Update", public."PopupDismissal", public."PopupSettings", public."PopupMessage", public."User"';
+  'public."PageVisit", public."PhoneBookEntry", public."BirthdayEntry", public."ReminderRecipient", public."ReminderSettings", public."TickerItem", public."TickerSettings", public."KeyDateBadgeSettings", public."KeyDate", public."Update", public."PopupDismissal", public."PopupSettings", public."PopupMessage", public."User"';
 
 function sqlString(value: string): string {
   return `'${value.replace(/'/g, "''")}'`;
@@ -39,7 +39,6 @@ export async function generateBackupSql(): Promise<string> {
     updates,
     keyDates,
     keyDateBadgeSettings,
-    updateBadgeSettings,
     tickerSettings,
     tickerItems,
     birthdayEntries,
@@ -55,7 +54,6 @@ export async function generateBackupSql(): Promise<string> {
     prisma.update.findMany({ orderBy: { createdAt: "asc" } }),
     prisma.keyDate.findMany({ orderBy: { createdAt: "asc" } }),
     prisma.keyDateBadgeSettings.findMany(),
-    prisma.updateBadgeSettings.findMany(),
     prisma.tickerSettings.findMany(),
     prisma.tickerItem.findMany({ orderBy: { createdAt: "asc" } }),
     prisma.birthdayEntry.findMany({ orderBy: [{ month: "asc" }, { day: "asc" }, { name: "asc" }] }),
@@ -88,6 +86,8 @@ export async function generateBackupSql(): Promise<string> {
         "contentUpdatedAt",
         "updatedByName",
         "updatedByEmail",
+        "showUpdatedPill",
+        "updatedPillDays",
       ],
       updates
     ),
@@ -106,13 +106,6 @@ export async function generateBackupSql(): Promise<string> {
         "createdByEmail",
       ],
       keyDates
-    ),
-    ...insertStatement(
-      'public."UpdateBadgeSettings"',
-      ["id", "updatedBadgeDays"],
-      updateBadgeSettings.length
-        ? updateBadgeSettings
-        : [{ id: "default", updatedBadgeDays: 4 }]
     ),
     ...insertStatement(
       'public."KeyDateBadgeSettings"',

@@ -553,7 +553,6 @@ async function main() {
     "Update",
     "KeyDate",
     "KeyDateBadgeSettings",
-    "UpdateBadgeSettings",
     "TickerSettings",
     "TickerItem",
     "BirthdayEntry",

@@ -31,12 +31,8 @@ model Update {
   contentUpdatedAt DateTime?
   updatedByName   String?
   updatedByEmail  String?
-}
-
-/// Singleton row id `"default"` — Updated badge window (days after content edit).
-model UpdateBadgeSettings {
-  id               String @id @default("default")
-  updatedBadgeDays Int    @default(4)
+  showUpdatedPill Boolean  @default(false)
+  updatedPillDays Int      @default(4)
 }
 
 model KeyDate {

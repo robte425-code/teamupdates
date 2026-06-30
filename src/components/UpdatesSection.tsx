@@ -17,6 +17,8 @@ export type Update = {
   contentUpdatedAt?: string | null;
   updatedByName?: string | null;
   updatedByEmail?: string | null;
+  showUpdatedPill?: boolean;
+  updatedPillDays?: number;
 };
 
 function matchesSearch(item: Update, query: string): boolean {

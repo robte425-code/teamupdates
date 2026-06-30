@@ -6,7 +6,7 @@ import { BodyWithLinks } from "./BodyWithLinks";
 import { formatDateInPST } from "@/lib/formatKeyDate";
 import { CreatedByAdminNote } from "./CreatedByAdminNote";
 import { UpdatedAdminBadge } from "./UpdatedAdminBadge";
-import { useUpdateBadgeSettings } from "@/hooks/useUpdateBadgeSettings";
+import { clampUpdatePillDays, UPDATE_PILL_DAYS_DEFAULT } from "@/lib/updateBadgeSettings";
 
 type Update = {
   id: string;
@@ -18,17 +18,75 @@ type Update = {
   contentUpdatedAt?: string | null;
   updatedByName?: string | null;
   updatedByEmail?: string | null;
+  showUpdatedPill?: boolean;
+  updatedPillDays?: number;
 };
+
+function UpdatePillControls({
+  item,
+  onSaved,
+}: {
+  item: Update;
+  onSaved: () => void;
+}) {
+  const [saving, setSaving] = useState(false);
+  const show = item.showUpdatedPill === true;
+  const days = item.updatedPillDays ?? UPDATE_PILL_DAYS_DEFAULT;
+  const [daysDraft, setDaysDraft] = useState(String(days));
+
+  useEffect(() => {
+    setDaysDraft(String(days));
+  }, [days, item.id]);
+
+  async function patchPillSettings(patch: { showUpdatedPill?: boolean; updatedPillDays?: number }) {
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/updates/${item.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+      });
+      if (res.ok) onSaved();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function blurDays() {
+    const next = clampUpdatePillDays(daysDraft, UPDATE_PILL_DAYS_DEFAULT);
+    setDaysDraft(String(next));
+    if (next !== days) void patchPillSettings({ updatedPillDays: next });
+  }
+
+  return (
+    <label className="mt-3 flex flex-wrap items-center gap-2 text-xs text-stone-600">
+      <input
+        type="checkbox"
+        checked={show}
+        disabled={saving}
+        onChange={(e) => void patchPillSettings({ showUpdatedPill: e.target.checked })}
+        className="h-4 w-4 rounded border-stone-300 text-emerald-600 focus:ring-emerald-500 disabled:opacity-50"
+      />
+      <span>Display update pill for</span>
+      <input
+        type="number"
+        min={1}
+        max={365}
+        value={daysDraft}
+        disabled={saving || !show}
+        onChange={(e) => setDaysDraft(e.target.value)}
+        onBlur={blurDays}
+        className="w-14 rounded-md border border-stone-300 bg-white px-1.5 py-1 text-xs text-stone-800 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-50"
+      />
+      <span>days</span>
+    </label>
+  );
+}
 
 export function ManageUpdatesContent() {
   const [items, setItems] = useState<Update[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const {
-    updatedBadgeDays,
-    setUpdatedBadgeDays,
-    loaded: badgeSettingsLoaded,
-  } = useUpdateBadgeSettings({ persistChanges: true });
 
   function refetch() {
     return fetch("/api/updates")
@@ -59,22 +117,6 @@ export function ManageUpdatesContent() {
   return (
     <div className="space-y-8">
       <section>
-        <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
-          <h2 className="text-lg font-semibold text-stone-800">Updates & reminders settings</h2>
-          <label className="flex items-center gap-2 text-xs text-stone-600">
-            <span>Show Updated badge for</span>
-            <input
-              type="number"
-              min={0}
-              max={365}
-              value={updatedBadgeDays}
-              disabled={!badgeSettingsLoaded}
-              onChange={(e) => setUpdatedBadgeDays(Number(e.target.value) || 0)}
-              className="w-14 rounded-md border border-stone-300 bg-white px-1.5 py-1 text-xs text-stone-800 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:opacity-50"
-            />
-            <span>days after edit</span>
-          </label>
-        </div>
         <h2 className="mb-3 text-lg font-semibold text-stone-800">Add new</h2>
         <UpdateForm onSaved={refetch} />
       </section>
@@ -101,8 +143,9 @@ export function ManageUpdatesContent() {
                   <>
                     <div className="mb-12 w-full">
                       <UpdatedAdminBadge
+                        showUpdatedPill={item.showUpdatedPill === true}
                         updatedAt={item.contentUpdatedAt}
-                        updatedBadgeDays={updatedBadgeDays}
+                        updatedPillDays={item.updatedPillDays ?? UPDATE_PILL_DAYS_DEFAULT}
                       />
                       <div className="flex items-baseline justify-between gap-3">
                         <h3 className="min-w-0 flex-1 font-medium text-stone-900">
@@ -116,6 +159,7 @@ export function ManageUpdatesContent() {
                       <p className="mt-2 w-full text-sm text-stone-600">
                         <BodyWithLinks text={item.body} preLine />
                       </p>
+                      <UpdatePillControls item={item} onSaved={refetch} />
                     </div>
                     <div className="absolute bottom-0 left-0 right-0 flex w-full justify-end border-t border-stone-200/60 bg-stone-50 px-4 py-3">
                       <div className="flex shrink-0 gap-1">
