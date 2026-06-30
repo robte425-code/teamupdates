@@ -102,8 +102,6 @@ export function ManageUpdatesContent() {
                     <div className="mb-12 w-full">
                       <UpdatedAdminBadge
                         updatedAt={item.contentUpdatedAt}
-                        name={item.updatedByName}
-                        email={item.updatedByEmail}
                         updatedBadgeDays={updatedBadgeDays}
                       />
                       <div className="flex items-baseline justify-between gap-3">
